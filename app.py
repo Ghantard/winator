@@ -304,10 +304,10 @@ st.sidebar.title("⚙️ Paramètres")
 
 bankroll = st.sidebar.number_input(
     "💶 Bankroll (€)",
-    min_value=10.0,
+    min_value=5.0,
     max_value=100_000.0,
-    value=500.0,
-    step=10.0,
+    value=20.0,
+    step=5.0,
     help="Capital total dédié aux paris. Toutes les mises en découlent.",
 )
 
@@ -317,14 +317,14 @@ max_exposure_pct = (
     st.sidebar.slider(
         "Exposition totale max (% bankroll)",
         1,
-        30,
-        10,
+        50,
+        25,
         step=1,
         help="Somme maximale engagée sur l'ensemble des paris du ticket.",
     )
     / 100
 )
-max_bets = st.sidebar.slider("Nombre de paris max", 1, 12, 5)
+max_bets = st.sidebar.slider("Nombre de paris max", 1, 12, 3)
 selection_mode = st.sidebar.radio(
     "Sélection",
     ["Valeur uniquement", "Meilleurs paris (liste toujours remplie)"],

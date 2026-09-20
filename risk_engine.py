@@ -42,6 +42,12 @@ KELLY_FRACTION = 0.25
 # Exposition totale par defaut, en part de bankroll
 DEFAULT_MAX_EXPOSURE = 0.10
 
+# Sur une petite bankroll, le minimum Winamax de 1 EUR depasse la part prevue
+# par le niveau de risque. On accepte de remonter la mise jusqu'a cette part
+# de bankroll ; au-dela, le pari est declare injouable plutot que de faire
+# passer un "risque tres faible" pour ce qu'il n'est pas.
+MAX_SINGLE_EXPOSURE = 0.20
+
 OUTCOME_KEYS = ("home", "draw", "away")
 
 DC_COVERAGE = {
@@ -50,6 +56,29 @@ DC_COVERAGE = {
     "12": ("home", "away"),
 }
 DC_LABELS = {"1x": "1X", "x2": "X2", "12": "12"}
+
+
+def _stake_for_level(bankroll: float, level: int) -> tuple[float, list[str]]:
+    """Mise du niveau, relevee au minimum Winamax si la bankroll est petite."""
+    target = _floor_cents(bankroll * PCT_BY_LEVEL[level])
+    if target >= MIN_STAKE:
+        return target, []
+    ceiling = bankroll * MAX_SINGLE_EXPOSURE
+    if MIN_STAKE <= ceiling:
+        pct = MIN_STAKE / bankroll * 100 if bankroll else 0
+        return MIN_STAKE, [
+            f"Bankroll trop petite pour {PCT_BY_LEVEL[level] * 100:.0f} % "
+            f"({euro_min(target)}) : mise relevée au minimum Winamax de "
+            f"{MIN_STAKE:.2f} €, soit {pct:.1f} % de la bankroll."
+        ]
+    return 0.0, [
+        f"Bankroll insuffisante : le minimum Winamax de {MIN_STAKE:.2f} € "
+        f"dépasserait {MAX_SINGLE_EXPOSURE * 100:.0f} % de la bankroll."
+    ]
+
+
+def euro_min(value: float) -> str:
+    return f"{value:.2f} €"
 
 
 def _floor_cents(value: float) -> float:
@@ -206,11 +235,10 @@ def _empty(level: int, name: str, risk_label: str, reason: str, notes=None) -> S
 
 def level_1_double_chance(match, bankroll: float, dc_key: str = "1x") -> Strategy:
     """Niveau 1 : Double Chance (1X, X2 ou 12)."""
-    stake = _floor_cents(bankroll * BANKROLL_PCT_LEVEL_1)
+    stake, notes = _stake_for_level(bankroll, 1)
     dc_odds = _dc_odds_of(match, dc_key)
     covered = DC_COVERAGE[dc_key]
     excluded = next(k for k in OUTCOME_KEYS if k not in covered)
-    notes: list[str] = []
     if getattr(match, "dc_is_estimated", False):
         notes.append(
             "Cote Double Chance estimée à partir du 1N2 : vérifiez-la sur Winamax "
@@ -225,7 +253,10 @@ def level_1_double_chance(match, bankroll: float, dc_key: str = "1x") -> Strateg
             notes + ["Marché Double Chance non exploitable."],
         )
     if stake < MIN_STAKE:
-        notes.append(f"Mise inférieure au minimum Winamax de {MIN_STAKE:.2f} €.")
+        return _empty(
+            1, "Double Chance", "Risque très faible",
+            "Bankroll insuffisante pour ce niveau.", notes,
+        )
 
     def label(key: str) -> str:
         return "Match nul" if key == "draw" else _team_of(match, key)
@@ -269,12 +300,38 @@ def level_2_draw_no_bet(match, bankroll: float, side: str = "home") -> Strategy:
         stake_nul = T / o_draw      (arrondi au centime superieur)
         stake_vic = T - stake_nul
     """
-    total = _floor_cents(bankroll * BANKROLL_PCT_LEVEL_2)
+    total, notes = _stake_for_level(bankroll, 2)
     o_win = _odds_of(match, side)
     o_draw = match.odds_draw
     backed = _team_of(match, side)
     loser = match.away if side == "home" else match.home
-    notes: list[str] = []
+
+    if o_draw <= 1.0:
+        return _empty(
+            2, "Draw No Bet (manuel)", "Risque faible",
+            "Cote du nul inexploitable.", notes,
+        )
+
+    # Les deux jambes doivent atteindre 1 EUR : la jambe nul vaut T / o_draw,
+    # donc T doit valoir au moins o_draw ; la jambe victoire impose en plus
+    # T >= o_draw / (o_draw - 1).
+    minimum_total = _ceil_cents(max(o_draw, o_draw / (o_draw - 1)))
+    if total < minimum_total:
+        if minimum_total > bankroll * MAX_SINGLE_EXPOSURE:
+            return _empty(
+                2, "Draw No Bet (manuel)", "Risque faible",
+                "Bankroll insuffisante pour un DNB sur ce match.",
+                notes + [
+                    f"Le DNB exige au moins {minimum_total:.2f} € ici (deux mises "
+                    f"à 1 € minimum), soit plus de {MAX_SINGLE_EXPOSURE * 100:.0f} % "
+                    "de la bankroll."
+                ],
+            )
+        notes.append(
+            f"Mise portée à {minimum_total:.2f} € : en dessous, une des deux "
+            "jambes passerait sous le minimum Winamax de 1 €."
+        )
+        total = minimum_total
 
     stake_draw = _ceil_cents(total / o_draw)
     stake_win = round(total - stake_draw, 2)
@@ -339,12 +396,14 @@ def level_2_draw_no_bet(match, bankroll: float, side: str = "home") -> Strategy:
 
 def level_3_single_win(match, bankroll: float, outcome: str = "home") -> Strategy:
     """Niveau 3 : pari simple sur une issue seche, 1 % de bankroll max."""
-    stake = _floor_cents(bankroll * BANKROLL_PCT_LEVEL_3)
+    stake, notes = _stake_for_level(bankroll, 3)
     odds = _odds_of(match, outcome)
     pick = "Match nul" if outcome == "draw" else f"Victoire {_team_of(match, outcome)}"
-    notes: list[str] = []
     if stake < MIN_STAKE:
-        notes.append(f"Mise inférieure au minimum Winamax de {MIN_STAKE:.2f} €.")
+        return _empty(
+            3, "Pari simple", "Risque modéré",
+            "Bankroll insuffisante pour ce niveau.", notes,
+        )
 
     gross = round(stake * odds, 2)
     gross_by_key = {k: (gross if k == outcome else 0.0) for k in OUTCOME_KEYS}
@@ -590,6 +649,25 @@ class Portfolio:
         )
 
 
+def _allocate(
+    strategy: Strategy, desired: float, bankroll: float, remaining: float
+) -> float | None:
+    """Mise finale d'un pari, ou None si le budget restant ne suffit pas.
+
+    ``strategy.total_stake`` est deja la plus petite mise jouable du montage
+    (minimum Winamax sur chaque jambe compris) : on ne descend jamais en
+    dessous, on monte seulement jusqu'au plafond du niveau.
+    """
+    floor_stake = strategy.total_stake
+    if floor_stake < MIN_STAKE:
+        return None
+    cap = max(bankroll * PCT_BY_LEVEL[strategy.level], floor_stake)
+    stake = _floor_cents(min(max(desired, floor_stake), cap))
+    if stake < floor_stake or stake > remaining:
+        return None
+    return stake
+
+
 def _select_strategy(plan: MatchPlan, forced_level: int | None) -> Strategy | None:
     if forced_level:
         strategy = plan.by_level(forced_level)
@@ -663,15 +741,12 @@ def build_portfolio(
         portfolio.method = "kelly"
         remaining = budget
         for plan, strategy in candidates:
-            cap = bankroll * PCT_BY_LEVEL[strategy.level]
             kelly_stake = bankroll * (strategy.kelly_fraction or 0.0) * kelly_fraction
-            stake = _floor_cents(min(kelly_stake, cap, remaining))
+            stake = _allocate(strategy, kelly_stake, bankroll, remaining)
+            if stake is None:
+                continue
             sized = strategy.scaled_to(stake)
-            if (
-                stake < MIN_STAKE
-                or not sized.legs
-                or any(leg.stake < MIN_STAKE for leg in sized.legs)
-            ):
+            if not sized.legs or any(leg.stake < MIN_STAKE for leg in sized.legs):
                 continue
             remaining = round(remaining - sized.total_stake, 2)
             books = plan.fair.books_used if plan.fair else 0
@@ -698,16 +773,15 @@ def build_portfolio(
     # --- Selection sans exigence de valeur : repartition a plat ---
     portfolio.method = "fixe"
     per_bet = _floor_cents(budget / len(candidates))
+    remaining = budget
     for plan, strategy in candidates:
-        cap = bankroll * PCT_BY_LEVEL[strategy.level]
-        stake = _floor_cents(min(per_bet, cap))
-        sized = strategy.scaled_to(stake)
-        if (
-            stake < MIN_STAKE
-            or not sized.legs
-            or any(leg.stake < MIN_STAKE for leg in sized.legs)
-        ):
+        stake = _allocate(strategy, per_bet, bankroll, remaining)
+        if stake is None:
             continue
+        sized = strategy.scaled_to(stake)
+        if not sized.legs or any(leg.stake < MIN_STAKE for leg in sized.legs):
+            continue
+        remaining = round(remaining - sized.total_stake, 2)
         if sized.ev_pct is not None:
             reason = f"{sized.pick} · espérance {sized.ev_pct:+.2f} % · répartition à plat"
         else:
