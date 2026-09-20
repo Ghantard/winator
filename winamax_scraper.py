@@ -307,6 +307,50 @@ def scan(
     return matches
 
 
+def diagnose(timeout: float = 25.0) -> dict:
+    """Etat brut de la reponse Winamax, pour comprendre un scan vide.
+
+    Winamax est un operateur sous licence francaise : depuis une IP hors de
+    France, la page peut etre remplacee par une page de restriction qui ne
+    contient aucun match. Cette fonction rapporte ce qui a reellement ete recu.
+    """
+    url = f"{BASE_URL}/paris-sportifs/sports/{SPORT_FOOTBALL}"
+    report: dict = {"url": url}
+    try:
+        with httpx.Client(
+            headers=HEADERS, timeout=timeout, follow_redirects=True
+        ) as client:
+            response = client.get(url)
+        report["status"] = response.status_code
+        report["final_url"] = str(response.url)
+        report["html_length"] = len(response.text)
+        report["has_state"] = "PRELOADED_STATE" in response.text
+        if not report["has_state"]:
+            report["excerpt"] = response.text[:400]
+            return report
+        state = _extract_preloaded_state(response.text)
+        matches = (state.get("matches") or {}).values()
+        football = [m for m in matches if m and m.get("sportId") == SPORT_FOOTBALL]
+        now = datetime.now(timezone.utc)
+        report["state_keys"] = sorted(state.keys())[:20]
+        report["matches_total"] = len(list(matches))
+        report["football_total"] = len(football)
+        report["football_prematch"] = sum(
+            1 for m in football if m.get("status") == "PREMATCH"
+        )
+        report["football_future"] = sum(
+            1
+            for m in football
+            if m.get("matchStart")
+            and datetime.fromtimestamp(int(m["matchStart"]), tz=timezone.utc) > now
+        )
+        report["bets_total"] = len(state.get("bets") or {})
+        report["odds_total"] = len(state.get("odds") or {})
+    except Exception as exc:
+        report["error"] = f"{type(exc).__name__}: {exc}"
+    return report
+
+
 if __name__ == "__main__":
     started = time.time()
     data = scan(limit=5)

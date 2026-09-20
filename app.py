@@ -427,6 +427,23 @@ with st.spinner("Récupération des cotes Winamax…"):
 
 if not matches:
     st.warning("Aucun match de football à venir trouvé sur Winamax.")
+    with st.spinner("Diagnostic de la réponse Winamax…"):
+        report = winamax_scraper.diagnose()
+    if report.get("has_state") and not report.get("football_future"):
+        st.error(
+            "Winamax répond, mais sa page ne contient aucun match. "
+            "Cause probable : le serveur qui héberge cette app n'est pas en "
+            "France, et Winamax sert une page restreinte aux IP étrangères. "
+            "L'app fonctionne depuis votre PC en France."
+        )
+    elif not report.get("has_state"):
+        st.error(
+            "Winamax a renvoyé une page sans données de paris "
+            f"(HTTP {report.get('status')}, {report.get('html_length')} octets). "
+            "Blocage géographique ou anti-bot côté serveur."
+        )
+    with st.expander("Détail technique"):
+        st.json(report)
     st.stop()
 
 report = None
