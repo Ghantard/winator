@@ -190,6 +190,60 @@ causes que la commission relèvera. Agent présent : plan du site et clés remis
 prise en compte immédiate, et les sapeurs-pompiers prennent le sinistre à leur
 compte.
 
+## Le PCS envoie, l'agent exécute et rend compte
+
+Un chef de poste ne traite rien depuis son fauteuil. **Toute action de terrain
+passe désormais par un agent que le joueur désigne nommément**, avec ce que
+cela implique : il faut quelqu'un de disponible, joignable, et qualifié.
+
+- **La levée de doute.** Une alarme feu n'engage plus automatiquement un agent :
+  le PCS ouvre la liste de l'équipe et choisit qui part — disponible ou en
+  ronde (elle est alors suspendue et reprenable), avec ou sans radio, moral
+  haut ou bas. Le compteur réglementaire des 3 à 5 minutes court à partir de
+  l'ordre. **Personne d'envoyé, c'est une faute** : l'équipe relance à deux
+  minutes, puis à cinq minutes le manquement est acté, pénalisé et inscrit au
+  registre des causes.
+- **Le compte-rendu.** Arrivé sur place, l'agent constate et **rend compte par
+  radio** : départ de feu naissant, sinistre déclaré, fumées de chantier,
+  détecteur en dérangement, déclencheur manuel brisé, fumée de cuisson, odeur
+  de brûlé sans flamme. Chaque constat ouvre ses **conduites à tenir propres** —
+  attaque à l'extincteur et alerte en parallèle sur un foyer naissant, alarme
+  générale et repli sur un sinistre déclaré, arrêt des travaux et ventilation
+  sur un point chaud, demande de maintenance sur un dérangement, remplacement
+  de la vitre et réarmement du DM après un acte malveillant. Les manœuvres
+  proscrites sont proposées comme les autres et coûtent ce qu'elles valent.
+- **L'agent attend vraiment.** Tant que l'ordre n'est pas donné, il reste sur
+  zone : relance radio à trois minutes, perte de moral, et à sept minutes un
+  défaut de commandement au débriefing.
+- **Le réarmement des DAS.** Un désenfumage commandé, un compartimentage, une
+  détection feu font partir les clapets coupe-feu, les volets et les portes en
+  position de sécurité. **Ils ne reviennent pas tout seuls** : il faut envoyer
+  un agent les réarmer sur place, zone par zone. Tant que ce n'est pas fait, le
+  CMSI refuse le réarmement et le dit ; passé 45 minutes l'installation non
+  réarmée est relevée ; à la relève, chaque DAS laissé en sécurité est une
+  non-conformité au registre des causes.
+- **Le réarmement ne s'improvise pas.** Le CMSI refuse également tout
+  réarmement tant qu'aucun compte-rendu de terrain n'a établi la cause du
+  déclenchement : on ne réarme pas une installation qu'on n'a pas contrôlée.
+- **Le secours à victime.** Un malaise ou un accident du travail envoie un
+  agent avec le sac de secours et le DAE — et **tous les agents ne sont pas
+  recyclés SST**, la liste le signale avant le choix. Sur place, il donne un
+  bilan : victime inconsciente qui respire et mise en PLS, chute avec suspicion
+  rachidienne, malaise sur victime consciente. Le PCS décide alors : appel du
+  15 avec surveillance continue, appel du 15 **plus désignation immédiate de
+  l'accueil des secours**, ou l'erreur classique — faire déplacer une victime
+  qu'il ne fallait pas mobiliser.
+- **L'accueil des secours** est devenu une mission comme les autres : on
+  désigne qui va recevoir et guider les engins, il se poste à l'entrée avec le
+  plan et le trousseau, et il n'est libéré qu'une fois les secours pris en
+  compte.
+
+Le bandeau d'état compte en permanence les alarmes sans agent sur zone, les
+comptes-rendus en attente d'ordre et les DAS à réarmer ; l'écran **ACTIONS**
+ouvre un bloc *Missions terrain* pour répondre à chacun. Le débriefing ajoute
+deux lignes : *alarmes avec un agent envoyé sur zone* et *DAS réarmés avant la
+relève*.
+
 ## Le site garde la trace des vacations précédentes
 
 Ce qu'une vacation laisse derrière elle, la suivante le trouve. Chaque site
@@ -323,7 +377,9 @@ et les cartes d'agents affichent déjà.
 
 Parcours vérifiés au navigateur (Playwright, Chromium headless) : démarrage
 jour/nuit sur les 5 sites, vacation complète de 12 h jusqu'au débriefing,
-dotation/restitution du matériel, erreur de trousseau, levée de doute dans les
-délais, refus de réarmement pendant la levée de doute, bascule groupe,
+dotation/restitution du matériel, erreur de trousseau, désignation de l'agent
+en levée de doute et compte-rendu terrain, conduites à tenir par constat,
+réarmement des DAS et refus de réarmement du CMSI sans compte-rendu, chaîne
+secours à victime (bilan → 15 → accueil), bascule groupe,
 liaison de secours, surveillance compensatoire, inhibition/levée, refus du
 compartimentage hors IGH, DAT complète, renfort RH, règle du binôme.

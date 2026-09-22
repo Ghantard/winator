@@ -1566,7 +1566,11 @@ function mkAgent(a, role){
     interventions:0, rondeCount:0, currentAnomaly:null,
     scanningPoint:null, scanning:false,
     stress: role === 'stagiaire' ? 25 : 0,
-    noRadio:false, noBadge:false, ldd:false, tutorId:null,
+    noRadio:false, noBadge:false, tutorId:null,
+    /* Tous les SSIAP ne sont pas recyclés SST : le choix de l'agent
+       envoyé auprès d'une victime n'est donc pas neutre. */
+    sst: role !== 'stagiaire' && (a.id.charCodeAt(0) % 4 !== 0),
+    mission:null, missionReport:null,
     moral: role === 'stagiaire' ? 70 : d.moral,
     griefs: (d.griefs || []).slice(),
     rondesFaites: 0, formation: 0,
@@ -1645,6 +1649,8 @@ function startGame(){
   G.demandes = [];
   G.secours = null;
   G.evac = null;
+  G.missions = [];
+  G.das = [];
   G.deg = initDegraded();
   G.ssi = initSSI();
   G.rh = initRH();
@@ -2605,7 +2611,9 @@ function tick(){
     if(a.state === 'moving' && G.t >= a.until){
       a.state = 'working'; a.pos = a.targetId; a.until = G.t + a.workTime;
     } else if(a.state === 'working' && G.t >= a.until){
-      if(a.isRonde && a.currentRoundId){
+      if(a.mission){
+        completeMission(a);
+      } else if(a.isRonde && a.currentRoundId){
         handleRoundCheckpoint(a);
       } else {
         if(a.treating) finishTreatZone(a);
@@ -2761,19 +2769,30 @@ function resolveChoice(idx){
   mcAdd('PC', `Décision : ${c.label} — ${c.consequence}`, 'action');
 
   if(ev.type === 'feu' && /lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
-    startLDD(ev);
+    /* Le PCS ne « lance » pas une levée de doute : il désigne l'agent
+       qui part sur place. */
+    setTimeout(() => { if(G && !G.ld) openDispatch('ldd', ev.zoneId, {evId:ev.instId}); }, 320);
   }
   if(/\b18\b|\b15\b|secours|pompiers|samu/i.test(c.label) && c.score > 0){
     callSecours(/\b15\b|samu/i.test(c.label) ? '15' : '18', ev.zoneId);
   }
   if(ev.type === 'feu' && c.score > 0){
     G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-    /* La décision ne suffit pas : quelqu'un doit aller éteindre. */
-    const dispo = G.agents.find(a => a.state === 'idle' && !a.isRonde) ||
-                  G.agents.find(a => !a.isRonde) || G.agents[0];
-    if(dispo && dispo.pos !== ev.zoneId && !dispo.ldd){
-      divertAgent(dispo, ev.zoneId);
+    /* Détection feu : les asservissements de la zone sinistrée partent. */
+    dasOpen(ev.zoneId, 'clapet', 'asservissement de la détection incendie');
+    /* La décision ne suffit pas : il faut envoyer quelqu'un sur place. */
+    if(!/lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
+      setTimeout(() => { if(G && !G.ld && !G.missions.some(m => m.zoneId === ev.zoneId)) openDispatch('ldd', ev.zoneId, {evId:ev.instId}); }, 320);
     }
+  }
+  /* Urgence médicale ou accident du travail : c'est un agent SST qui part,
+     avec le sac de secours — pas le chef de poste depuis son fauteuil. */
+  if((ev.type === 'medical' || ev.type === 'at') && c.score > 0 && ev.zoneId){
+    const cas = ev.type === 'at' ? 'trauma' : undefined;
+    setTimeout(() => {
+      if(G && !G.missions.some(m => m.kind === 'sst' && m.zoneId === ev.zoneId))
+        openDispatch('sst', ev.zoneId, {evId:ev.instId, cas});
+    }, 320);
   }
   if(ev.type === 'permis'){
     const z = G.zones[ev.zoneId];
@@ -2991,7 +3010,15 @@ function openOrderMenu(agentId){
   if(!a) return;
   orderAgent = a;
 
-  // Si awaiting → directement l'anomalie
+  // Si awaiting → compte-rendu de mission, sinon anomalie de ronde
+  if(a.state === 'awaiting' && a.missionReport){
+    const m = missionById(a.missionReport);
+    if(m && m.phase === 'report' && !m.resolved){
+      renderMissionReport(m);
+      $('orderScreen').classList.add('open');
+      return;
+    }
+  }
   if(a.state === 'awaiting' && a.currentAnomaly){
     renderAnomalyOrders(a.currentAnomaly);
     $('orderScreen').classList.add('open');
@@ -3308,6 +3335,16 @@ function endVacation(){
   if(G.ssi.inhibited.length){
     mcAdd('PC', `⚠ Relève : ${G.ssi.inhibited.length} zone(s) laissée(s) INHIBÉE(S) — transmission impérative à la relève`, 'crit');
   }
+  const dasRestants = dasPending();
+  if(dasRestants.length){
+    G.score -= 5 * dasRestants.length;
+    mcAdd('PC', `⚠ Relève : ${dasRestants.length} DAS laissé(s) en position de sécurité (${dasPendingZones().map(zoneName).join(', ')}) — installation non réarmée`, 'crit');
+    for(const d of dasRestants){
+      logCause(d.zoneId, `${DAS_TYPES[d.type].label} de ${zoneName(d.zoneId)} laissés en position de sécurité jusqu'à la relève.`, 1);
+    }
+  } else if(G.k.dasRearmed){
+    mcAdd('PC', `🔧 Relève : ${G.k.dasRearmed} DAS réarmés et contrôlés en position d'attente`, 'ok');
+  }
   if(G.rh.datOpen && !G.rh.datDone){
     G.debrief.rh -= 4;
     mcAdd('PC', `⚠ Relève : dossier DAT non constitué`, 'crit');
@@ -3355,6 +3392,7 @@ function endVacation(){
       {w:1, v:rat(G.s3.auditsGood, G.s3.audits)},
       {w:2, v:K.priseDePoste === undefined ? null : K.priseDePoste / 3},
       {w:3, v:rat(K.evacReussies || 0, K.evacuations || 0)},
+      {w:2, v:rat(K.dasRearmed || 0, K.dasTotal || 0)},
     ]),
     time: ax([
       {w:3, v:rat(K.lddOnTime || 0, K.lddTotal || 0)},
@@ -3363,6 +3401,7 @@ function endVacation(){
       {w:1, v:rat(K.degHandled || 0, K.degTotal || 0)},
       {w:2, v:(G.k.propagations || 0) ? Math.max(0, 1 - G.k.propagations * 0.4) : null},
       {w:2, v:rat((K.secoursAccueillis || 0) - (K.secoursSansAccueil || 0), K.secoursAccueillis || 0)},
+      {w:3, v:(K.lddTotal || K.lddNone) ? rat(K.lddTotal || 0, (K.lddTotal || 0) + (K.lddNone || 0)) : null},
     ]),
     rh: ax([
       {w:3, v:rat((K.ordersGiven || 0) - (K.ordersDangerous || 0), K.ordersAsked || 0)},
@@ -3391,6 +3430,8 @@ function endVacation(){
     ['Rondes dans la tolérance', frac(onTimeRounds, doneRounds)],
     ['Alarmes traitées dans le délai', frac(alarmsHandled, alarms.length)],
     ['Levées de doute ≤ 5 min', frac(K.lddOnTime || 0, K.lddTotal || 0)],
+    ['Alarmes avec un agent envoyé sur zone', frac(K.lddTotal || 0, (K.lddTotal || 0) + (K.lddNone || 0))],
+    ['DAS réarmés avant la relève', frac(K.dasRearmed || 0, K.dasTotal || 0)],
     ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)
       + ((K.ordersDangerous || 0) ? ` (dont ${K.ordersDangerous} à proscrire)` : '')],
     ['Manœuvres SSI justifiées', frac(K.ssiOk || 0, K.ssiTotal || 0)],
@@ -3752,6 +3793,21 @@ function renderActions(){
   h += `<button class="orderBtn ${G.deg.detect && !G.deg.detect.covered?'danger':''}" data-pcs="surv_renf"><div class="oi">📡</div>
     <div class="ol"><b>Surveillance compensatoire</b><span>${G.deg.detect ? (G.deg.detect.covered ? 'Mesures en place · ' + zoneName(G.deg.detect.zoneId) : '⚠ DÉTECTION HS · ' + zoneName(G.deg.detect.zoneId)) : 'Détection nominale'}</span></div></button>`;
 
+  h += `<div class="matHead">🚶 MISSIONS TERRAIN</div>`;
+  const crs = (G.missions || []).filter(m => m.phase === 'report' && !m.resolved);
+  for(const m of crs){
+    const ag = allStaff().find(x => x.id === m.agentId);
+    h += `<button class="orderBtn danger" data-agent="${m.agentId}"><div class="oi">📻</div>
+      <div class="ol"><b>Compte-rendu de ${ag ? ag.name : 'l\'agent'}</b><span>${m.report.titre} — ${zoneName(m.zoneId)} · ordre attendu</span></div></button>`;
+  }
+  const dasP = dasPending();
+  if(dasP.length){
+    h += `<button class="orderBtn danger" data-pcs="rearm_das"><div class="oi">🔧</div>
+      <div class="ol"><b>Envoyer réarmer les DAS</b><span>${dasP.length} dispositif(s) en position de sécurité · ${dasPendingZones().map(zoneName).join(', ')}</span></div></button>`;
+  }
+  h += `<button class="orderBtn ${G.ssi.alarmActive && !G.ld ? 'warning' : 'primary'}" data-pcs="ldd"><div class="oi">🔎</div>
+    <div class="ol"><b>Envoyer un agent en levée de doute</b><span>${G.ld && !G.ld.done ? 'Levée de doute déjà en cours' : 'Reconnaissance sur place — 3 à 5 min'}</span></div></button>`;
+
   h += `<div class="matHead">📦 MATÉRIEL & RONDES</div>`;
   const hot = riskiestZone();
   const bas = G.agents.filter(a => (a.moral === undefined ? 60 : a.moral) < 35).length;
@@ -3827,14 +3883,16 @@ function execPcsAction(k){
     case 'surv_renf': execSurveillanceRenforcee(); break;
     case 'dat': openDAT(); break;
     case 'prise_poste': openPriseDePoste(); break;
-    case 'accueil': {
-      const libres = G.agents.filter(a => !a.isRonde);
-      if(!libres.length){ toast('Aucun agent disponible', 'bad'); break; }
-      openMini('🚒 ACCUEIL DES SECOURS', `Qui va recevoir et guider le ${G.secours.kind} ?`,
-        libres.map(a => ({icon:a.avatar, label:a.name,
-          hint:`${a.state === 'idle' ? 'disponible' : a.state} · fatigue ${Math.round(a.fatigue)} %`,
-          cls:'primary'})),
-        i => assignAccueil(libres[i]));
+    case 'accueil':
+      if(!G.secours || G.secours.done){ toast('Aucun secours attendu', 'info'); break; }
+      openDispatch('accueil', G.site.zones[0].id, {});
+      break;
+    case 'rearm_das': openRearmDispatch(); break;
+    case 'ldd': {
+      const zs = G.site.zones;
+      openMini('🔎 LEVÉE DE DOUTE', 'Sur quelle zone envoyer un agent reconnaître ?',
+        zs.map(z => ({icon:'🔎', label:z.name, hint:z.floor, cls:'warning'})),
+        i => openDispatch('ldd', zs[i].id, {}));
       break;
     }
     case 'renfort': execRenfort(); break;
@@ -4370,11 +4428,27 @@ function execRearm(){
     return;
   }
   if(!G.ssi.alarmActive && !G.ssi.rearmNeeded){ toast('Rien à réarmer', 'info'); return; }
+  /* On ne réarme jamais une installation sans compte-rendu de terrain. */
+  if(!G.ssi.checked){
+    mcAdd('PC', `⚠ Réarmement refusé — aucun compte-rendu de levée de doute : la cause du déclenchement n'est pas connue`, 'warn');
+    G.score -= 3;
+    toast('Envoyez d\'abord un agent sur place', 'bad');
+    return;
+  }
+  /* Ni tant que des DAS sont restés en position de sécurité. */
+  const enSecu = dasPending();
+  if(enSecu.length){
+    mcAdd('PC', `⚠ Réarmement impossible — ${enSecu.length} DAS encore en position de sécurité (${dasPendingZones().map(zoneName).join(', ')}) : envoyer un agent les réarmer`, 'warn');
+    toast('DAS non réarmés', 'bad');
+    setTimeout(() => { if(G && dasPending().length) openRearmDispatch(); }, 300);
+    return;
+  }
   G.k.ssiOk = (G.k.ssiOk || 0) + 1;
   G.ssi.alarmActive = false;
   G.ssi.buzzer = false;
   G.ssi.rearmNeeded = false;
-  mcAdd('PC', `♻ Réarmement CMSI/SDI ${fmtTime(G.t)} — détecteur réarmé après contrôle sur site`, 'ok');
+  G.ssi.checked = false;
+  mcAdd('PC', `♻ Réarmement CMSI/SDI ${fmtTime(G.t)} — détecteur réarmé après contrôle sur site et réarmement des DAS`, 'ok');
   G.score += 3;
   toast('CMSI réarmé', 'good');
 }
@@ -4421,9 +4495,11 @@ function execDesenf(){
       if(justified){
         G.k.ssiOk = (G.k.ssiOk || 0) + 1;
         mcAdd('PC', `🌬 Désenfumage manuel zone ${z.name} ${fmtTime(G.t)} — commande CMSI, contrôle de position des volets`, 'action');
+        dasOpen(z.id, 'volet', 'commande manuelle de désenfumage');
         G.score += 5;
         toast('Désenfumage engagé', 'good');
       } else {
+        dasOpen(z.id, 'volet', 'commande manuelle de désenfumage');
         mcAdd('PC', `⚠ Désenfumage zone ${z.name} sans sinistre déclaré — manœuvre injustifiée`, 'warn');
         G.score -= 3;
         toast('Manœuvre injustifiée', 'bad');
@@ -4440,55 +4516,629 @@ function execCompart(){
   }
   G.k.ssiOk = (G.k.ssiOk || 0) + 1;
   G.ssi.compart = true;
+  for(const z of G.site.zones) dasOpen(z.id, 'porte', 'compartimentage IGH');
   mcAdd('PC', `🧱 Compartimentage IGH ${fmtTime(G.t)} — isolement du compartiment sinistré, transfert horizontal des occupants`, 'crit');
   G.score += 6;
   toast('Compartimentage IGH engagé', 'good');
 }
 
 /* ==========================================================
-   4. CHRONO LEVÉE DE DOUTE (3 à 5 min)
+   4. MISSIONS TERRAIN — le PCS envoie, l'agent exécute, rend compte
+   Sur le terrain, le chef de poste ne « traite » rien depuis son
+   fauteuil : il désigne un agent, l'agent se déplace, constate, rend
+   compte par radio, et c'est seulement là que le PCS ordonne la suite.
+   Levée de doute · réarmement des DAS · secours à victime ·
+   accueil des secours · attaque du feu.
    ========================================================== */
-function startLDD(ev){
-  const agent = G.agents.find(a => a.state === 'idle') || G.agents[0];
-  if(!agent) return;
-  G.ssi.alarmActive = true;
-  G.ssi.buzzer = true;
-  G.ssi.rearmNeeded = true;
-  G.k.lddTotal = (G.k.lddTotal || 0) + 1;
-  G.ld = { zoneId: ev.zoneId, evId: ev.instId, agentId: agent.id, start:G.t, deadline:G.t + 5, done:false };
-  agent.state = 'moving';
-  agent.targetId = ev.zoneId;
-  const speed = agent.skills && agent.skills.vitesse ? (1 - agent.skills.vitesse*0.08) : 1;
-  agent.until = G.t + (2.5 + Math.random()*2) * speed;
-  agent.workTime = 1 + Math.random();
-  agent.ldd = true;
-  mcAdd('PC', `⏱ Levée de doute engagée — ${agent.name} vers ${zoneName(ev.zoneId)} (délai 3 à 5 min)`, 'crit');
-  radioSay(agent, `Reçu, je pars en levée de doute sur ${zoneName(ev.zoneId)}.`, 'order');
+const MISSIONS = {
+  ldd:        {icon:'🔎', name:'Levée de doute',
+               sub:'Reconnaissance sur place avant toute autre manœuvre', work:1.2,
+               say:zn => `Reçu, je pars en levée de doute sur ${zn}.`},
+  rearm:      {icon:'🔧', name:'Réarmement des DAS',
+               sub:'Clapets, volets et portes à remettre en position d’attente', work:4,
+               say:zn => `Reçu, je monte réarmer les DAS de ${zn}.`},
+  sst:        {icon:'🚑', name:'Secours à victime',
+               sub:'Agent SST + sac de premiers secours + DAE', work:1.5,
+               say:zn => `Je prends le sac de secours et le DAE, je pars en ${zn}.`},
+  accueil:    {icon:'🚒', name:'Accueil et guidage des secours',
+               sub:'Plan du site, trousseau, itinéraire d’accès', work:30,
+               say:() => `Je me poste à l’entrée avec le plan et le trousseau.`},
+  extinction: {icon:'🧯', name:'Attaque du feu',
+               sub:'Extincteur adapté, RIA en second', work:4,
+               say:zn => `Je prends un extincteur et j’attaque en ${zn}.`},
+};
+
+const DAS_TYPES = {
+  clapet: {icon:'⬛', label:'Clapets coupe-feu'},
+  volet:  {icon:'🌬', label:'Volets de désenfumage'},
+  porte:  {icon:'🚪', label:'Portes coupe-feu'},
+};
+
+/* ---------- Désignation de l'agent ---------- */
+function missionAvailable(){
+  return G.agents.filter(a => !a.mission && a.state !== 'awaiting');
 }
-function tickLDD(){
-  if(!G.ld) return;
-  const a = G.agents.find(x => x.id === G.ld.agentId);
-  const elapsed = G.t - G.ld.start;
-  if(a && a.ldd && a.pos === G.ld.zoneId && !G.ld.done){
-    G.ld.done = true;
-    a.ldd = false;
-    const onTime = elapsed <= 5;
-    if(onTime){
-      G.k.lddOnTime = (G.k.lddOnTime || 0) + 1;
-      G.score += 5;
-      mcAdd(a.id, `⏱ Levée de doute effectuée en ${elapsed.toFixed(1)} min — compte-rendu au PCS`, 'ok');
-      radioSay(a, `Levée de doute terminée, je te fais le point.`, 'radio');
-      toast(`Levée de doute : ${elapsed.toFixed(1)} min`, 'good');
-    }
-    G.ld = null;
+function missionHint(a, kind, zoneId){
+  const bits = [];
+  if(a.pos === zoneId) bits.push('déjà sur place');
+  else if(a.isRonde){
+    const r = G.rounds.find(x => x.id === a.currentRoundId);
+    bits.push(`en ${r ? r.id : 'ronde'} — sera suspendue`);
+  }
+  else if(a.state === 'idle') bits.push('disponible');
+  else bits.push('en déplacement');
+  if(kind === 'sst') bits.push(a.sst ? '✔ SST à jour' : '✖ non SST');
+  if(a.noRadio) bits.push('✖ sans radio');
+  bits.push(`moral ${Math.round(a.moral === undefined ? 60 : a.moral)}`);
+  return bits.join(' · ');
+}
+function openDispatch(kind, zoneId, extra){
+  const M = MISSIONS[kind];
+  if(!M || !G) return;
+  const cands = missionAvailable();
+  if(!cands.length){ toast('Aucun agent disponible — tous déjà engagés', 'bad'); return; }
+  openMini(`${M.icon} ${M.name.toUpperCase()}`,
+    `${zoneName(zoneId)} — ${M.sub}`,
+    cands.map(a => ({icon:a.avatar, label:a.name, hint:missionHint(a, kind, zoneId),
+      cls:(kind === 'sst' && !a.sst) ? 'warning' : (a.pos === zoneId ? 'primary' : '')})),
+    i => sendMission(cands[i], kind, zoneId, extra));
+}
+
+function missionOf(agent){
+  return (agent && agent.mission && G.missions) ? G.missions.find(m => m.id === agent.mission) : null;
+}
+function missionById(id){ return (G.missions || []).find(m => m.id === id); }
+
+function sendMission(agent, kind, zoneId, extra){
+  const M = MISSIONS[kind];
+  if(!agent || !M) return;
+  if(!G.missions) G.missions = [];
+  if(agent.isRonde) suspendRound(agent);
+  const m = {
+    id:'M' + (G.uid++), kind, zoneId, agentId:agent.id,
+    start:G.t, phase:'route', nagged:0, data:extra || {},
+  };
+  G.missions.push(m);
+  agent.mission = m.id;
+  const vit = agent.skills && agent.skills.vitesse ? (1 - agent.skills.vitesse * 0.08) : 1;
+  const loin = agent.pos !== zoneId;
+  agent.state = 'moving';
+  agent.targetId = zoneId;
+  agent.until = G.t + (loin ? (2.5 + Math.random() * 2) * vit * moralSpeed(agent) : 0.4);
+  agent.workTime = M.work;
+  m.eta = agent.until;
+  mcAdd('PC', `${M.icon} ${agent.name} envoyé en ${M.name.toLowerCase()} — ${zoneName(zoneId)}`,
+        kind === 'ldd' || kind === 'sst' ? 'crit' : 'action');
+  radioSay(agent, M.say(zoneName(zoneId)), 'order');
+  toast(`${agent.name} → ${zoneName(zoneId)}`, 'info');
+
+  if(kind === 'ldd'){
+    G.ssi.alarmActive = true;
+    G.ssi.buzzer = true;
+    G.ssi.rearmNeeded = true;
+    G.k.lddTotal = (G.k.lddTotal || 0) + 1;
+    G.ld = { zoneId, evId:m.data.evId || null, agentId:agent.id,
+             start:G.t, deadline:G.t + 5, done:false, missionId:m.id };
+  }
+  if(kind === 'accueil' && G.secours && !G.secours.done){
+    G.secours.accueilId = agent.id;
+    agent.accueil = true;
+  }
+  renderAll();
+  renderPlanningStrip();
+}
+
+function endMission(agent, m){
+  if(m) m.phase = 'done';
+  if(agent){
+    agent.mission = null;
+    agent.missionReport = null;
+    agent.state = 'idle';
+    agent.pos = m ? m.zoneId : agent.pos;
+  }
+  if(G.ld && m && G.ld.missionId === m.id) G.ld = null;
+  G.missions = G.missions.filter(x => x.phase !== 'done');
+}
+
+/* ---------- Arrivée sur place ---------- */
+function completeMission(agent){
+  const m = missionOf(agent);
+  if(!m){ agent.mission = null; agent.state = 'idle'; return; }
+  agent.pos = m.zoneId;
+
+  if(m.kind === 'accueil'){
+    /* Il tient le poste d'accueil jusqu'à l'arrivée des engins. */
+    if(G.secours && !G.secours.done){ agent.until = G.t + 5; return; }
+    mcAdd(agent.id, `🚒 Mission d'accueil terminée — ${agent.name} libéré`, 'ok');
+    endMission(agent, m);
     return;
   }
-  if(!G.ld.done && G.t > G.ld.deadline){
+
+  if(m.kind === 'extinction'){
+    const z = G.zones[m.zoneId];
+    if(z && z.feu && !z.feu.controlled && !z.feu.tooBig){ agent.until = G.t + 2; return; }
+    if(z && z.feu && z.feu.tooBig){
+      radioSay(agent, `Je ne peux plus rien faire seul, je me replie et je balise.`, 'major');
+    } else {
+      radioSay(agent, `Feu éteint, contrôle post-incendie effectué, je reste sur place en surveillance.`, 'radio');
+    }
+    endMission(agent, m);
+    return;
+  }
+
+  if(m.kind === 'rearm'){ finishRearm(agent, m); return; }
+
+  /* Levée de doute et secours à victime : l'agent rend compte et attend. */
+  m.phase = 'report';
+  m.askedAt = G.t;
+  m.report = m.kind === 'ldd' ? lddReport(m) : sstReport(m);
+  if(m.kind === 'sst' && !agent.sst){
+    /* Envoyer un agent non recyclé SST auprès d'une victime, c'est un
+       bilan approximatif et du temps perdu. */
+    G.score -= 4;
+    m.report.desc += ` ${agent.name} n'est pas recyclé SST : son bilan reste approximatif et il n'ose pas engager de geste.`;
+    mcAdd('PC', `⚠ ${agent.name} envoyé auprès d'une victime sans recyclage SST à jour`, 'warn');
+    logCause(m.zoneId, `Agent non recyclé SST envoyé seul auprès d'une victime en ${zoneName(m.zoneId)}.`, 1);
+  }
+  agent.state = 'awaiting';
+  agent.missionReport = m.id;
+  radioSay(agent, m.report.radio, 'major');
+  mcAdd(agent.id, `${MISSIONS[m.kind].icon} ${m.report.mc}`, m.report.grave ? 'crit' : 'warn');
+
+  if(m.kind === 'ldd' && G.ld && G.ld.missionId === m.id && !G.ld.done){
+    G.ld.done = true;
+    const elapsed = G.t - G.ld.start;
+    if(elapsed <= 5){
+      G.k.lddOnTime = (G.k.lddOnTime || 0) + 1;
+      G.score += 5;
+      toast(`Levée de doute : ${elapsed.toFixed(1)} min`, 'good');
+    }
+  }
+  openMissionReport(m);
+}
+
+/* ---------- Ce que l'agent trouve en levée de doute ---------- */
+function lddReport(m){
+  const z = G.zones[m.zoneId];
+  const zn = zoneName(m.zoneId);
+  if(z && z.feu && !z.feu.controlled){
+    const gros = z.feu.stage >= 2;
+    return gros ? {
+      grave:true, titre:'Sinistre déclaré',
+      radio:`Chef, c’est un vrai feu, les fumées sont chaudes, je ne peux pas y aller seul !`,
+      mc:`Levée de doute ${zn} : sinistre déclaré, foyer non attaquable par un seul agent`,
+      desc:`Flammes sur plusieurs mètres, fumées chaudes au plafond, chaleur au travers de la porte. Le foyer dépasse largement un extincteur.`,
+      acts:[
+        {i:'🚨', l:'Alarme générale, 18, et tu te replies', h:'Évacuation, alerte, repli en sécurité — la conduite attendue', s:14, r:3, k:'alarme18'},
+        {i:'🧯', l:'Attaque à l’extincteur en attendant', h:'Foyer trop développé pour un agent seul', s:-10, r:-3, k:'danger_attaque'},
+        {i:'📞', l:'Appeler le 18 et attendre leur analyse', h:'Alerte donnée mais public non évacué', s:-4, r:-2, k:'secours18'},
+      ],
+    } : {
+      grave:true, titre:'Départ de feu confirmé',
+      radio:`Chef, départ de feu confirmé, flammes visibles mais c’est encore petit.`,
+      mc:`Levée de doute ${zn} : départ de feu confirmé, foyer naissant`,
+      desc:`Cartons et corbeille en combustion, pas encore de propagation. Un extincteur adapté peut suffire si on agit tout de suite.`,
+      acts:[
+        {i:'🧯', l:'Attaque immédiate + 18 en sécurité', h:'Extinction du foyer naissant, alerte donnée en parallèle', s:14, r:3, k:'attaque18'},
+        {i:'🧯', l:'Attaque immédiate, alerte si ça échappe', h:'Extinction sans alerte préalable — retard si le feu grossit', s:4, r:0, k:'attaque'},
+        {i:'🚨', l:'Alarme générale et évacuation totale', h:'Disproportionné sur un foyer naissant maîtrisable', s:-2, r:0, k:'alarme18'},
+      ],
+    };
+  }
+  if(z && z.travaux){
+    return {
+      grave:false, titre:'Poussières et fumées de chantier',
+      radio:`Chef, pas de feu : c’est le chantier, ils découpent et ça enfume le détecteur.`,
+      mc:`Levée de doute ${zn} : détection déclenchée par les travaux par point chaud`,
+      desc:`Aucun foyer. Découpe en cours sous permis de feu, poussières et fumées dans le plafond. Le détecteur de la zone est en alarme.`,
+      acts:[
+        {i:'⛔', l:'Faire cesser les travaux et ventiler', h:'Les travaux reprennent après contrôle — conduite attendue', s:10, r:3, k:'stop_travaux'},
+        {i:'🚫', l:'Inhiber la zone, surveillance humaine renforcée', h:'Inhibition tracée, à lever impérativement en fin de travaux', s:6, r:2, k:'inhib'},
+        {i:'♻', l:'Réarmer et laisser continuer', h:'Le détecteur va se redéclencher, la zone reste sans garantie', s:-5, r:-2, k:'danger_rearm'},
+      ],
+    };
+  }
+  if(z && z.defauts && z.defauts.length){
+    return {
+      grave:false, titre:'Détecteur en dérangement',
+      radio:`Chef, rien à signaler sur place, le détecteur est encrassé, il sonne dans le vide.`,
+      mc:`Levée de doute ${zn} : aucune cause de feu, détecteur en dérangement`,
+      desc:`Aucune fumée, aucune odeur, aucune chaleur. Le voyant du détecteur clignote : matériel encrassé ou défaillant.`,
+      acts:[
+        {i:'🛠', l:'Demande de maintenance SSI + réarmement', h:'Tracé au registre, matériel à remplacer — conduite attendue', s:10, r:3, k:'maintenance'},
+        {i:'♻', l:'Réarmer simplement', h:'Le dérangement n’est pas tracé, il reviendra', s:2, r:0, k:'rearm_site'},
+        {i:'🚫', l:'Inhiber la zone jusqu’à la maintenance', h:'Perte de détection — surveillance humaine obligatoire', s:-2, r:-1, k:'inhib'},
+      ],
+    };
+  }
+  const tirages = [
+    {
+      grave:false, titre:'Déclencheur manuel brisé',
+      radio:`Chef, c’est un déclencheur manuel, la vitre est cassée, personne autour.`,
+      mc:`Levée de doute ${zn} : déclenchement manuel, aucun sinistre, acte probablement malveillant`,
+      desc:`DM actionné, vitre brisée, aucun feu ni fumée. Personne dans le secteur. À rapprocher des caméras.`,
+      acts:[
+        {i:'📝', l:'Remplacer la vitre, réarmer et consigner', h:'DM remis en service, fait tracé et direction informée', s:10, r:3, k:'dm'},
+        {i:'♻', l:'Réarmer sans remplacer la vitre', h:'Le DM reste inutilisable pour la suite de la vacation', s:-4, r:-2, k:'danger_rearm'},
+        {i:'📞', l:'Faire déposer plainte tout de suite', h:'Prématuré — aucun élément, aucune identification', s:-2, r:0, k:'retour'},
+      ],
+    },
+    {
+      grave:false, titre:'Fumée de cuisson',
+      radio:`Chef, pas de feu : de la fumée de cuisson, la hotte n’était pas en route.`,
+      mc:`Levée de doute ${zn} : détection déclenchée par des fumées de cuisson`,
+      desc:`Pas de foyer. Fumées grasses accumulées sous le détecteur, hotte d’extraction à l’arrêt.`,
+      acts:[
+        {i:'✔', l:'Faire remettre la hotte, ventiler puis réarmer', h:'Cause supprimée avant réarmement — conduite attendue', s:10, r:3, k:'rearm_site'},
+        {i:'📝', l:'Consigner et informer l’exploitant', h:'Tracé, rappel des consignes d’exploitation', s:7, r:2, k:'maintenance'},
+        {i:'🚫', l:'Inhiber le détecteur pour la nuit', h:'Perte de détection sur une zone à risque de feu', s:-6, r:-3, k:'inhib'},
+      ],
+    },
+    {
+      grave:true, titre:'Odeur de brûlé sans flamme',
+      radio:`Chef, odeur de brûlé très nette, ça vient de la gaine technique, mais je ne vois pas de flamme.`,
+      mc:`Levée de doute ${zn} : odeur de brûlé persistante, origine non localisée`,
+      desc:`Odeur forte d’isolant chaud, légère fumée en partie haute. Origine probable dans la gaine technique, non accessible.`,
+      acts:[
+        {i:'📞', l:'Appel du 18 et surveillance de la zone', h:'Origine non localisée : on ne prend pas le risque — conduite attendue', s:12, r:3, k:'secours18_garde'},
+        {i:'⚡', l:'Couper l’alimentation du secteur et appeler le 18', h:'Suppression de la cause probable + alerte', s:10, r:3, k:'coupure18'},
+        {i:'♻', l:'Réarmer et repasser en ronde dans une heure', h:'Un feu couvant dans une gaine ne se surveille pas de loin', s:-10, r:-3, k:'danger_rearm'},
+      ],
+    },
+  ];
+  const poids = z && z.charge >= 2 ? [1, 1, 2] : [2, 1, 1];
+  let tot = poids.reduce((s, v) => s + v, 0), r = Math.random() * tot, idx = 0;
+  for(let i = 0; i < poids.length; i++){ r -= poids[i]; if(r <= 0){ idx = i; break; } }
+  return tirages[idx];
+}
+
+/* ---------- Ce que l'agent trouve auprès de la victime ---------- */
+function sstReport(m){
+  const zn = zoneName(m.zoneId);
+  const agent = allStaff().find(a => a.id === m.agentId);
+  const nonSST = agent && !agent.sst;
+  const cas = m.data.cas || (Math.random() < 0.35 ? 'inconscient' : Math.random() < 0.5 ? 'malaise' : 'trauma');
+  if(cas === 'inconscient'){
+    return {
+      grave:true, titre:'Victime inconsciente qui respire',
+      radio:`Chef, victime inconsciente, elle respire. Je l’ai mise sur le côté.`,
+      mc:`Bilan ${zn} : victime inconsciente, ventilation présente, mise en PLS${nonSST ? ' par un agent non recyclé SST' : ''}`,
+      desc:`Personne au sol, ne répond pas, respiration présente et régulière. Libération des voies aériennes faite, position latérale de sécurité en place. DAE à proximité.`,
+      acts:[
+        {i:'📞', l:'Appel du 15, l’agent reste au bilan', h:'Alerte immédiate, surveillance continue — conduite attendue', s:12, r:3, k:'secours15_garde'},
+        {i:'🚒', l:'Appel du 15 et désignation de l’accueil', h:'Alerte + guidage anticipé des secours', s:14, r:3, k:'secours15_accueil'},
+        {i:'🚶', l:'Faire transporter la victime à l’accueil', h:'On ne déplace jamais une victime inconsciente', s:-12, r:-3, k:'danger_deplacer'},
+      ],
+    };
+  }
+  if(cas === 'trauma'){
+    return {
+      grave:true, titre:'Chute avec traumatisme',
+      radio:`Chef, chute de sa hauteur, la personne est consciente mais elle a très mal au dos.`,
+      mc:`Bilan ${zn} : victime consciente, douleur rachidienne, immobilisée sur place`,
+      desc:`Victime consciente, orientée, douleur vive au dos, ne veut pas bouger. Aucun déplacement effectué, périmètre protégé.`,
+      acts:[
+        {i:'📞', l:'15, ne pas mobiliser, protéger la zone', h:'Suspicion rachidienne : immobilisation stricte — conduite attendue', s:12, r:3, k:'secours15_garde'},
+        {i:'🚒', l:'15 + accueil des secours + protection', h:'Chaîne complète, ascenseur et itinéraire préparés', s:14, r:3, k:'secours15_accueil'},
+        {i:'🪑', l:'L’asseoir et l’amener au poste de secours', h:'Mobilisation interdite en suspicion de lésion du rachis', s:-12, r:-3, k:'danger_deplacer'},
+      ],
+    };
+  }
+  return {
+    grave:false, titre:'Malaise, victime consciente',
+    radio:`Chef, la personne est consciente, elle a fait un malaise, elle parle normalement.`,
+    mc:`Bilan ${zn} : malaise, victime consciente et orientée, surveillance en cours`,
+    desc:`Personne assise, pâle, consciente et orientée. Pas de traumatisme. Elle dit ne pas avoir mangé depuis ce matin.`,
+    acts:[
+      {i:'📞', l:'Appel du 15 pour avis médical', h:'Le médecin régulateur décide de la suite — conduite attendue', s:11, r:3, k:'secours15_garde'},
+      {i:'🧍', l:'Mise au repos, surveillance et bilan à 10 min', h:'Surveillance par l’agent, alerte si aggravation', s:6, r:1, k:'surveiller'},
+      {i:'↩', l:'La laisser repartir sans suite', h:'Aucune surveillance, aucun avis médical, aucune trace', s:-8, r:-3, k:'danger_rien'},
+    ],
+  };
+}
+
+/* ---------- Feuille d'ordres après compte-rendu ---------- */
+function openMissionReport(m){
+  if(!m || m.phase !== 'report') return;
+  const a = allStaff().find(x => x.id === m.agentId);
+  orderAgent = a || null;
+  renderMissionReport(m);
+  $('orderScreen').classList.add('open');
+  A.click();
+}
+function renderMissionReport(m){
+  const M = MISSIONS[m.kind];
+  const rep = m.report;
+  const a = allStaff().find(x => x.id === m.agentId);
+  const waited = Math.max(0, Math.round(G.t - m.askedAt));
+  $('orderSub').textContent = `${a ? a.name : 'Agent'} — compte-rendu ${M.name.toLowerCase()} — en attente depuis ${waited} min`;
+  let h = `<div class="anoCard ${rep.grave ? 'major' : ''}">
+    <div class="anoTitle">${M.icon} ${rep.titre}</div>
+    <div class="anoMeta">📍 ${zoneName(m.zoneId)} · ${rep.grave ? '<b style="color:#ff8b7e">compte-rendu urgent</b>' : 'compte-rendu terrain'}</div>
+    <div class="anoDesc">« ${rep.radio} »</div>
+  </div>
+  <div class="matHead">🔎 CE QU’IL CONSTATE</div>
+  <div class="anoDesc" style="padding:8px 10px">${rep.desc}</div>
+  <div class="matHead">⚡ CONDUITE À TENIR</div>`;
+  rep.acts.forEach((c, i) => {
+    h += `<button class="orderBtn ano" data-mission-act="${m.id}" data-act-idx="${i}">
+      <div class="oi">${c.i}</div>
+      <div class="ol"><b>${c.l}</b><span>${c.h}</span></div>
+    </button>`;
+  });
+  $('orderContent').innerHTML = h;
+}
+
+function resolveMissionAct(missionId, idx){
+  const m = missionById(missionId);
+  if(!m || m.phase !== 'report' || m.resolved) return;
+  const act = m.report.acts[idx];
+  if(!act) return;
+  m.resolved = true;
+  const a = allStaff().find(x => x.id === m.agentId);
+  const zn = zoneName(m.zoneId);
+  G.score += act.s || 0;
+  if(act.r) G.debrief.rh += 0;
+  mcAdd('PC', `⚡ Ordre à ${a ? a.name : 'l’agent'} : ${act.l}`, (act.s || 0) < 0 ? 'crit' : 'action');
+  if((act.s || 0) < 0){
+    G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
+    logCause(m.zoneId, `Conduite à tenir inadaptée après compte-rendu en ${zn} : « ${act.l} ».`);
+  }
+  applyMissionAct(m, act, a);
+  renderAll();
+}
+
+function applyMissionAct(m, act, a){
+  const zn = zoneName(m.zoneId);
+  const libere = () => { if(a) endMission(a, m); else m.phase = 'done'; };
+  const resteSurPlace = txt => {
+    if(!a){ m.phase = 'done'; return; }
+    a.mission = null; a.missionReport = null;
+    a.state = 'working'; a.pos = m.zoneId; a.until = G.t + 12;
+    m.phase = 'done';
+    G.missions = G.missions.filter(x => x.phase !== 'done');
+    if(G.ld && G.ld.missionId === m.id) G.ld = null;
+    if(txt) radioSay(a, txt, 'radio');
+  };
+
+  switch(act.k){
+    case 'alarme18':
+      callSecours('18', m.zoneId);
+      G.ssi.alarmActive = true;
+      dasOpen(m.zoneId, 'porte', 'déclenchement de l’alarme générale');
+      libere();
+      if(!G.evac || G.evac.termine) startEvacuation(G.siteId === 'igh' ? 'compartiment' : 'totale');
+      mcAdd('PC', `🚨 Alarme générale et alerte des secours — ${zn}`, 'crit');
+      toast('Évacuation engagée', 'bad');
+      break;
+    case 'attaque18':
+      callSecours('18', m.zoneId);
+      /* fallthrough volontaire : l'agent attaque aussi */
+    case 'attaque': {
+      if(a){
+        a.mission = null; a.missionReport = null;
+        m.phase = 'done';
+        G.missions = G.missions.filter(x => x.phase !== 'done');
+        if(G.ld && G.ld.missionId === m.id) G.ld = null;
+        sendMission(a, 'extinction', m.zoneId, {});
+      } else { libere(); }
+      break;
+    }
+    case 'danger_attaque':
+      if(a){
+        moralChange(a, -6, `envoyé seul sur un feu trop développé en ${zn}`);
+        radioSay(a, `Chef, je te dis que c’est trop gros pour moi !`, 'major');
+      }
+      mcAdd('PC', `⛔ Attaque ordonnée sur un foyer non attaquable par un agent isolé — mise en danger`, 'crit');
+      libere();
+      break;
+    case 'secours18':
+      callSecours('18', m.zoneId);
+      resteSurPlace(`Je reste en surveillance et je balise l’accès.`);
+      break;
+    case 'secours18_garde':
+      callSecours('18', m.zoneId);
+      resteSurPlace(`Je reste devant la gaine, je surveille et je rends compte.`);
+      break;
+    case 'coupure18':
+      callSecours('18', m.zoneId);
+      mcAdd('PC', `⚡ Alimentation du secteur ${zn} coupée sur ordre du PCS`, 'action');
+      resteSurPlace(`Coupure faite, je surveille en attendant les secours.`);
+      break;
+    case 'secours15_garde':
+      callSecours('15', m.zoneId);
+      resteSurPlace(`Je reste au bilan, je surveille la victime et je rappelle si ça change.`);
+      break;
+    case 'secours15_accueil':
+      callSecours('15', m.zoneId);
+      resteSurPlace(`Je reste auprès de la victime, envoie quelqu’un à l’entrée.`);
+      mcAdd('PC', `🚒 Un agent doit être désigné pour l’accueil du 15`, 'warn');
+      setTimeout(() => { if(G && G.secours && !G.secours.done && !G.secours.accueilId) openDispatch('accueil', G.site.zones[0].id, {}); }, 350);
+      break;
+    case 'surveiller':
+      resteSurPlace(`Je la mets au repos et je fais un nouveau bilan dans dix minutes.`);
+      break;
+    case 'danger_deplacer':
+      if(a) moralChange(a, -5, `ordre de déplacer une victime qu’il ne fallait pas mobiliser`);
+      mcAdd('PC', `⛔ Victime mobilisée contre toute règle de secourisme — aggravation possible`, 'crit');
+      callSecours('15', m.zoneId);
+      libere();
+      break;
+    case 'danger_rien':
+      mcAdd('PC', `⚠ Victime laissée partir sans bilan médical ni trace au registre`, 'crit');
+      libere();
+      break;
+    case 'stop_travaux': {
+      const z = G.zones[m.zoneId];
+      if(z){ z.travaux = false; z.travauxUntil = 0; }
+      mcAdd('PC', `⛔ Travaux par point chaud suspendus en ${zn} — reprise après contrôle et ventilation`, 'ok');
+      ssiSiteChecked(m.zoneId);
+      libere();
+      break;
+    }
+    case 'inhib':
+      if(!G.ssi.inhibited.includes(m.zoneId)){
+        G.ssi.inhibited.push(m.zoneId);
+        G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
+        logCause(m.zoneId, `Détection de ${zn} inhibée après levée de doute.`);
+        mcAdd('PC', `🚫 Inhibition de la zone ${zn} — surveillance humaine maintenue, à lever avant la relève`, 'warn');
+      }
+      ssiSiteChecked(m.zoneId);
+      libere();
+      break;
+    case 'maintenance':
+      if(!G.demandes.some(d => d.zone === m.zoneId && d.label === m.report.titre)){
+        G.demandes.push({ zone:m.zoneId, label:m.report.titre, reste:2 });
+        mcAdd('PC', `🛠 Demande d’intervention déposée : « ${m.report.titre} » en ${zn} — sous 2 vacations`, 'info');
+      }
+      ssiSiteChecked(m.zoneId);
+      libere();
+      break;
+    case 'dm':
+      mcAdd('PC', `📝 Vitre du déclencheur manuel de ${zn} remplacée, DM réarmé et remis en service`, 'ok');
+      logCause(m.zoneId, `Déclencheur manuel de ${zn} remis en service après acte malveillant.`, false);
+      ssiSiteChecked(m.zoneId);
+      libere();
+      break;
+    case 'rearm_site':
+      ssiSiteChecked(m.zoneId);
+      mcAdd('PC', `🔧 Cause supprimée sur place en ${zn} — le CMSI peut être réarmé depuis le PCS`, 'ok');
+      libere();
+      break;
+    case 'danger_rearm':
+      ssiSiteChecked(m.zoneId);
+      logCause(m.zoneId, `Réarmement ordonné en ${zn} sans avoir supprimé la cause du déclenchement.`);
+      mcAdd('PC', `⚠ Réarmement ordonné sans suppression de la cause — le déclenchement se reproduira`, 'warn');
+      libere();
+      break;
+    default:
+      libere();
+  }
+  renderPlanningStrip();
+}
+
+/* Le CMSI ne se réarme qu'après un compte-rendu de terrain. */
+function ssiSiteChecked(zoneId){
+  G.ssi.checked = true;
+  G.ssi.checkedZone = zoneId;
+  G.ssi.checkedAt = G.t;
+}
+
+/* ==========================================================
+   4 bis. DAS — dispositifs actionnés de sécurité
+   Un clapet coupe-feu ou un volet de désenfumage parti en position de
+   sécurité ne revient pas tout seul : il faut monter le réarmer.
+   ========================================================== */
+function dasOpen(zoneId, type, motif){
+  if(!G.das) G.das = [];
+  if(G.das.some(d => d.zoneId === zoneId && d.type === type && !d.rearmed)) return;
+  G.das.push({ id:'D' + (G.uid++), zoneId, type, motif, since:G.t, rearmed:false });
+  G.k.dasTotal = (G.k.dasTotal || 0) + 1;
+  mcAdd('PC', `${DAS_TYPES[type].icon} ${DAS_TYPES[type].label} de ${zoneName(zoneId)} en position de sécurité (${motif}) — réarmement manuel sur place`, 'warn');
+}
+function dasPending(){ return (G.das || []).filter(d => !d.rearmed); }
+function dasPendingZones(){ return [...new Set(dasPending().map(d => d.zoneId))]; }
+function dasLabel(zoneId){
+  const l = dasPending().filter(d => d.zoneId === zoneId).map(d => DAS_TYPES[d.type].label.toLowerCase());
+  return l.join(' + ');
+}
+function openRearmDispatch(){
+  const zones = dasPendingZones();
+  if(!zones.length){ toast('Aucun DAS en position de sécurité', 'info'); return; }
+  if(zones.length === 1){ openDispatch('rearm', zones[0], {}); return; }
+  openMini('🔧 RÉARMEMENT DES DAS', 'Quelle zone traiter en premier ?',
+    zones.map(z => ({icon:'🔧', label:zoneName(z), hint:dasLabel(z), cls:'warning'})),
+    i => openDispatch('rearm', zones[i], {}));
+}
+function finishRearm(agent, m){
+  const z = G.zones[m.zoneId];
+  const feu = z && z.feu && !z.feu.controlled;
+  if(feu){
+    radioSay(agent, `Chef, impossible de réarmer, la zone est toujours en feu.`, 'major');
+    mcAdd(agent.id, `⚠ Réarmement des DAS de ${zoneName(m.zoneId)} impossible — sinistre en cours`, 'warn');
+    endMission(agent, m);
+    return;
+  }
+  const list = dasPending().filter(d => d.zoneId === m.zoneId);
+  if(!list.length){
+    radioSay(agent, `Chef, il n’y avait rien à réarmer ici.`, 'radio');
+    endMission(agent, m);
+    return;
+  }
+  for(const d of list) d.rearmed = true;
+  G.k.dasRearmed = (G.k.dasRearmed || 0) + list.length;
+  G.score += 4 * list.length;
+  mcAdd(agent.id, `🔧 ${list.map(d => DAS_TYPES[d.type].label).join(' et ')} de ${zoneName(m.zoneId)} réarmés et contrôlés en position d’attente`, 'ok');
+  radioSay(agent, `DAS réarmés, position d’attente contrôlée.`, 'radio');
+  toast('DAS réarmés', 'good');
+  ssiSiteChecked(m.zoneId);
+  endMission(agent, m);
+}
+
+/* ==========================================================
+   4 ter. Horloge des missions
+   ========================================================== */
+function tickMissions(){
+  if(!G.missions) return;
+
+  /* Alarme feu traitée depuis le fauteuil : personne n'a été envoyé. */
+  for(const ev of G.events){
+    if(ev.type !== 'feu' || ev.resolved || !ev.decidedAt || ev.lddFailed) continue;
+    if(G.missions.some(mm => mm.data && mm.data.evId === ev.instId)) continue;
+    /* Avant la faute, l'équipe relance : un agent ne reste pas les bras
+       croisés pendant qu'une alarme tourne. */
+    if(G.t - ev.decidedAt > 2 && !ev.lddNagged){
+      ev.lddNagged = true;
+      const libre = missionAvailable()[0];
+      if(libre) radioSay(libre, `Chef, l'alarme tourne sur ${zoneName(ev.zoneId)}. Tu veux que j'y aille ?`, 'major');
+      toast('Personne n\'est parti en levée de doute', 'bad');
+    }
+    if(G.t - ev.decidedAt > 5){
+      ev.lddFailed = true;
+      G.score -= 8;
+      G.k.lddNone = (G.k.lddNone || 0) + 1;
+      mcAdd('PC', `⏱ Aucun agent envoyé sur ${zoneName(ev.zoneId)} cinq minutes après l’alarme — levée de doute non effectuée`, 'crit');
+      logCause(ev.zoneId, `Alarme feu en ${zoneName(ev.zoneId)} sans levée de doute : personne n’a été envoyé sur place.`);
+      toast('Levée de doute non effectuée !', 'bad');
+    }
+  }
+
+  /* Un agent qui a rendu compte et qu'on laisse sans ordre. */
+  for(const m of G.missions){
+    if(m.phase !== 'report' || m.resolved) continue;
+    const a = allStaff().find(x => x.id === m.agentId);
+    const waited = G.t - m.askedAt;
+    if(waited > 3 && m.nagged < 1){
+      m.nagged = 1;
+      radioSay(a, `Chef, j’attends tes ordres sur ${zoneName(m.zoneId)}.`, 'order');
+      if(a) moralChange(a, -2, `laissé sans ordre après son compte-rendu sur ${zoneName(m.zoneId)}`);
+      toast(`${a ? a.name : 'Un agent'} attend un ordre`, 'bad');
+    } else if(waited > 7 && m.nagged < 2){
+      m.nagged = 2;
+      G.score -= 5;
+      G.debrief.rh -= 2;
+      G.k.ordersAuto = (G.k.ordersAuto || 0) + 1;
+      mcAdd('PC', `⚠ ${a ? a.name : 'Agent'} sans instruction ${Math.round(waited)} min après son compte-rendu — défaut de commandement`, 'crit');
+      radioSay(a, `Chef, ça fait ${Math.round(waited)} minutes que je te rends compte. Je fais quoi ?`, 'major');
+    }
+  }
+
+  /* Délai réglementaire de levée de doute. */
+  if(G.ld && !G.ld.done && G.t > G.ld.deadline && !G.ld.lateLogged){
+    G.ld.lateLogged = true;
     G.score -= 6;
+    G.k.lddLate = (G.k.lddLate || 0) + 1;
     mcAdd('PC', `⏱ DÉLAI DE LEVÉE DE DOUTE DÉPASSÉ (> 5 min) — alerte des secours obligatoire`, 'crit');
     toast('Délai levée de doute dépassé !', 'bad');
-    if(a) a.ldd = false;
-    G.ld = null;
+  }
+
+  /* Des DAS laissés en sécurité trop longtemps : l'exploitation est à l'arrêt. */
+  const vieux = dasPending().filter(d => G.t - d.since > 45 && !d.nagged);
+  for(const d of vieux){
+    d.nagged = true;
+    G.score -= 4;
+    mcAdd('PC', `⚠ ${DAS_TYPES[d.type].label} de ${zoneName(d.zoneId)} en sécurité depuis 45 min — installation non réarmée`, 'warn');
+    logCause(d.zoneId, `${DAS_TYPES[d.type].label} de ${zoneName(d.zoneId)} laissés en position de sécurité sans réarmement.`, 1);
   }
 }
 
@@ -4778,6 +5428,7 @@ function revealFire(zoneId, how){
   z.feu.revealedAt = G.t;
   z.feu.revealedHow = how;
   A.alarm();
+  dasOpen(zoneId, 'clapet', 'asservissement de la détection incendie');
   mcAdd('PC', `🔥 FEU DÉCOUVERT en ${zoneName(zoneId)} (${how}) — aucune détection n'avait alerté le PCS`, 'crit');
   toast('🔥 Feu découvert !', 'bad');
   renderMC(true);
@@ -5373,20 +6024,6 @@ function callSecours(kind, zoneId){
   toast(`${kind} en route — accueil à prévoir`, 'bad');
 }
 
-function assignAccueil(agent){
-  if(!G.secours || G.secours.done) { toast('Aucun secours attendu', 'info'); return; }
-  G.secours.accueilId = agent.id;
-  agent.accueil = true;
-  const entree = G.site.zones[0].id;
-  agent.state = 'moving';
-  agent.targetId = entree;
-  agent.until = G.t + 3;
-  agent.workTime = 30;
-  mcAdd('PC', `👮 ${agent.name} désigné pour l'accueil des secours à ${zoneName(entree)}`, 'action');
-  radioSay(agent, `Je me poste à l'entrée avec le plan et le trousseau, j'attends les secours.`, 'order');
-  renderAll();
-}
-
 /* Une batterie non contrôlée lâche après une vingtaine de minutes d'usage */
 function tickRadioFragile(){
   for(const r of G.materiel.radios){
@@ -5428,7 +6065,7 @@ function tickSecours(){
 
   sc.arrived = true;
   sc.done = true;
-  if(ag){ ag.accueil = false; ag.state = 'idle'; }
+  if(ag){ ag.accueil = false; endMission(ag, missionOf(ag)); ag.state = 'idle'; }
   G.k.secoursAccueillis = (G.k.secoursAccueillis || 0) + 1;
   if(present){
     G.score += 10;
@@ -5890,7 +6527,7 @@ function tickV6(){
   tickEvents();
   tickAwaiting();
   tickDegraded();
-  tickLDD();
+  tickMissions();
   tickRH();
   tickBinome();
   updateAlertStrip();
@@ -5915,10 +6552,17 @@ function updateAlertStrip(){
     const hot = riskiestZone();
     if(!feux.length && hot && hot.r >= 60) bits.push(`📍 ${zoneName(hot.id)} à risque (${hot.r})`);
   }
-  if(G.ld){
+  if(G.ld && !G.ld.done){
     const left = Math.max(0, G.ld.deadline - G.t);
     bits.push(`⏱ LDD ${left.toFixed(1)}min`);
   }
+  const sansLdd = G.events.filter(e => e.type === 'feu' && !e.resolved && e.decidedAt && !e.lddFailed &&
+    !(G.missions || []).some(m => m.data && m.data.evId === e.instId)).length;
+  if(sansLdd) bits.push(`🔎 ${sansLdd} alarme(s) sans agent sur zone`);
+  const cr = (G.missions || []).filter(m => m.phase === 'report' && !m.resolved).length;
+  if(cr) bits.push(`📻 ${cr} compte-rendu(s) en attente d'ordre`);
+  const das = dasPending();
+  if(das.length) bits.push(`🔧 ${das.length} DAS à réarmer`);
   if(G.deg.power) bits.push(G.deg.power.generator ? '⚡ Groupe' : '⚡ COUPURE');
   if(G.deg.radio) bits.push(G.deg.radio.backup ? ICON_VHF + ' Secours' : ICON_VHF + ' HS');
   if(G.deg.detect) bits.push(G.deg.detect.covered ? '📡 Compensé' : '📡 HS');
@@ -6137,6 +6781,12 @@ function handleTap(e){
   if(qcmBtn){ resolveQCM(+qcmBtn.dataset.qcm); return; }
   const auditBtn = t.closest('[data-audit]');
   if(auditBtn){ resolveAudit(+auditBtn.dataset.audit); return; }
+  const missionBtn = t.closest('[data-mission-act]');
+  if(missionBtn){
+    $('orderScreen').classList.remove('open');
+    resolveMissionAct(missionBtn.dataset.missionAct, +missionBtn.dataset.actIdx);
+    return;
+  }
   const anomalyBtn = t.closest('[data-resolve-anomaly]');
   if(anomalyBtn){
     $('orderScreen').classList.remove('open');
