@@ -18,7 +18,7 @@ progression est sauvegardée dans le `localStorage`).
 
 - **Registre matériel PCS** : trousseaux nommés par usage (🔥 Clés SSI, ⚙ Clés
   techniques, 👁 Clés accès, 🧿 Passe général pour l'ouverture et la fermeture),
-  3 VHF et 3 badges de pointage. Le registre se lit par agent : trois cases
+  3 talkies VHF (icône dessinée, pas un poste de radio) et 3 badges de pointage. Le registre se lit par agent : trois cases
   (trousseau / radio / badge) que l'on touche pour équiper ou restituer, et la
   liste des zones qu'ouvre chaque trousseau. **La dotation est automatique à
   l'affectation d'une ronde** : radio, badge et trousseau du type de ronde, avec

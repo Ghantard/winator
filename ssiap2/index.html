@@ -556,6 +556,9 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 .matSub{font-size:9.5px}
 .matZones{font-size:9.5px}
 .matIco{font-size:20px;width:28px}
+.ico-vhf{width:1.15em;height:1.15em;vertical-align:-.2em;display:inline-block;flex-shrink:0}
+.akSlot .ico-vhf{width:22px;height:22px;vertical-align:0}
+.orderBtn .oi .ico-vhf{width:20px;height:20px}
 .mcRow{grid-template-columns:42px 24px 1fr}
 .mcRow .mcTime{font-size:9.5px}
 .mcRow .mcTxt{font-size:10.5px;line-height:1.45}
@@ -806,7 +809,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 <div class="ov" id="materielScreen">
   <div class="cd">
     <h1>📦 REGISTRE MATÉRIEL PCS</h1>
-    <div class="sub">Clés · Badges · Radios — dotation et restitution</div>
+    <div class="sub">Clés · Badges · Talkies — dotation et restitution</div>
     <div id="materielContent"></div>
     <button class="btn-sec" data-act="close-materiel">FERMER</button>
   </div>
@@ -831,6 +834,9 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
    TOUT : rondes plus fréquentes + pointage badge + tolérance + points cachés
    ========================================================== */
 const TICK = 250;
+
+/* Icône talkie-walkie (les radios VHF ne sont pas des postes de radio) */
+const ICON_VHF = `<svg class="ico-vhf" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 1.6V5" stroke="#9fb6cc" stroke-width="1.8" stroke-linecap="round"/><circle cx="15.4" cy="1.6" r="1" fill="#9fb6cc"/><rect x="4.6" y="5" width="11" height="17.4" rx="2.4" fill="#1f2c3d" stroke="#7ab0ff" stroke-width="1.2"/><rect x="6.4" y="6.9" width="7.4" height="4" rx="1" fill="#0b1520" stroke="#4a6076" stroke-width=".8"/><path d="M6.6 13.4h7M6.6 15.4h7M6.6 17.4h7" stroke="#7ab0ff" stroke-width="1.1" stroke-linecap="round" opacity=".75"/><rect x="2.5" y="8.6" width="2" height="4.4" rx="1" fill="#7ab0ff" opacity=".85"/><circle cx="10.1" cy="20" r="1.1" fill="#ffb020"/></svg>`;
 const SAVE_KEY = 'ssiap2_sim_v50';
 
 const SITES = {
@@ -1149,11 +1155,11 @@ const SKILLS = {
   endurance:{name:'Endurance',icon:'💪',cost:[8,16,24],desc:['Fatigue -15%','-30%','-45%']},
   sst:{name:'SST',icon:'🩹',cost:[6,12,20],desc:['Base SST','Confirmé','Chef secours']},
   badge:{name:'Badge rapide',icon:'📇',cost:[6,12,20],desc:['Scan plus rapide','+10% réussite','Maître badge']},
-  comm:{name:'Comm.',icon:'📻',cost:[6,12,20],desc:['Clarté','Protocole','Chef comms']},
+  comm:{name:'Comm.',icon:ICON_VHF,cost:[6,12,20],desc:['Clarté','Protocole','Chef comms']},
 };
 
 const SHOP = [
-  {id:'talkie',icon:'📻',name:'Talkie pro',desc:'+10% vitesse ordres',cost:15},
+  {id:'talkie',icon:ICON_VHF,name:'Talkie pro',desc:'+10% vitesse ordres',cost:15},
   {id:'lampe',icon:'🔦',name:'Lampe LED',desc:'Points cachés -30% (nuit)',cost:15},
   {id:'badge_reader',icon:'📇',name:'Lecteur badge pro',desc:'Pointage +15% réussite',cost:22},
   {id:'tablette',icon:'📱',name:'Tablette MCI',desc:'+20% note MCI',cost:25},
@@ -1659,7 +1665,7 @@ function openPicker(roundId){
     if(G.materiel){
       const held = agentKey(a);
       const nOut = uncoveredPoints(a, r).length;
-      const kit = [agentRadio(a) ? '📻' : '', agentBadge(a) ? '📇' : ''].filter(Boolean).join(' ');
+      const kit = [agentRadio(a) ? ICON_VHF : '', agentBadge(a) ? '📇' : ''].filter(Boolean).join(' ');
       sub += `<br><span style="color:${nOut ? '#ff6b5e' : '#4ade80'}">${held ? held.icon + ' ' + held.name : 'sans trousseau'}${nOut ? ` · ${nOut} point(s) non ouvrable(s)` : ' · ronde couverte'}</span>`
         + `<span style="color:#7d8fa3"> ${kit}${(!agentRadio(a) || !agentBadge(a)) ? ' <b style="color:#ff6b5e">dotation incomplète</b>' : ''}</span>`;
     }
@@ -2044,7 +2050,7 @@ function closeDossier(dId, status, txt){
 function radioSay(agent, text, type){
   if(!agent) return;
   if(agent.noRadio){
-    mcAdd('PC', `📻 ${agent.name} non doté de radio — message terrain non reçu au PCS`, 'warn');
+    mcAdd('PC', `${ICON_VHF} ${agent.name} non doté de talkie — message terrain non reçu au PCS`, 'warn');
     return;
   }
   if(G && G.deg && G.deg.radio && !G.deg.radio.backup){
@@ -2117,7 +2123,7 @@ function renderAgents(){
     if(a.role === 'stagiaire') st += ` · 😰${Math.round(a.stress||0)}%`;
     if(a.state === 'binome') st = `🎓 Binôme — ${zoneName(a.pos)}`;
     if(G.materiel){
-      const kit = [agentRadio(a)?'📻':'', agentBadge(a)?'📇':'', agentKey(a)?agentKey(a).icon:''].filter(Boolean).join('');
+      const kit = [agentRadio(a)?ICON_VHF:'', agentBadge(a)?'📇':'', agentKey(a)?agentKey(a).icon:''].filter(Boolean).join('');
       if(kit) st += ' · ' + kit;
       else if(a.isRonde) st += ' · ⛔ sans dotation';
     }
@@ -2130,7 +2136,7 @@ function renderAgents(){
                     : bubble && bubble.type === 'order' ? 'order'
                     : bubble && bubble.type === 'badge' ? 'badge' : '';
     const bubbleHtml = `<div class="bubble ${bubbleCls} ${bubble?'show':''}">
-      <div class="bs">📻 ${a.name}</div>
+      <div class="bs">${ICON_VHF} ${a.name}</div>
       <div>${bubble?a.bubble.text:''}</div>
     </div>`;
 
@@ -2300,7 +2306,7 @@ function renderEventModal(ev){
   h += `<div class="evBlock"><div class="evLabel">SITUATION PCS & TERRAIN</div>
     <div class="evContent pcs">${ev.pcs||ev.desc}<br><b style="color:#7d8fa3">Zone :</b> ${zoneName(ev.zoneId || ev.zone)}</div></div>`;
   h += `<h2>RÉSEAU D'INTERACTIONS</h2>`;
-  if(ev.radio) h += `<div class="evBlock"><div class="evLabel">📻 RADIO</div>
+  if(ev.radio) h += `<div class="evBlock"><div class="evLabel">${ICON_VHF} RADIO</div>
     <div class="evContent radio">${ev.radio}</div></div>`;
   if(ev.phone) h += `<div class="evBlock"><div class="evLabel">📞 TÉLÉPHONE</div>
     <div class="evContent phone">${ev.phone}</div></div>`;
@@ -3075,7 +3081,7 @@ function renderActions(){
     <div class="ol"><b>Dossier accident du travail</b><span>${G.rh.datDone ? 'DAT complétée' : (G.rh.datOpen ? '⚠ DAT À SAISIR' : 'Aucun AT en cours')}</span></div></button>`;
   h += `<button class="orderBtn" data-pcs="renfort"><div class="oi">👥</div>
     <div class="ol"><b>Rappel / remplacement</b><span>${G.rh.incoming ? 'Renfort attendu à ' + fmtTime(G.rh.incoming.at) : 'Astreinte, prestataire ou arbitrage'}</span></div></button>`;
-  h += `<button class="orderBtn" data-pcs="test_radio"><div class="oi">📻</div>
+  h += `<button class="orderBtn" data-pcs="test_radio"><div class="oi">${ICON_VHF}</div>
     <div class="ol"><b>Test radio général</b><span>Vérifier la liaison des agents</span></div></button>`;
   h += `<button class="orderBtn" data-pcs="appel_s3"><div class="oi">🎖</div>
     <div class="ol"><b>Appeler le SSIAP 3</b><span>Arbitrage du chef de service</span></div></button>`;
@@ -3105,14 +3111,14 @@ function execPcsAction(k){
     case 'renfort': execRenfort(); break;
     case 'test_radio':
       if(G.deg.radio && !G.deg.radio.backup){
-        mcAdd('PC','📻 Test radio : aucun agent joignable — relais VHF hors service','warn');
+        mcAdd('PC', ICON_VHF + ' Test radio : aucun agent joignable — relais VHF hors service','warn');
         toast('Relais VHF HS','bad');
       } else {
         for(const a of G.agents){
-          if(a.noRadio) mcAdd('PC', `📻 ${a.name} non doté — aucune réponse`, 'warn');
+          if(a.noRadio) mcAdd('PC', `${ICON_VHF} ${a.name} non doté — aucune réponse`, 'warn');
           else radioSay(a, 'Test radio reçu 5 sur 5.', 'radio');
         }
-        mcAdd('PC','📻 Test radio général effectué','ok');
+        mcAdd('PC', ICON_VHF + ' Test radio général effectué','ok');
       }
       break;
     case 'appel_s3': G.s3.present = true; mcAdd('S3','Conseil pris en compte, trace-le en main courante.','info'); break;
@@ -3180,7 +3186,7 @@ function buildKeySets(site){
      forType:'technique', zones: uniq([...(rz.technique||[]), 'pcs']), holder:null},
     {id:'CLE-ACCES', icon:'👁', name:'Clés accès', desc:'Pour les rondes de surveillance',
      forType:'surveillance', zones: uniq([...(rz.surveillance||[]), 'pcs']), holder:null},
-    {id:'PASSE', icon:'🧿', name:'Passe général', desc:'Ouvre tout le site — pour ouverture et fermeture',
+    {id:'PASSE', icon:'🗝', name:'Passe général', desc:'Ouvre tout le site — pour ouverture et fermeture',
      zones: uniq([...all, 'pcs']), holder:null, master:true},
   ];
 }
@@ -3188,9 +3194,9 @@ function initMateriel(site){
   return {
     keys: buildKeySets(site),
     radios: [
-      {id:'VHF-1', icon:'📻', name:'VHF 1', desc:'Canal 1 — sécurité incendie', holder:null, battery:100},
-      {id:'VHF-2', icon:'📻', name:'VHF 2', desc:'Canal 1 — sécurité incendie', holder:null, battery:92},
-      {id:'VHF-3', icon:'📻', name:'VHF 3 (secours)', desc:'Batterie faible', holder:null, battery:45},
+      {id:'VHF-1', icon:ICON_VHF, name:'VHF 1', desc:'Canal 1 — sécurité incendie', holder:null, battery:100},
+      {id:'VHF-2', icon:ICON_VHF, name:'VHF 2', desc:'Canal 1 — sécurité incendie', holder:null, battery:92},
+      {id:'VHF-3', icon:ICON_VHF, name:'VHF 3 (secours)', desc:'Batterie faible', holder:null, battery:45},
     ],
     badges: [
       {id:'BA-1', icon:'📇', name:'Badge lecteur 1', desc:'Pointage des points de ronde', holder:null},
@@ -3343,11 +3349,11 @@ function renderMateriel(){
   const staff = allStaff();
   const kinds = [
     {k:'keys',   label:'Trousseau', icon:'🔑'},
-    {k:'radios', label:'Radio VHF', icon:'📻'},
+    {k:'radios', label:'Talkie VHF', icon:ICON_VHF},
     {k:'badges', label:'Badge',     icon:'📇'},
   ];
 
-  let h = `<div class="matHint">Chaque agent part en ronde avec <b style="color:#e8f0f8">une radio, un badge et le trousseau du type de ronde</b>. La dotation est faite automatiquement quand vous affectez une ronde — touchez une case pour la changer.</div>`;
+  let h = `<div class="matHint">Chaque agent part en ronde avec <b style="color:#e8f0f8">un talkie VHF, un badge et le trousseau du type de ronde</b>. La dotation est faite automatiquement quand vous affectez une ronde — touchez une case pour la changer.</div>`;
 
   h += `<div class="matHead">👥 DOTATION DES AGENTS</div>`;
   for(const a of staff){
@@ -3385,7 +3391,7 @@ function renderMateriel(){
   const freeB = G.materiel.badges.filter(x => !x.holder).length;
   h += `<div class="matHead">📦 RÂTELIER PCS</div>
     <div class="evContent" style="line-height:1.6">
-      📻 Radios disponibles : <b style="color:${freeR ? '#4ade80' : '#ff6b5e'}">${freeR}/${G.materiel.radios.length}</b><br>
+      ${ICON_VHF} Talkies disponibles : <b style="color:${freeR ? '#4ade80' : '#ff6b5e'}">${freeR}/${G.materiel.radios.length}</b><br>
       📇 Badges disponibles : <b style="color:${freeB ? '#4ade80' : '#ff6b5e'}">${freeB}/${G.materiel.badges.length}</b>
     </div>`;
 
@@ -3467,8 +3473,8 @@ function triggerDegraded(kind){
   }
   if(kind === 'radio' && !G.deg.radio){
     G.deg.radio = { since:G.t, until:G.t + 25 + Math.random()*20, backup:false };
-    mcAdd('PC', `📻 PANNE RADIO VHF — relais HS, liaison agents dégradée`, 'crit');
-    toast('📻 Panne radio VHF', 'bad');
+    mcAdd('PC', `${ICON_VHF} PANNE RADIO VHF — relais HS, liaison agents dégradée`, 'crit');
+    toast('Panne radio VHF', 'bad');
     G.deg.history.push({t:G.t, k:'Panne radio VHF'});
   }
   if(kind === 'detect' && !G.deg.detect){
@@ -3499,7 +3505,7 @@ function tickDegraded(){
   }
   if(d.radio){
     if(G.t > d.radio.until){
-      mcAdd('PC', `📻 Relais VHF rétabli — test radio général à effectuer`, 'ok');
+      mcAdd('PC', `${ICON_VHF} Relais VHF rétabli — test radio général à effectuer`, 'ok');
       toast('Radio rétablie', 'good');
       d.radio = null;
     }
@@ -3881,12 +3887,12 @@ function updateAlertStrip(){
     bits.push(`⏱ LDD ${left.toFixed(1)}min`);
   }
   if(G.deg.power) bits.push(G.deg.power.generator ? '⚡ Groupe' : '⚡ COUPURE');
-  if(G.deg.radio) bits.push(G.deg.radio.backup ? '📻 Secours' : '📻 HS');
+  if(G.deg.radio) bits.push(G.deg.radio.backup ? ICON_VHF + ' Secours' : ICON_VHF + ' HS');
   if(G.deg.detect) bits.push(G.deg.detect.covered ? '📡 Compensé' : '📡 HS');
   if(G.ssi.inhibited.length) bits.push('🚫 ' + G.ssi.inhibited.length + ' inhib.');
   if(G.rh.incoming) bits.push('👥 renfort ' + fmtTime(G.rh.incoming.at));
   if(G.rh.datOpen && !G.rh.datDone) bits.push('🩹 DAT à saisir');
-  el.textContent = bits.length ? bits.join(' · ') : '✅ Nominal';
+  el.innerHTML = bits.length ? bits.join(' · ') : '✅ Nominal';
   el.className = 'meta-item' + (bits.length && bits[0] !== '✅ Nominal' ? ' alert' : '');
 }
 
