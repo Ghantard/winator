@@ -1,0 +1,33 @@
+{
+  "name": "html2apk",
+  "version": "0.1.0",
+  "description": "Build an Android APK from a website URL or a local HTML folder",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "html2apk": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "ts-node src/cli.ts",
+    "clean": "rimraf dist",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
