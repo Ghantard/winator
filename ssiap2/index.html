@@ -274,6 +274,12 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .siteCard .scDesc{font-size:8.5px;color:#7d8fa3;line-height:1.35}
 .siteCard.sel .scName{color:#ff8b7e}
 
+.evDeadline{text-align:center;font-size:12px;font-weight:800;letter-spacing:.6px;
+  padding:8px;border-radius:8px;margin-bottom:10px;color:#ffb020;
+  background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35);
+  font-variant-numeric:tabular-nums}
+.evDeadline.urgent{color:#ff6b5e;background:rgba(255,59,48,.14);
+  border-color:rgba(255,59,48,.45);animation:urgent-pulse 1s infinite}
 .evCtx{padding:8px 10px;background:linear-gradient(90deg,rgba(80,140,220,.08),transparent);
   border-left:3px solid #7ab0ff;border-radius:6px;font-size:9px;color:#8fa4b8;
   margin-bottom:10px;line-height:1.5}
@@ -414,6 +420,11 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   background:rgba(80,140,220,.12);color:#7ab0ff;font-family:inherit;font-size:9px;font-weight:800}
 .matBtn.back{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.12);color:#4ade80}
 .meta-item.alert{color:#ff8b7e;font-weight:800}
+.resumeBox{padding:12px;border-radius:10px;margin-bottom:12px;
+  background:linear-gradient(135deg,rgba(255,176,32,.14),rgba(168,85,247,.1));
+  border:1px solid rgba(255,176,32,.45)}
+.resumeBox .rbTitle{font-size:12.5px;font-weight:800;color:#ffb020;letter-spacing:.5px}
+.resumeBox .rbSub{font-size:10px;color:#b8c8d8;margin-top:4px;line-height:1.5}
 .shiftPick{display:flex;gap:8px;margin:8px 0}
 .shiftBtn{flex:1;padding:10px;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:800;font-size:10px;
   border:1px solid rgba(80,110,150,.25);background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));color:#8fa4b8}
@@ -1186,7 +1197,7 @@ function defaultSave(){
     money:0,
     stats:{fires:0,mci_good:0,audits:0,qcms:0,roundsDone:0,roundsMissed:0,
            badges:0,badgesFailed:0,nightVacations:0,sitesVisited:[],
-           lddOk:0, degradedHandled:0, datDone:0, keyErrors:0},
+           lddOk:0, degradedHandled:0, datDone:0, keyErrors:0, ignored:0},
     firstTime:true,
   };
 }
@@ -1271,7 +1282,8 @@ function renderSiteGrid(){
   $('pickSiteBtn').disabled = !(selectedSiteId && selectedShift);
   const lvl = careerLevel(SAVE.xp);
   const nxt = nextCareer(SAVE.xp);
-  let ch = `<div class="statGrid">
+  let ch = shiftResumeBanner();
+  ch += `<div class="statGrid">
     <div class="sg"><div class="sgv">${SAVE.vacations}</div><div class="sgl">VACATIONS</div></div>
     <div class="sg mid"><div class="sgv">${SAVE.xp}</div><div class="sgl">XP</div></div>
     <div class="sg good"><div class="sgv">${lvl.lvl}</div><div class="sgl">NIVEAU</div></div>
@@ -1337,6 +1349,8 @@ function renderTeam(){
 
 function startGame(){
   A.init(); A.startAmbient();
+  clearShift();
+  if(timer){ clearInterval(timer); timer = null; }
   const site = SITES[selectedSiteId];
   const shift = selectedShift || (Math.random() < 0.5 ? 'day' : 'night');
   const startT = shift === 'day' ? 7*60 : 19*60;
@@ -1362,10 +1376,10 @@ function startGame(){
     nextAuditAt: startT + 240 + Math.random()*180,
     auditOpen: false,
     s3:{present:false, audits:0, auditsGood:0},
-    debrief:{regulation:0, time:0, rh:0, mci:0, stagiaire:0, training:0, materiel:0, count:0,
+    debrief:{regulation:0, time:0, rh:0, mci:0, stagiaire:0, training:0, materiel:0, count:0, ignored:0,
              roundsOk:0, roundsMissed:0, roundsLate:0, roundsIncidents:0,
              badges:0, badgesFailed:0, pointsMissed:0},
-    activeModal:null, qcmAvailable:true,
+    activeModal:null, mciPending:0, qcmAvailable:true,
     ld:null,
     nextDegradedAt: startT + 90 + Math.random()*120,
     date: randDate(),
@@ -1382,13 +1396,7 @@ function startGame(){
   if(!SAVE.stats.sitesVisited.includes(selectedSiteId)) SAVE.stats.sitesVisited.push(selectedSiteId);
   if(shift === 'night') SAVE.stats.nightVacations++;
 
-  $('sitetag').textContent = site.icon + ' ' + site.name;
-  $('shiftBadge').textContent = (shift==='day'?'☀ JOUR':'🌙 NUIT');
-  $('shiftBadge').className = 'shift ' + shift;
-  $('metaSite').textContent = site.name;
-  $('metaWeather').textContent = G.weather.icon + ' ' + G.weather.label;
-  $('metaBinome').textContent = G.agents.map(a=>a.id+' '+a.name).join(' · ') + (G.stagiaire ? ' + ' + G.stagiaire.name : '');
-  $('metaDate').textContent = G.date;
+  applyShiftHeader();
 
   mcAdd('PC', `🔓 PRISE DE SERVICE — ${site.name}`, 'head-init');
   mcAdd('PC', `Vacation ${shift==='day'?'JOUR 07:00-19:00':'NUIT 19:00-07:00'}`, 'info');
@@ -1405,6 +1413,17 @@ function startGame(){
   timer = setInterval(tick, TICK);
   updateDayCycle();
 }
+function applyShiftHeader(){
+  if(!G) return;
+  $('sitetag').textContent = G.site.icon + ' ' + G.site.name;
+  $('shiftBadge').textContent = (G.shift === 'day' ? '☀ JOUR' : '🌙 NUIT');
+  $('shiftBadge').className = 'shift ' + G.shift;
+  $('metaSite').textContent = G.site.name;
+  $('metaWeather').textContent = G.weather.icon + ' ' + G.weather.label;
+  $('metaBinome').textContent = G.agents.map(a => a.id + ' ' + a.name).join(' · ') + (G.stagiaire ? ' + ' + G.stagiaire.name : '');
+  $('metaDate').textContent = G.date;
+}
+
 function randDate(){
   const d = new Date();
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -1491,6 +1510,21 @@ function renderPlanningStrip(){
     return;
   }
 
+  const suspended = G.rounds.find(r => r.status === 'suspended');
+  if(suspended){
+    const holder = G.agents.find(x => x.suspendedRound && x.suspendedRound.roundId === suspended.id);
+    strip.className = 'show imminent';
+    strip.innerHTML = `<div class="psInner">
+      <div class="psIcon">⏸</div>
+      <div class="psInfo">
+        <div class="psLabel"><span class="psid">${suspended.id}</span> · <span class="pstime">SUSPENDUE</span> · ${ROUND_TYPES[suspended.type].name}</div>
+        <div class="psSub"><span class="warn">${holder ? holder.name + ' — toucher sa carte pour reprendre' : 'à réaffecter'}</span></div>
+      </div>
+      <button class="psBtn" data-act="open-planning">Détails</button>
+    </div>`;
+    return;
+  }
+
   const next = G.rounds
     .filter(r => r.status === 'pending' || r.status === 'assigned' || r.status === 'late')
     .sort((a,b) => a.time - b.time)[0];
@@ -1568,6 +1602,10 @@ function renderPlanning(){
       cls += ' running';
       const pct = Math.round(((agent?.rondeIndex || 0) / r.points.length) * 100);
       statusTxt = `<span style="color:#ffb020">▶ En cours — ${agent?.name} · ${pct}%</span>`;
+    } else if(r.status === 'suspended'){
+      cls += ' late';
+      const holder = G.agents.find(x => x.suspendedRound && x.suspendedRound.roundId === r.id);
+      statusTxt = `<span style="color:#c084fc">⏸ Suspendue — ${holder ? holder.name + ' peut la reprendre' : 'à réaffecter'}</span>`;
     } else if(delta < -tol){
       cls += ' late';
       statusTxt = agent
@@ -1992,6 +2030,10 @@ function checkRoundTiming(){
       }
     }
 
+    // Une ronde commencée (en cours ou suspendue) ne relève plus du chrono :
+    // elle se solde par son achèvement ou reste inachevée à la relève.
+    if(r.status === 'suspended' || r.startedAt) continue;
+
     // Trigger au moment prévu
     if(delta <= 0 && delta > -tol && r.status !== 'running'){
       if(r.assignedAgentId){
@@ -2120,6 +2162,7 @@ function renderAgents(){
     else if(a.state === 'qcm'){ st = '🎓 Formation'; cls = 'ronde'; }
     else if(a.state === 'pause'){ st = '☕ Pause'; cls = 'ok'; }
     else { st = `🟢 ${zoneName(a.pos)}`; cls = 'ok'; }
+    if(a.suspendedRound && !a.isRonde) st = `⏸ ${a.suspendedRound.roundId} suspendue`;
     if(a.role === 'stagiaire') st += ` · 😰${Math.round(a.stress||0)}%`;
     if(a.state === 'binome') st = `🎓 Binôme — ${zoneName(a.pos)}`;
     if(G.materiel){
@@ -2210,7 +2253,8 @@ function updateDayCycle(){
 function tick(){
   if(!G || G.paused) return;
   if($('mciScreen').classList.contains('open')) return;
-  if($('eventScreen').classList.contains('open')) return;
+  /* L'écran d'événement ne met PLUS la vacation en pause : le délai de
+     traitement court pendant que le chef de poste décide. */
   if($('qcmScreen').classList.contains('open')) return;
   if($('auditScreen').classList.contains('open')) return;
   if($('debriefScreen').classList.contains('open')) return;
@@ -2261,6 +2305,7 @@ function tick(){
   }
 
   if(Math.floor(G.t) % 3 === 0) updateDayCycle();
+  if(Math.floor(G.t) !== G._savedMin){ G._savedMin = Math.floor(G.t); saveShift(); }
   renderAll();
 }
 
@@ -2278,7 +2323,12 @@ function spawnEvent(evId){
   const ev = EVENTS.find(e => e.id === evId);
   if(!ev) return;
   const z = pick(G.site.zones);
-  const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId: z.id, spawnedAt: G.t, resolved:false, awaitingOrders:false};
+  const urgent = ['feu','medical','at'].includes(ev.type);
+  const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId: z.id, spawnedAt: G.t,
+    resolved:false, awaitingOrders:false,
+    urgent, delay: urgent ? (ev.type === 'feu' ? 5 : 6) : 15,
+    deadline: G.t + (urgent ? (ev.type === 'feu' ? 5 : 6) : 15),
+    autoOpen: true, escalated:false};
   G.events.push(instance);
   if(ev.type === 'feu'){ A.alarm(); G.firesThisVacation++; SAVE.stats.fires++; }
   else A.beep(880,0.1,0.07);
@@ -2299,6 +2349,7 @@ function openEventModal(instance){
 function renderEventModal(ev){
   const ctx = `${G.site.icon} ${G.site.name} — ${fmtTime(G.t)} — ${G.shift==='day'?'JOUR':'NUIT'} — ${G.weather.icon} ${G.weather.label}`;
   let h = `<h1>${iconFor(ev.type)} ÉVÉNEMENT</h1><div class="sub">${(ev.type||'anomalie').toUpperCase()}</div>`;
+  if(ev.deadline) h += `<div class="evDeadline" id="evCountdown">⏱ ${Math.max(0, ev.deadline - G.t).toFixed(1)} min pour décider</div>`;
   h += `<div class="evBlock"><div class="evLabel">CONTEXTUALISATION</div>
     <div class="evCtx">${ctx}<br>${ev.ctx||''}</div></div>`;
   h += `<div class="evBlock"><div class="evLabel">ÉVÉNEMENT</div>
@@ -2335,10 +2386,14 @@ function iconFor(t){
 
 function resolveChoice(idx){
   const ev = G.activeModal;
-  if(!ev) return;
+  if(!ev){ $('eventScreen').classList.remove('open'); return; }
   const c = ev.choices[idx];
   if(!c) return;
   A.click();
+  /* La décision est prise : le délai de traitement ne court plus
+     (la rédaction de la main courante n'est pas chronométrée). */
+  ev.deadline = null;
+  ev.decidedAt = G.t;
   G.score += c.score || 0;
   G.debrief.count++;
   G.debrief.regulation += c.reg || 0;
@@ -2375,7 +2430,10 @@ function resolveChoice(idx){
   G.activeModal = null;
 
   if(ev.mci){
-    setTimeout(() => openMCI(ev), 350);
+    /* Horodatage plutôt qu'un drapeau : si le minuteur ne part pas
+       (onglet en arrière-plan), le verrou se libère de lui-même. */
+    G.mciPending = Date.now();
+    setTimeout(() => { G.mciPending = 0; openMCI(ev); }, 350);
   } else {
     ev.resolved = true;
     G.solved.push(ev);
@@ -2496,7 +2554,7 @@ function resolveMCI(idx){
   renderMC(true);
   setTimeout(() => {
     $('mciScreen').classList.remove('open');
-    G.activeModal = null;
+    if(G && G.activeModal === ev) G.activeModal = null;
   }, 1400);
 }
 
@@ -2520,6 +2578,22 @@ function openOrderMenu(agentId){
   let h = '';
   const isAvail = a.state === 'idle';
   const onRound = a.isRonde || a.currentRoundId;
+  const susp = a.suspendedRound ? G.rounds.find(r => r.id === a.suspendedRound.roundId) : null;
+  const curRound = a.isRonde ? G.rounds.find(r => r.id === a.currentRoundId) : null;
+
+  if(curRound || susp){
+    const r = curRound || susp;
+    const idx = curRound ? a.rondeIndex : a.suspendedRound.index;
+    h += `<div class="matHead">🎯 ${r.id} — ${curRound ? 'EN COURS' : 'SUSPENDUE'} (point ${idx+1}/${r.points.length})</div>`;
+    const alarm = G.events.find(e => !e.resolved && !e.awaitingOrders);
+    if(alarm){
+      h += orderBtn('divert-alarm', true, '🚨', `Dérouter vers l'alarme`, `${zoneName(alarm.zoneId)} — la ronde est suspendue`);
+    }
+    h += orderBtn('divert', true, '➤', 'Dérouter vers une zone', 'Suspend la ronde, garde la progression');
+    if(susp && !curRound) h += orderBtn('resume', a.state === 'idle', '▶', 'Reprendre la ronde', `Repart au point ${a.suspendedRound.index+1}`);
+    h += orderBtn('recall', true, '↩', 'Rappeler au PCS', 'Interrompt la ronde — elle sera à réaffecter');
+    if(curRound && curRound.binome) h += orderBtn('detach', true, '🎓', 'Détacher le stagiaire', 'Le renvoie au PCS, la ronde continue');
+  }
 
   h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin-bottom:6px;font-weight:800">🎯 RONDES</div>`;
   h += orderBtn('ronde-ssi', isAvail && !onRound, '🔥', 'Ronde SSI', 'Sécurité incendie');
@@ -2580,7 +2654,33 @@ function renderAnomalyOrders(ev){
 
 function execOrder(o){
   const a = orderAgent;
-  if(!a || a.state !== 'idle'){ $('orderScreen').classList.remove('open'); return; }
+  if(!a){ $('orderScreen').classList.remove('open'); return; }
+
+  /* Ordres praticables alors que l'agent est déjà en mouvement */
+  if(o === 'recall' || o === 'divert' || o === 'divert-alarm' || o === 'resume' || o === 'detach'){
+    $('orderScreen').classList.remove('open');
+    A.click();
+    if(o === 'recall'){ recallAgent(a); return; }
+    if(o === 'resume'){ resumeRound(a); return; }
+    if(o === 'detach'){
+      const r = G.rounds.find(x => x.id === a.currentRoundId);
+      detachBinome(r, 'ordre');
+      renderAll();
+      return;
+    }
+    if(o === 'divert-alarm'){
+      const alarm = G.events.find(e => !e.resolved && !e.awaitingOrders);
+      if(alarm) divertAgent(a, alarm.zoneId);
+      return;
+    }
+    const zones = G.site.zones;
+    openMini('➤ DÉROUTER L\'AGENT', `${a.name} — la ronde est suspendue, reprenable ensuite`,
+      zones.map(z => ({icon:'📍', label:z.name, hint:z.floor, cls:'primary'})),
+      i => divertAgent(a, zones[i].id));
+    return;
+  }
+
+  if(a.state !== 'idle'){ $('orderScreen').classList.remove('open'); return; }
   $('orderScreen').classList.remove('open');
   A.click();
   const speedBonus = a.skills && a.skills.vitesse ? (1 - a.skills.vitesse*0.08) : 1;
@@ -2736,6 +2836,7 @@ function endVacation(){
   G.paused = true;
   clearInterval(timer);
   timer = null;
+  clearShift();
   A.stopAmbient();
   A.success();
 
@@ -2878,6 +2979,7 @@ function endVacation(){
       Rondes en retard : <b style="color:#ffb020">${G.debrief.roundsLate || 0}</b><br>
       Anomalies trouvées : <b>${G.debrief.roundsIncidents || 0}</b><br>
       Audits SSIAP 3 : <b>${G.s3.auditsGood}/${G.s3.audits}</b><br>
+      Alarmes non traitées dans le délai : <b style="color:${G.debrief.ignored ? '#ff6b5e' : '#4ade80'}">${G.debrief.ignored || 0}</b><br>
       Score RH cumulé : <b>${SAVE.rhScore > 0 ? '+' : ''}${SAVE.rhScore}</b><br>
       Palier : <b style="color:#ffb020">${careerLevel(SAVE.xp).name}</b>
     </div>`;
@@ -3868,10 +3970,166 @@ function tickBinome(){
 }
 
 /* ==========================================================
+   6 ter. CONDUITE DES RONDES EN COURS
+   Rappel, déroutement, reprise, rupture de binôme
+   ========================================================== */
+function suspendRound(agent){
+  const r = G.rounds.find(x => x.id === agent.currentRoundId);
+  if(!r) return null;
+  agent.suspendedRound = { roundId:r.id, index:agent.rondeIndex, results:agent.pointResults.slice() };
+  r.status = 'suspended';
+  agent.isRonde = false;
+  agent.scanning = false;
+  agent.scanningPoint = null;
+  agent._pendingBadge = null;
+  return r;
+}
+
+function recallAgent(agent){
+  const r = agent.isRonde ? suspendRound(agent) : null;
+  agent.suspendedRound = null;
+  if(r){
+    r.status = 'pending';
+    r.assignedAgentId = null;
+    r.startedAt = null;
+    r.preAlerted = true;
+    r.pointsVisited = 0;
+    mcAdd('PC', `↩ ${agent.name} rappelé au PCS — ${r.id} interrompue, à réaffecter (reprise depuis le début)`, 'warn');
+  } else {
+    mcAdd('PC', `↩ ${agent.name} rappelé au PCS`, 'info');
+  }
+  if(r && r.binome) detachBinome(r, 'rappel');
+  agent.state = 'moving';
+  agent.targetId = 'pcs';
+  agent.until = G.t + 3;
+  agent.workTime = 0.5;
+  radioSay(agent, `Reçu, j'interromps et je remonte au PCS.`, 'order');
+  renderAll();
+  renderPlanningStrip();
+  if($('planningScreen').classList.contains('open')) renderPlanning();
+}
+
+function divertAgent(agent, zoneId){
+  const r = agent.isRonde ? suspendRound(agent) : null;
+  const speed = agent.skills && agent.skills.vitesse ? (1 - agent.skills.vitesse*0.08) : 1;
+  agent.state = 'moving';
+  agent.targetId = zoneId;
+  agent.until = G.t + (2.5 + Math.random()*2) * speed;
+  agent.workTime = 1.5;
+  G.debrief.time += 1;
+  mcAdd('PC', `➤ ${agent.name} dérouté vers ${zoneName(zoneId)}${r ? ` — ${r.id} suspendue au point ${(agent.suspendedRound.index)+1}/${r.points.length}` : ''}`, 'action');
+  radioSay(agent, `Je laisse ma ronde et je file sur ${zoneName(zoneId)}.`, 'order');
+  toast(`${agent.name} → ${zoneName(zoneId)}`, 'info');
+  renderAll();
+  renderPlanningStrip();
+}
+
+function resumeRound(agent){
+  const sr = agent.suspendedRound;
+  if(!sr) return;
+  const r = G.rounds.find(x => x.id === sr.roundId);
+  agent.suspendedRound = null;
+  if(!r || r.status === 'done' || r.status === 'missed'){
+    toast('Ronde non reprenable', 'bad');
+    return;
+  }
+  agent.isRonde = true;
+  agent.currentRoundId = r.id;
+  agent.rondeType = r.type;
+  agent.rondeIndex = sr.index;
+  agent.pointResults = sr.results;
+  r.status = 'running';
+  r.assignedAgentId = agent.id;
+  mcAdd('PC', `▶ ${r.id} reprise par ${agent.name} au point ${sr.index+1}/${r.points.length}`, 'round');
+  radioSay(agent, `Je reprends ma ronde où je l'avais laissée.`, 'order');
+  nextRoundPoint(agent);
+  renderAll();
+  renderPlanningStrip();
+  if($('planningScreen').classList.contains('open')) renderPlanning();
+}
+
+function detachBinome(round, reason){
+  const st = G.stagiaire;
+  if(!st || !round || round.binome !== st.id) return;
+  round.binome = null;
+  st.state = 'moving';
+  st.targetId = 'pcs';
+  st.until = G.t + 3;
+  st.workTime = 0.5;
+  st.currentRoundId = null;
+  st.stress = Math.min(100, (st.stress || 20) + 8);
+  mcAdd('PC', `🎓 ${st.name} détaché du binôme et renvoyé au PCS${reason === 'rappel' ? ' (ronde interrompue)' : ''}`, 'info');
+}
+
+/* ==========================================================
+   6 bis. ALARMES : interruption du PCS et délai de traitement
+   ========================================================== */
+function anyOverlayOpen(){ return !!document.querySelector('.ov.open'); }
+function mciPendingNow(){ return !!G.mciPending && (Date.now() - G.mciPending) < 3000; }
+
+function tickEvents(){
+  for(const ev of G.events){
+    if(ev.resolved || ev.escalated || ev.awaitingOrders) continue;
+    if(ev.autoOpen && !anyOverlayOpen() && !mciPendingNow()){
+      ev.autoOpen = false;
+      if(ev.urgent) A.alarm();
+      openEventModal(ev);
+      continue;
+    }
+    if(ev.deadline && G.t > ev.deadline) escalateEvent(ev);
+  }
+  updateEventCountdown();
+}
+
+/* Ne pas décider est une décision : l'événement se solde sans le PCS. */
+function escalateEvent(ev){
+  ev.escalated = true;
+  ev.resolved = true;
+  ev.autoOpen = false;
+  const pen = {feu:{s:15, r:4, t:4}, medical:{s:12, r:3, t:4}, at:{s:10, r:3, t:3}}[ev.type] || {s:6, r:2, t:2};
+  G.score -= pen.s;
+  G.debrief.regulation -= pen.r;
+  G.debrief.time -= pen.t;
+  G.debrief.ignored = (G.debrief.ignored || 0) + 1;
+  SAVE.stats.ignored = (SAVE.stats.ignored || 0) + 1;
+
+  if(ev.type === 'feu'){
+    G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
+    mcAdd('PC', `⛔ ${ev.event} NON TRAITÉE dans le délai (${ev.delay} min) — sinistre non levé, situation aggravée`, 'crit');
+    mcAdd('S3', `Aucune décision du PCS sur l'alarme ${zoneName(ev.zoneId)}. Je reprends la main — ce sera au débriefing.`, 'crit');
+  } else if(ev.type === 'medical' || ev.type === 'at'){
+    mcAdd('PC', `⛔ ${ev.event} NON TRAITÉE dans le délai (${ev.delay} min) — victime sans prise en charge du PCS`, 'crit');
+    mcAdd('S3', `Une victime a attendu. Explique-moi ça à la relève.`, 'crit');
+  } else {
+    mcAdd('PC', `⛔ ${ev.event} laissée sans suite (${ev.delay} min) — non-conformité`, 'crit');
+  }
+  A.fail();
+  toast('⛔ Alarme non traitée !', 'bad');
+
+  if(G.activeModal && G.activeModal.instId === ev.instId){
+    $('eventScreen').classList.remove('open');
+    G.activeModal = null;
+  }
+  renderMC(true);
+}
+
+/* Décompte affiché dans la modale d'événement */
+function updateEventCountdown(){
+  const el = $('evCountdown');
+  if(!el) return;
+  const ev = G.activeModal;
+  if(!ev || !ev.deadline){ el.textContent = ''; return; }
+  const left = ev.deadline - G.t;
+  el.textContent = left > 0 ? `⏱ ${left.toFixed(1)} min pour décider` : '⏱ DÉLAI DÉPASSÉ';
+  el.className = 'evDeadline' + (left <= 2 ? ' urgent' : '');
+}
+
+/* ==========================================================
    7. TICK V6 — branché depuis tick()
    ========================================================== */
 function tickV6(){
   if(!G) return;
+  tickEvents();
   tickDegraded();
   tickLDD();
   tickRH();
@@ -3882,6 +4140,8 @@ function updateAlertStrip(){
   const el = $('metaAlert');
   if(!el) return;
   const bits = [];
+  const pending = G.events.filter(e => !e.resolved && !e.awaitingOrders).length;
+  if(pending) bits.push(`🔔 ${pending} alarme(s)`);
   if(G.ld){
     const left = Math.max(0, G.ld.deadline - G.t);
     bits.push(`⏱ LDD ${left.toFixed(1)}min`);
@@ -3894,6 +4154,71 @@ function updateAlertStrip(){
   if(G.rh.datOpen && !G.rh.datDone) bits.push('🩹 DAT à saisir');
   el.innerHTML = bits.length ? bits.join(' · ') : '✅ Nominal';
   el.className = 'meta-item' + (bits.length && bits[0] !== '✅ Nominal' ? ' alert' : '');
+}
+
+/* ==========================================================
+   7 bis. VACATION EN COURS — sauvegarde et reprise
+   Un appel entrant ou un onglet vidé ne doit plus coûter la vacation.
+   ========================================================== */
+const SHIFT_KEY = 'ssiap2_shift_v1';
+
+function saveShift(){
+  if(!G || G.t >= G.endT) return;
+  try{
+    const snap = {...G, site:undefined, activeModal:undefined,
+                  mciPending:0, paused:false, mc:G.mc.slice(-120)};
+    localStorage.setItem(SHIFT_KEY, JSON.stringify({v:1, at:Date.now(), G:snap}));
+  }catch(e){}
+}
+function clearShift(){ try{ localStorage.removeItem(SHIFT_KEY); }catch(e){} }
+function loadShift(){
+  try{
+    const raw = localStorage.getItem(SHIFT_KEY);
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || d.v !== 1 || !d.G || !d.G.siteId || !SITES[d.G.siteId]) return null;
+    if(!(d.G.t < d.G.endT)) return null;
+    return d;
+  }catch(e){ return null; }
+}
+function resumeShift(){
+  const d = loadShift();
+  if(!d){ toast('Aucune vacation à reprendre', 'bad'); return; }
+  A.init(); A.startAmbient();
+  if(timer){ clearInterval(timer); timer = null; }
+  G = d.G;
+  G.site = SITES[G.siteId];
+  G.activeModal = null;
+  G.mciPending = 0;
+  G.paused = false;
+  G.materiel = G.materiel || initMateriel(G.site);
+  G.deg = G.deg || initDegraded();
+  G.ssi = G.ssi || initSSI();
+  G.rh = G.rh || initRH();
+  _mcCache = '';
+  selectedSiteId = G.siteId;
+  selectedShift = G.shift;
+  for(const id of ['siteScreen','teamScreen','debriefScreen']) $(id).classList.remove('open');
+  applyShiftHeader();
+  mcAdd('PC', `🔄 Reprise de la vacation à ${fmtTime(G.t)} — poste réoccupé`, 'head-init');
+  renderAll();
+  renderMC(true);
+  timer = setInterval(tick, TICK);
+  updateDayCycle();
+  toast('Vacation reprise', 'good');
+}
+
+/* Bandeau de reprise sur l'écran de choix du site */
+function shiftResumeBanner(){
+  const d = loadShift();
+  if(!d) return '';
+  const site = SITES[d.G.siteId];
+  return `<div class="resumeBox">
+    <div class="rbTitle">🔄 Vacation interrompue</div>
+    <div class="rbSub">${site.icon} ${site.name} · ${d.G.shift === 'day' ? '☀ Jour' : '🌙 Nuit'} · arrêtée à <b>${fmtTime(d.G.t)}</b></div>
+    <button class="btn-main" data-act="resume-shift">REPRENDRE LA VACATION</button>
+    <button class="btn-sec" data-act="discard-shift">ABANDONNER LE POSTE</button>
+  </div>`;
 }
 
 /* ==========================================================
@@ -3966,6 +4291,13 @@ function handleTap(e){
   if(!btn || btn.disabled) return;
   const act = btn.dataset.act;
 
+  if(act === 'resume-shift'){ resumeShift(); return; }
+  if(act === 'discard-shift'){
+    clearShift();
+    renderSiteGrid();
+    toast('Vacation abandonnée', 'info');
+    return;
+  }
   if(act === 'pick-site'){ currentTeam = generateTeam(); renderTeam(); $('siteScreen').classList.remove('open'); $('teamScreen').classList.add('open'); A.click(); return; }
   if(act === 'reroll-team'){ currentTeam = generateTeam(); renderTeam(); A.click(); return; }
   if(act === 'start-game'){ $('teamScreen').classList.remove('open'); startGame(); return; }
@@ -4002,6 +4334,10 @@ function handleTap(e){
   if(act === 'back-to-site'){ $('debriefScreen').classList.remove('open'); selectedSiteId = null; selectedShift = null; renderSiteGrid(); $('siteScreen').classList.add('open'); return; }
 }
 document.addEventListener('click', handleTap);
+/* Un appel entrant, un changement d'application ou un onglet fermé :
+   la vacation est figée sur disque avant la mise en veille. */
+document.addEventListener('visibilitychange', () => { if(document.hidden) saveShift(); });
+window.addEventListener('pagehide', saveShift);
 
 ensureAgentData();
 migrateSaveV6();

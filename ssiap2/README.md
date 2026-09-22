@@ -57,6 +57,31 @@ progression est sauvegardée dans le `localStorage`).
 - Ajout du CSS manquant de `.orderBtn` et d'un ordre d'empilement explicite des
   overlays.
 
+## Conduite de la vacation
+
+- **Les alarmes interrompent le PCS.** Un départ de feu, une urgence médicale
+  ou un accident du travail ouvre la modale de décision de lui-même, et **le
+  temps continue de courir pendant que vous lisez** : un délai de traitement
+  s'affiche (5 min pour un feu, 6 pour une victime, 15 pour les autres
+  événements). Passé ce délai, l'événement se solde sans vous — sinistre
+  aggravé, victime non prise en charge, reprise en main par le SSIAP 3 — avec
+  une sanction lourde et un compteur « alarmes non traitées » au débriefing.
+  Une alarme qui survient pendant un autre écran est mise en file et s'ouvre
+  dès que le PCS est libre.
+- **La ronde se pilote en cours de route.** Toucher la carte d'un agent en
+  ronde donne : dérouter vers une zone (ou directement vers l'alarme en cours),
+  rappeler au PCS, reprendre la ronde là où elle a été laissée, détacher le
+  stagiaire du binôme. Une ronde suspendue conserve sa progression et ne se
+  « manque » plus au chronomètre : elle se solde par son achèvement ou reste
+  inachevée à la relève. Un agent rappelé libère sa ronde, qui est à réaffecter
+  et reprend depuis le début.
+- **La vacation survit à l'interruption.** L'état complet du poste est écrit
+  sur disque à chaque minute simulée, et quand l'application passe en
+  arrière-plan. Un appel entrant, un onglet vidé ou un rechargement ramènent un
+  bandeau « Vacation interrompue » sur l'écran d'accueil : reprendre à l'heure
+  exacte (rondes, dotations, modes dégradés, main courante) ou abandonner le
+  poste.
+
 ## Interface mobile
 
 Conçue pour le téléphone : en-tête tenant sur une ligne quelle que soit la
