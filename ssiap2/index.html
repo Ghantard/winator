@@ -576,15 +576,18 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 @media (max-width:400px){
   .score-pill{display:none}
   .sitetag{max-width:96px}
-  .hbtn{min-width:33px;height:33px;font-size:13px}
-  header{gap:4px;padding:6px}
+  .hbtn{min-width:40px;height:40px;font-size:14px;padding:0 4px}
+  header{gap:3px;padding:6px 5px}
+  .sitetag{font-size:9.5px;padding:3px 5px}
+  .shift{font-size:9.5px;padding:3px 4px}
+  .clock{font-size:13.5px}
 }
 
 /* Zones tactiles : 44 px minimum sur tout ce qui se touche */
 .btn-main,.btn-sec,.orderBtn,.evChoice,.qcmA,.mciOption,.shiftBtn,
 .siteCard,.pickerAgent,.shopItem,.skillRow.canbuy{min-height:48px}
 .psBtn,.roundItem .riActions button,.matBtn{min-height:42px;padding:10px 12px}
-.hbtn{min-width:36px;height:36px;font-size:14px}
+.hbtn{min-width:42px;height:42px;font-size:15px}
 .zm{min-height:46px}
 
 /* Tailles de texte lisibles sur téléphone */
@@ -613,7 +616,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 .mcEvBtn .mevt{font-size:11.5px}
 .mcEvBtn .mevb{font-size:10px}
 .agent .an{font-size:11.5px}
-.agent .at{font-size:8px}
+.agent .at{font-size:9px}
 .agent .as{font-size:9.5px;min-height:22px}
 .zm .zn{font-size:9px}
 .zm .zf{font-size:7.5px}
@@ -635,8 +638,13 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 .axisRow{font-size:11px}
 .achv .aname,.shopItem .siname,.skillBranch h4{font-size:11.5px}
 .achv .adesc,.shopItem .sidesc{font-size:9.5px}
-.skillRow{font-size:10px}
-.tag{font-size:8.5px;padding:2px 6px}
+.skillRow{font-size:10.5px}
+.skillRow .sld{font-size:9.5px}
+.skillBranch h4 .sbl{font-size:9.5px}
+.tag{font-size:9.5px;padding:2px 6px}
+.evTeam,.evTeam .agentTag{font-size:10px}
+#agents::after{content:'';position:absolute;top:0;right:0;bottom:0;width:22px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(8,12,20,.95))}
 
 /* Barre des agents : défilement horizontal dès qu'un renfort arrive */
 #agents{overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;
@@ -659,6 +667,28 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 #toast{top:auto;bottom:max(14px,env(safe-area-inset-bottom));
   transform:translateX(-50%) translateY(160%);font-size:11.5px;padding:12px 16px}
 #toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Lisibilité : plus aucun texte utile sous 9 px sur téléphone */
+.agent .th{font-size:9px;letter-spacing:.3px}
+.agent .at{font-size:9px}
+.statGrid .sg .sgl{font-size:9px}
+.mcHead{font-size:9.5px}
+.roundItem .riTol{font-size:9px;margin-left:6px}
+.evLabel{font-size:10px}
+.akSlot .aksLab{font-size:9.5px}
+.cd .sub{font-size:10.5px}
+#planningContent .evContent,#planningContent > div:first-child{font-size:10px !important;line-height:1.6 !important}
+.mcEvBtn .mevtime{font-size:9.5px}
+.bubble{font-size:10.5px}
+.bubble .bs{font-size:9px}
+
+/* Barre des agents : trois cartes lisibles sur un écran de 360 px */
+@media (max-width:400px){
+  .agent{min-width:126px;padding:7px 7px}
+  .agent .av{width:28px;height:28px;font-size:16px}
+}
+#agents{position:relative}
+
 
 /* Écrans très étroits */
 @media (max-width:360px){
@@ -776,7 +806,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <div style="text-align:center;padding:14px;border-radius:10px;margin-bottom:12px;
       background:linear-gradient(135deg,rgba(255,176,32,.15),rgba(168,85,247,.1));
       border:1px solid rgba(255,176,32,.3)">
-      <div style="font-size:8px;color:#7d8fa3;letter-spacing:1.5px;font-weight:800">XP DISPONIBLE</div>
+      <div style="font-size:9.5px;color:#7d8fa3;letter-spacing:1.5px;font-weight:800">XP DISPONIBLE</div>
       <div style="font-size:32px;font-weight:800;color:#ffb020;margin-top:4px" id="hqXP">0</div>
     </div>
     <div id="shopList"></div>
@@ -1027,39 +1057,126 @@ function generateRounds(site, shift){
   return R;
 }
 
+/* ==========================================================
+   ANOMALIES DE RONDE
+   Chaque anomalie porte ses propres ordres : ce que le chef de poste
+   peut réellement demander dans cette situation précise.
+   k : 'continue' (l'agent reprend sa ronde) · 'return' (il rentre au PCS)
+       'call' (intervention extérieure) · 'danger' (manœuvre à proscrire)
+   ========================================================== */
 const ROUND_INCIDENTS = {
   ssi: [
-    {label:'Extincteur obstrué', emoji:'🧯', severity:'minor', desc:'Accès encombré', action:'Dégagement retiré'},
-    {label:'Porte coupe-feu bloquée', emoji:'🚪', severity:'minor', desc:'Porte maintenue par cale', action:'Cale retirée'},
-    {label:'Éclairage de sécurité HS', emoji:'💡', severity:'minor', desc:'Bloc HS', action:'Signalé'},
-    {label:'Détecteur obstrué', emoji:'📡', severity:'major', desc:'Détecteur masqué', action:'Désobstruction urgente'},
-    {label:'Fumée suspecte', emoji:'💨', severity:'major', desc:'Fumée origine inconnue', action:'Recherche origine'},
+    {label:'Extincteur obstrué', emoji:'🧯', severity:'minor', desc:'Palettes stockées devant l\'extincteur',
+     acts:[
+      {i:'📦', l:'Faire dégager l\'accès', h:'Moyen de secours remis à disposition', s:8, r:2, k:'continue', mc:'Accès à l\'extincteur dégagé et contrôlé'},
+      {i:'📝', l:'Consigner et signaler au service', h:'Tracé, mais l\'accès reste condamné', s:2, r:0, k:'continue', mc:'Obstruction consignée, service concerné avisé'},
+      {i:'🚚', l:'Déplacer l\'extincteur ailleurs', h:'Un moyen de secours ne se déplace pas', s:-5, r:-3, k:'danger', mc:'Extincteur déplacé hors de son emplacement réglementaire'}]},
+    {label:'Porte coupe-feu calée', emoji:'🚪', severity:'minor', desc:'Porte maintenue ouverte par une cale',
+     acts:[
+      {i:'🔧', l:'Retirer la cale et contrôler la fermeture', h:'Compartimentage rétabli', s:8, r:3, k:'continue', mc:'Cale retirée, fermeture de la porte coupe-feu contrôlée'},
+      {i:'📝', l:'Consigner sans retirer la cale', h:'Le compartimentage reste percé', s:-2, r:-2, k:'continue', mc:'Porte coupe-feu calée signalée, cale laissée en place'},
+      {i:'👥', l:'Identifier qui l\'a calée et rappeler la règle', h:'Traite la cause', s:6, r:2, k:'continue', mc:'Cale retirée, rappel des consignes à l\'occupant du local'}]},
+    {label:'Bloc de secours HS', emoji:'💡', severity:'minor', desc:'Éclairage de sécurité éteint',
+     acts:[
+      {i:'🔢', l:'Relever le repère du bloc et demander la maintenance', h:'Traçabilité et remise en état', s:7, r:2, k:'continue', mc:'Bloc de secours repéré, demande d\'intervention maintenance'},
+      {i:'📝', l:'Consigner simplement', h:'Sans repère, l\'intervention traînera', s:3, r:0, k:'continue', mc:'Bloc de secours HS consigné'},
+      {i:'🪛', l:'Le remplacer lui-même', h:'Hors attributions du SSIAP', s:-4, r:-3, k:'danger', mc:'Intervention sur l\'éclairage de sécurité hors attributions'}]},
+    {label:'Détecteur obstrué', emoji:'📡', severity:'major', desc:'Détecteur masqué par un stockage haut',
+     acts:[
+      {i:'📦', l:'Désobstruer et faire contrôler le voyant au PCS', h:'Détection rendue à sa fonction', s:12, r:3, k:'continue', mc:'Stockage écarté du détecteur, essai de zone contrôlé au PCS'},
+      {i:'🚫', l:'Inhiber la zone en attendant', h:'On masque au lieu de traiter', s:-6, r:-4, k:'danger', fx:'inhibit', mc:'Zone inhibée alors que la détection était seulement masquée'},
+      {i:'📝', l:'Consigner et poursuivre', h:'La zone reste mal protégée', s:-1, r:-1, k:'continue', mc:'Détecteur obstrué consigné'}]},
+    {label:'Fumée suspecte', emoji:'💨', severity:'major', desc:'Fumée d\'origine inconnue, pas de détection au PCS',
+     acts:[
+      {i:'🔎', l:'Rechercher l\'origine, rendre compte en direct', h:'Levée de doute conduite jusqu\'au bout', s:14, r:4, k:'continue', mc:'Recherche de l\'origine de la fumée, compte rendu radio permanent'},
+      {i:'🚒', l:'Alerter le 18 et rester en surveillance', h:'Prudent : les secours tranchent', s:9, r:3, k:'call', mc:'18 alerté sur fumée d\'origine inconnue, agent en surveillance'},
+      {i:'🪟', l:'Ouvrir les fenêtres pour ventiler', h:'Apport d\'air sur un feu couvant', s:-6, r:-4, k:'danger', mc:'Ventilation naturelle ouverte sans connaître l\'origine de la fumée'},
+      {i:'📝', l:'Consigner et poursuivre la ronde', h:'Sinistre potentiel laissé sans suite', s:-8, r:-4, k:'continue', mc:'Fumée suspecte consignée sans levée de doute'}]},
   ],
   technique: [
-    {label:'Fuite d\'eau', emoji:'💧', severity:'minor', desc:'Écoulement lent', action:'Vanne fermée'},
-    {label:'Câble dénudé', emoji:'🔌', severity:'minor', desc:'Câble apparent', action:'Isolé'},
-    {label:'Bruit anormal', emoji:'🔊', severity:'minor', desc:'Grincement continu', action:'Signalé'},
-    {label:'Coupure secteur', emoji:'⚡', severity:'major', desc:'Alim. perdue', action:'Vérif groupe'},
-    {label:'Odeur de gaz', emoji:'💨', severity:'major', desc:'Forte odeur', action:'Procédure gaz'},
+    {label:'Fuite d\'eau', emoji:'💧', severity:'minor', desc:'Écoulement continu en local technique',
+     acts:[
+      {i:'🔩', l:'Fermer la vanne d\'arrêt et baliser', h:'Arrête la cause, protège le passage', s:9, r:3, k:'continue', mc:'Vanne d\'arrêt fermée, zone balisée, astreinte technique avisée'},
+      {i:'🧽', l:'Éponger et poursuivre', h:'Traite l\'effet, pas la cause', s:1, r:0, k:'continue', mc:'Écoulement épongé, fuite non traitée'},
+      {i:'📞', l:'Appeler l\'astreinte technique', h:'Correct, mais l\'eau coule en attendant', s:5, r:1, k:'continue', mc:'Astreinte technique appelée pour fuite d\'eau'}]},
+    {label:'Câble dénudé', emoji:'🔌', severity:'minor', desc:'Conducteur apparent à hauteur d\'homme',
+     acts:[
+      {i:'⛔', l:'Baliser, interdire l\'accès et faire consigner le circuit', h:'Risque électrique écarté', s:10, r:3, k:'continue', mc:'Zone balisée, consignation du circuit demandée à la maintenance'},
+      {i:'🩹', l:'Isoler avec du ruban adhésif', h:'Bricolage sur un risque électrique', s:-6, r:-4, k:'danger', mc:'Réparation de fortune sur un câble dénudé'},
+      {i:'📝', l:'Consigner au rapport', h:'Le risque reste accessible', s:2, r:0, k:'continue', mc:'Câble dénudé consigné'}]},
+    {label:'Bruit anormal', emoji:'🔊', severity:'minor', desc:'Grincement continu sur une machinerie',
+     acts:[
+      {i:'🔎', l:'Identifier l\'équipement et prévenir l\'astreinte', h:'Diagnostic possible pour le technicien', s:8, r:2, k:'continue', mc:'Équipement identifié, astreinte technique avisée du bruit anormal'},
+      {i:'🛑', l:'Arrêter l\'équipement', h:'Un arrêt non maîtrisé peut aggraver', s:-3, r:-2, k:'danger', mc:'Équipement arrêté sans avis technique'},
+      {i:'📝', l:'Consigner et repasser plus tard', h:'Surveillance différée', s:3, r:1, k:'continue', mc:'Bruit anormal consigné, contrôle prévu au prochain passage'}]},
+    {label:'Coupure d\'alimentation', emoji:'⚡', severity:'major', desc:'Local technique sans alimentation normale',
+     acts:[
+      {i:'🔋', l:'Vérifier la bascule du groupe et les organes de sécurité', h:'Priorité aux installations de sécurité', s:12, r:4, k:'continue', fx:'genCheck', mc:'Bascule du groupe vérifiée, alimentation des organes de sécurité contrôlée'},
+      {i:'🔁', l:'Réarmer le disjoncteur', h:'Réarmement sans diagnostic', s:-6, r:-4, k:'danger', mc:'Disjoncteur réarmé sans recherche de cause'},
+      {i:'📞', l:'Appeler l\'astreinte électrique', h:'Correct mais lent sans vérification', s:6, r:2, k:'call', mc:'Astreinte électrique appelée pour perte d\'alimentation'}]},
+    {label:'Odeur de gaz', emoji:'🫧', severity:'major', desc:'Forte odeur de gaz en local technique',
+     acts:[
+      {i:'🚷', l:'Aucune flamme ni interrupteur, couper l\'arrivée, ventiler, évacuer', h:'Procédure gaz complète', s:15, r:5, k:'continue', mc:'Arrivée de gaz coupée, zone évacuée et ventilée, aucune manœuvre électrique'},
+      {i:'📞', l:'Interdire l\'accès et alerter le 18', h:'Sûr : les secours prennent la main', s:11, r:4, k:'call', mc:'Accès interdit au local gaz, 18 alerté'},
+      {i:'🔦', l:'Chercher la fuite avec la lampe torche', h:'Toute source d\'énergie est proscrite', s:-10, r:-5, k:'danger', mc:'Recherche de fuite avec un appareil électrique en atmosphère gazeuse'}]},
   ],
   surveillance: [
-    {label:'Porte d\'accès ouverte', emoji:'🚪', severity:'minor', desc:'Porte normalement fermée', action:'Refermée'},
-    {label:'Fenêtre ouverte', emoji:'🪟', severity:'minor', desc:'Fenêtre ouverte nuit', action:'Refermée'},
-    {label:'Objet abandonné', emoji:'📦', severity:'minor', desc:'Objet sans propriétaire', action:'Signalé'},
-    {label:'Véhicule suspect', emoji:'🚗', severity:'major', desc:'Véhicule anormal', action:'Surveillance'},
-    {label:'Traces d\'effraction', emoji:'🔓', severity:'major', desc:'Marques sur porte', action:'Signalement'},
+    {label:'Porte d\'accès ouverte', emoji:'🚪', severity:'minor', desc:'Accès normalement fermé trouvé ouvert',
+     acts:[
+      {i:'🔎', l:'Contrôler la zone puis refermer et tracer', h:'On vérifie avant de refermer', s:9, r:3, k:'continue', mc:'Zone contrôlée puis accès refermé, heure et constat tracés'},
+      {i:'🔒', l:'Refermer sans contrôler', h:'Quelqu\'un peut être resté à l\'intérieur', s:2, r:-1, k:'continue', mc:'Accès refermé sans contrôle de la zone'},
+      {i:'📝', l:'Consigner et laisser ouvert', h:'Sûreté du site compromise', s:-4, r:-3, k:'continue', mc:'Accès laissé ouvert, simple mention au rapport'}]},
+    {label:'Objet abandonné', emoji:'📦', severity:'minor', desc:'Sac sans propriétaire dans une circulation',
+     acts:[
+      {i:'⛔', l:'Ne pas y toucher, baliser et rendre compte', h:'Conduite à tenir réglementaire', s:11, r:4, k:'continue', mc:'Objet abandonné non manipulé, périmètre établi, compte rendu au PCS'},
+      {i:'🔍', l:'L\'ouvrir pour identifier le propriétaire', h:'Manipulation proscrite', s:-8, r:-5, k:'danger', mc:'Objet abandonné manipulé et ouvert par l\'agent'},
+      {i:'🧳', l:'Le porter aux objets trouvés', h:'On ne déplace pas un objet suspect', s:-6, r:-4, k:'danger', mc:'Objet abandonné déplacé vers les objets trouvés'}]},
+    {label:'Véhicule suspect', emoji:'🚗', severity:'major', desc:'Véhicule stationné hors emplacement, occupants à bord',
+     acts:[
+      {i:'📋', l:'Relever la plaque à distance et rendre compte', h:'Renseignement sans exposition', s:11, r:3, k:'continue', mc:'Immatriculation relevée à distance, compte rendu au PCS'},
+      {i:'👮', l:'Demander l\'intervention de la police', h:'Justifié si le doute persiste', s:8, r:3, k:'call', mc:'Police requise sur véhicule suspect, agent en observation'},
+      {i:'🚶', l:'Aller interpeller les occupants', h:'Mise en danger de l\'agent', s:-7, r:-4, k:'danger', mc:'Agent envoyé au contact direct des occupants du véhicule'}]},
+    {label:'Traces d\'effraction', emoji:'🔓', severity:'major', desc:'Marques fraîches sur un cylindre de porte',
+     acts:[
+      {i:'🚧', l:'Préserver les lieux, ne rien toucher, alerter la direction', h:'Les traces servent à l\'enquête', s:12, r:4, k:'continue', mc:'Lieux préservés, direction alertée, aucune manipulation des traces'},
+      {i:'👮', l:'Appel police et surveillance à distance', h:'Approprié si intrusion possible', s:10, r:3, k:'call', mc:'Police alertée sur traces d\'effraction, agent en surveillance'},
+      {i:'🔦', l:'Fouiller seul le bâtiment', h:'Jamais seul sur une intrusion possible', s:-8, r:-4, k:'danger', mc:'Recherche d\'intrus engagée seule, sans renfort ni consigne'}]},
   ],
   ouverture: [
-    {label:'Issue de secours condamnée', emoji:'🚪', severity:'major', desc:'Sortie non dégagée avant ouverture', action:'Dégagement immédiat'},
-    {label:'Éclairage de sécurité HS', emoji:'💡', severity:'minor', desc:'Bloc non rallumé', action:'Signalé maintenance'},
-    {label:'Zone encore inhibée', emoji:'🚫', severity:'major', desc:'Détection non remise en service', action:'Remise en service'},
-    {label:'Anomalie détectée', emoji:'⚠', severity:'minor', desc:'Écart constaté', action:'Tracé MC'},
+    {label:'Issue de secours condamnée', emoji:'🚪', severity:'major', desc:'Sortie de secours bloquée par un stockage, avant ouverture au public',
+     acts:[
+      {i:'📦', l:'Faire dégager avant toute ouverture au public', h:'Condition d\'ouverture de l\'établissement', s:14, r:5, k:'continue', mc:'Issue de secours dégagée et contrôlée avant ouverture au public'},
+      {i:'📞', l:'Prévenir la direction et attendre', h:'Correct mais l\'heure tourne', s:5, r:1, k:'continue', mc:'Direction prévenue de l\'obstruction d\'une issue de secours'},
+      {i:'📝', l:'Consigner et ouvrir quand même', h:'Ouverture au public en infraction', s:-10, r:-5, k:'continue', mc:'Établissement ouvert au public avec une issue de secours condamnée'}]},
+    {label:'Zone encore inhibée', emoji:'🚫', severity:'major', req:'inhibited', desc:'Détection restée hors service depuis les travaux de nuit',
+     acts:[
+      {i:'✅', l:'Remettre la détection en service et faire un essai', h:'Retour à la configuration normale', s:13, r:5, k:'continue', fx:'uninhibit', mc:'Zone désinhibée, essai de détection réalisé et concluant'},
+      {i:'📝', l:'Consigner pour la maintenance', h:'Le site ouvre sans détection', s:-6, r:-4, k:'continue', mc:'Zone laissée inhibée, mention pour la maintenance'},
+      {i:'🎖', l:'En référer au SSIAP 3', h:'Prudent mais la remise en service est de votre niveau', s:4, r:1, k:'continue', mc:'SSIAP 3 consulté sur une zone restée inhibée'}]},
+    {label:'Bloc de secours HS', emoji:'💡', severity:'minor', desc:'Éclairage de sécurité éteint avant ouverture',
+     acts:[
+      {i:'🔢', l:'Relever le repère et demander la maintenance', h:'Traçabilité et remise en état', s:7, r:2, k:'continue', mc:'Bloc de secours repéré, demande d\'intervention maintenance'},
+      {i:'📝', l:'Consigner simplement', h:'Sans repère, l\'intervention traînera', s:3, r:0, k:'continue', mc:'Bloc de secours HS consigné'}]},
   ],
   fermeture: [
-    {label:'Lumière oubliée', emoji:'💡', severity:'minor', desc:'Éclairage allumé', action:'Éteinte'},
-    {label:'Porte non verrouillée', emoji:'🔒', severity:'major', desc:'Accès non sécurisé', action:'Verrouillage'},
-    {label:'Présence inattendue', emoji:'👤', severity:'major', desc:'Personne restée sur le site après fermeture', action:'Contrôle et évacuation'},
-    {label:'Appareil resté sous tension', emoji:'🔌', severity:'minor', desc:'Équipement non consigné', action:'Mise hors tension'},
+    {label:'Présence après fermeture', emoji:'👤', severity:'major', desc:'Une personne est encore dans la galerie après la fermeture',
+     acts:[
+      {i:'🗣', l:'Contrôler, raccompagner vers la sortie et tracer', h:'Conduite normale de fermeture', s:11, r:4, k:'continue', mc:'Personne contrôlée et raccompagnée à la sortie, identité tracée'},
+      {i:'👮', l:'Police si la personne refuse de sortir', h:'Justifié en cas de refus', s:8, r:3, k:'call', mc:'Refus de quitter les lieux, police requise'},
+      {i:'⏳', l:'La laisser finir et poursuivre la ronde', h:'Site fermé, personne non identifiée', s:-7, r:-4, k:'continue', mc:'Personne laissée sur le site après fermeture sans contrôle'}]},
+    {label:'Porte non verrouillée', emoji:'🔒', severity:'major', desc:'Accès extérieur non verrouillé à la fermeture',
+     acts:[
+      {i:'🔎', l:'Contrôler la zone puis verrouiller', h:'On s\'assure que personne n\'est resté', s:10, r:3, k:'continue', mc:'Zone contrôlée puis accès verrouillé'},
+      {i:'🔒', l:'Verrouiller immédiatement', h:'Rapide, mais sans contrôle', s:4, r:0, k:'continue', mc:'Accès verrouillé sans contrôle préalable de la zone'},
+      {i:'📝', l:'Consigner au rapport', h:'Le site reste ouvert', s:-5, r:-4, k:'continue', mc:'Accès non verrouillé signalé mais laissé en l\'état'}]},
+    {label:'Appareil resté sous tension', emoji:'🔌', severity:'minor', desc:'Plaque chauffante encore alimentée en réserve',
+     acts:[
+      {i:'🔻', l:'Mettre hors tension et tracer', h:'Risque d\'échauffement supprimé', s:9, r:3, k:'continue', mc:'Appareil mis hors tension, constat tracé'},
+      {i:'📝', l:'Consigner pour l\'exploitant', h:'L\'appareil reste alimenté la nuit', s:-3, r:-2, k:'continue', mc:'Appareil laissé sous tension, mention au rapport'}]},
+    {label:'Éclairage oublié', emoji:'💡', severity:'minor', desc:'Éclairage d\'exploitation resté allumé',
+     acts:[
+      {i:'💡', l:'Éteindre et tracer', h:'Fermeture conforme', s:6, r:1, k:'continue', mc:'Éclairage d\'exploitation éteint'},
+      {i:'📝', l:'Consigner sans éteindre', h:'Fermeture incomplète', s:0, r:-1, k:'continue', mc:'Éclairage resté allumé, mention au rapport'}]},
   ],
 };
 
@@ -1958,7 +2075,11 @@ function completeBadgeScan(agent){
 
     if(Math.random() < incidentChance){
       // Créer incident
-      const pool = ROUND_INCIDENTS[round.type] || ROUND_INCIDENTS.ssi;
+      /* Une anomalie conditionnée ne se présente que si l'état du site
+         la rend possible (pas de « zone encore inhibée » sans inhibition). */
+      const pool = (ROUND_INCIDENTS[round.type] || ROUND_INCIDENTS.ssi)
+        .filter(inc => inc.req !== 'inhibited' || G.ssi.inhibited.length > 0);
+      if(!pool.length){ agent.rondeIndex++; nextRoundPoint(agent); return; }
       const incident = pick(pool);
       round.incidents = (round.incidents || 0) + 1;
       G.debrief.roundsIncidents = (G.debrief.roundsIncidents || 0) + 1;
@@ -1969,7 +2090,9 @@ function completeBadgeScan(agent){
         else zoneEl.classList.add('alert');
       }
 
-      const dId = createDossier(`${incident.emoji} ${incident.label}`, point.zoneId, agent.name);
+      const anoZone = incident.req === 'inhibited' && G.ssi.inhibited.length
+        ? G.ssi.inhibited[0] : point.zoneId;
+      const dId = createDossier(`${incident.emoji} ${incident.label}`, anoZone, agent.name);
       addStep(dId, `Détection pendant ${round.id}`, 'info');
       addStep(dId, `Zone : ${zoneName(point.zoneId)}`, 'info');
       addStep(dId, incident.desc, incident.severity === 'major' ? 'crit' : 'warn');
@@ -1979,16 +2102,14 @@ function completeBadgeScan(agent){
         id: anoId, instId: 'ANO-' + anoId, type: 'anomalie', kind: 'anomalie',
         event: incident.label,
         severity: incident.severity === 'major' ? 3 : 2,
-        zone: point.zoneId, zoneId: point.zoneId,
+        zone: anoZone, zoneId: anoZone,
         agentId: agent.id, agentName: agent.name,
         emoji: incident.emoji,
         title: incident.label,
-        desc: incident.desc + ' — ' + incident.action,
+        desc: incident.desc,
         dilemma: `${agent.name} a détecté une anomalie. Doit-il traiter, noter, revenir au PC, ou appeler les secours ?`,
         awaitingOrders: true,
-        orders: incident.severity === 'major'
-          ? ['traiter','notre','retour','appel']
-          : ['traiter','notre','retour'],
+        acts: incident.acts || [],
         created: G.t, spawnedAt: G.t, dossierId: dId, resolved: false,
         roundId: round.id, roundPointIdx: agent.rondeIndex,
       };
@@ -2277,7 +2398,7 @@ function renderAgents(){
           <div class="an">${a.name}</div>
           <div class="at">${a.trait}${a.role==='stagiaire'?' · STAG':''}</div>
         </div>
-        <span style="font-size:7.5px;color:#5a6b7d;font-weight:800">${Math.round(100-a.fatigue)}%</span>
+        <span style="font-size:9.5px;color:#7d8fa3;font-weight:800">${Math.round(100-a.fatigue)}%</span>
       </div>
       <div class="as ${cls}">${st}</div>
       <div class="eb"><div class="ef ${ef}" style="width:${eW}%"></div></div>
@@ -2551,52 +2672,76 @@ function resolveChoice(idx){
   toast(`Choix validé · ${c.score>0?'+':''}${c.score} pts`, c.score>0?'good':c.score<0?'bad':'info');
 }
 
-function resolveAnomaly(evId, order){
+/* Les ordres qui touchent l'installation la modifient vraiment :
+   ce qui est inhibé sur ordre du PCS se retrouve à la relève. */
+function applyAnomalyEffect(fx, ev){
+  if(!fx) return;
+  if(fx === 'inhibit' && !G.ssi.inhibited.includes(ev.zone)){
+    G.ssi.inhibited.push(ev.zone);
+    G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
+    mcAdd('PC', `🚫 Zone ${zoneName(ev.zone)} inhibée sur ordre du PCS — à lever avant la relève`, 'warn');
+  }
+  if(fx === 'uninhibit'){
+    const i = G.ssi.inhibited.indexOf(ev.zone);
+    if(i >= 0){
+      G.ssi.inhibited.splice(i, 1);
+      G.k.inhibLifted = (G.k.inhibLifted || 0) + 1;
+    }
+    mcAdd('PC', `✅ Détection remise en service zone ${zoneName(ev.zone)} — essai concluant`, 'ok');
+  }
+  if(fx === 'genCheck' && G.deg.power){
+    G.deg.power.checked = true;
+    mcAdd('PC', `🔋 Organes de sécurité vérifiés sous groupe électrogène`, 'ok');
+  }
+}
+
+function resolveAnomaly(evId, idx){
   const ev = G.events.find(x => x.id === evId);
-  if(!ev || !ev.awaitingOrders) return;
-  const a = G.agents.find(x => x.id === ev.agentId);
+  if(!ev || !ev.awaitingOrders || ev.resolved) return;
+  const a = [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])].find(x => x.id === ev.agentId);
   if(!a) return;
   const round = G.rounds.find(r => r.id === ev.roundId);
+  const acts = (ev.acts && ev.acts.length) ? ev.acts : DEFAULT_ACTS;
 
-  let scorePts = 0;
-  let nextAction = 'continue';
-  switch(order){
-    case 'traiter':
-      scorePts = ev.severity === 3 ? 12 : 6;
-      mcAdd(a.id, `✔ ${a.name} traite « ${ev.title} »`, 'ok');
-      radioSay(a, `Anomalie traitée, je continue.`, 'radio');
-      break;
-    case 'notre':
-      scorePts = ev.severity === 3 ? 6 : 3;
-      mcAdd(a.id, `📝 ${a.name} consigne « ${ev.title} »`, 'info');
-      radioSay(a, `Consigné, je poursuis.`, 'radio');
-      break;
-    case 'retour':
-      scorePts = 3;
-      nextAction = 'return';
-      mcAdd(a.id, `↩ ${a.name} revient au PC`, 'info');
-      radioSay(a, `Reçu, je remonte au PC.`, 'order');
-      break;
-    case 'appel':
-      scorePts = ev.severity === 3 ? 10 : 5;
-      mcAdd(a.id, `📞 Appel secours depuis la ronde`, 'ok');
-      radioSay(a, `Je reste en surveillance jusqu'à leur arrivée.`, 'order');
-      break;
+  /* -1 : rappel au poste, toujours proposé en dernier recours */
+  const act = idx === -1
+    ? {i:'↩', l:'Retour au PCS', s:3, r:0, k:'return', mc:'Retour au PCS pour compte rendu de vive voix'}
+    : acts[idx];
+  if(!act) return;
+
+  let scorePts = act.s || 0;
+  const cls = act.k === 'danger' ? 'crit' : scorePts > 0 ? 'ok' : 'warn';
+  mcAdd(a.id, `${act.i} ${a.name} — ${act.mc}`, cls);
+
+  if(act.k === 'danger'){
+    radioSay(a, `Reçu chef… si tu le dis.`, 'major');
+    mcAdd('S3', `Cette manœuvre n'aurait pas dû être ordonnée. On en reparle au débriefing.`, 'warn');
+    A.fail();
+  } else if(act.k === 'call'){
+    radioSay(a, `Je reste sur place en surveillance jusqu'à leur arrivée.`, 'order');
+    G.debrief.time += 1;
+  } else if(act.k === 'return'){
+    radioSay(a, `Reçu, je remonte au PCS.`, 'order');
+  } else {
+    radioSay(a, `${act.l}, c'est fait. Je poursuis.`, 'radio');
   }
 
   /* Décision prise par l'agent faute d'ordre : aucun point pour le PCS. */
   if(ev.autoDecided) scorePts = 0;
   G.score += scorePts;
+  G.debrief.regulation += (ev.autoDecided ? 0 : (act.r || 0));
   if(!ev.autoDecided) G.k.ordersGiven = (G.k.ordersGiven || 0) + 1;
+  if(act.k === 'danger') G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
+
   ev.resolved = true;
   a.state = 'idle';
   a.currentAnomaly = null;
-  if(ev.dossierId) closeDossier(ev.dossierId, 'ok', 'Dossier clôturé');
+  if(ev.dossierId) closeDossier(ev.dossierId, act.k === 'danger' ? 'ko' : 'ok', act.mc);
 
   const zoneEl = document.querySelector(`[data-zone="${ev.zone}"]`);
   if(zoneEl) zoneEl.classList.remove('await', 'alert');
 
-  if(nextAction === 'return' && round){
+  if(act.k === 'return' && round){
     a.isRonde = false;
     a.currentRoundId = null;
     a.rondeType = null;
@@ -2607,15 +2752,23 @@ function resolveAnomaly(evId, order){
     round.status = 'done';
     round.doneAt = G.t;
     G.debrief.roundsOk++;
-    mcAdd('PC', `✅ ${round.id} terminée (retour direct)`, 'round');
+    mcAdd('PC', `✅ ${round.id} clôturée sur retour de l'agent`, 'round');
+  } else if(act.k === 'call'){
+    /* L'agent reste en surveillance : la ronde redémarre après l'attente. */
+    a.state = 'working';
+    a.until = G.t + 8;
+    a.workTime = 8;
+    a.pos = ev.zone;
+    if(round){ a.isRonde = true; a.rondeIndex = (a.rondeIndex || 0) + 1; }
   } else if(round){
     a.state = 'moving';
     a.rondeIndex = (a.rondeIndex || 0) + 1;
     nextRoundPoint(a);
   }
 
-  A.success();
-  toast(`Ordre transmis (+${scorePts} pts)`, 'good');
+  applyAnomalyEffect(act.fx, ev);
+  if(act.k !== 'danger') A.success();
+  toast(`Ordre transmis${scorePts ? ` (${scorePts > 0 ? '+' : ''}${scorePts} pts)` : ''}`, act.k === 'danger' ? 'bad' : 'good');
   renderMC(true);
   renderAll();
   if($('planningScreen').classList.contains('open')) renderPlanning();
@@ -2628,7 +2781,7 @@ function openMCI(ev){
   G.activeModal = ev;
   const options = ev.mci.map((m,i)=>({...m, idx:i})).sort(() => Math.random()-0.5);
   let h = `<p style="font-size:9.5px;color:#8fa4b8;margin-bottom:10px">Choisissez la <b style="color:#e8f0f8">rédaction réglementaire correcte</b>.</p>`;
-  h += `<div style="font-size:8.5px;color:#5a6b7d;margin-bottom:10px;padding:6px 8px;background:rgba(80,140,220,.08);border-radius:5px">📌 <b style="color:#d4dde8">Qui · Quand · Où · Quoi · Conséquence · Mesures prises</b></div>`;
+  h += `<div style="font-size:10px;color:#8fa4b8;margin-bottom:10px;padding:8px 10px;background:rgba(80,140,220,.08);border-radius:6px;line-height:1.5">📌 <b style="color:#d4dde8">Qui · Quand · Où · Quoi · Conséquence · Mesures prises</b></div>`;
   for(const o of options){
     h += `<button class="mciOption" data-mci="${o.idx}">${o.text}</button>`;
   }
@@ -2715,14 +2868,14 @@ function openOrderMenu(agentId){
       h += orderBtn('attach', true, '🎓', 'Reprendre le stagiaire', 'Il rejoint son maître de stage sur la ronde');
   }
 
-  h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin-bottom:6px;font-weight:800">🎯 RONDES</div>`;
+  h += `<div class="matHead">🎯 RONDES</div>`;
   h += orderBtn('ronde-ssi', isAvail && !onRound, '🔥', 'Ronde SSI', 'Sécurité incendie');
   h += orderBtn('ronde-tech', isAvail && !onRound, '⚙', 'Ronde technique', 'Locaux techniques');
   h += orderBtn('ronde-surv', isAvail && !onRound, '👁', 'Ronde surveillance', 'Accès et circulations');
-  h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin:12px 0 6px;font-weight:800">🎓 FORMATION</div>`;
+  h += `<div class="matHead">🎓 FORMATION</div>`;
   h += orderBtn('qcm', isAvail && !onRound && a.role !== 'stagiaire', '🎓', 'Lancer QCM', '+XP ciblé');
   h += orderBtn('exercice', isAvail && !onRound && a.role !== 'stagiaire', '📊', 'Exercice CMSI', 'Manipulation SSI');
-  h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin:12px 0 6px;font-weight:800">☕ REPOS</div>`;
+  h += `<div class="matHead">☕ REPOS</div>`;
   h += orderBtn('pause', isAvail && !onRound, '☕', 'Pause 15 min', 'Récupération');
   h += orderBtn('pcs', isAvail && !onRound, '🏠', 'Rejoindre PCS', 'Retour au poste');
 
@@ -2730,16 +2883,9 @@ function openOrderMenu(agentId){
   $('orderScreen').classList.add('open');
 }
 function orderBtn(id, enabled, icon, label, hint){
-  return `<button class="orderBtn" data-order="${id}"
-    style="display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;border-radius:8px;
-    border:1px solid rgba(80,110,150,.2);background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
-    color:#d4dde8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;margin-bottom:6px;
-    text-align:left;${enabled?'':'opacity:.35;pointer-events:none'}">
-    <div style="font-size:17px;width:22px;text-align:center;flex-shrink:0">${icon}</div>
-    <div style="flex:1">
-      <div style="color:#e8f0f8;font-size:11px;margin-bottom:2px;font-weight:800">${label}</div>
-      <div style="font-size:8.5px;color:#7d8fa3;font-weight:500">${hint}</div>
-    </div>
+  return `<button class="orderBtn" data-order="${id}"${enabled ? '' : ' style="opacity:.35;pointer-events:none"'}>
+    <div class="oi">${icon}</div>
+    <div class="ol"><b>${label}</b><span>${hint}</span></div>
   </button>`;
 }
 
@@ -2752,24 +2898,27 @@ function renderAnomalyOrders(ev){
     <div class="anoDesc">« ${ev.desc} »</div>
   </div>
   <div class="matHead">⚡ VOTRE ORDRE</div>`;
-  const cfg = {
-    traiter: {i:'✔', l:'Traiter sur place', h:'L\'agent règle et poursuit sa ronde'},
-    notre: {i:'📝', l:'Consigner au rapport', h:'Tracé en main courante, ronde poursuivie'},
-    retour: {i:'↩', l:'Retour au PC', h:'Compte-rendu direct — la ronde s\'arrête là'},
-    appel: {i:'📞', l:'Appeler les secours', h:'Il reste en surveillance jusqu\'à leur arrivée'},
-  };
-  for(const oid of ev.orders){
-    const c = cfg[oid];
-    if(!c) continue;
-    h += `<button class="orderBtn ano" data-resolve-anomaly="${ev.id}" data-order="${oid}">
+
+  const acts = (ev.acts && ev.acts.length) ? ev.acts : DEFAULT_ACTS;
+  acts.forEach((c, i) => {
+    h += `<button class="orderBtn ano" data-resolve-anomaly="${ev.id}" data-act-idx="${i}">
       <div class="oi">${c.i}</div>
       <div class="ol"><b>${c.l}</b><span>${c.h}</span></div>
     </button>`;
-  }
-  /* Le rendu n'était jamais injecté : la feuille d'ordres s'ouvrait vide,
-     et répondre à un agent en attente était impossible. */
+  });
+  h += `<button class="orderBtn" data-resolve-anomaly="${ev.id}" data-act-idx="-1">
+    <div class="oi">↩</div>
+    <div class="ol"><b>Le faire rentrer au PCS</b><span>Compte rendu de vive voix — la ronde s'arrête là</span></div>
+  </button>`;
   $('orderContent').innerHTML = h;
 }
+
+/* Ordres génériques, pour une anomalie sans jeu d'actions dédié */
+const DEFAULT_ACTS = [
+  {i:'✔', l:'Traiter sur place', h:'L\'agent règle et poursuit sa ronde', s:6, r:1, k:'continue', mc:'Anomalie traitée sur place'},
+  {i:'📝', l:'Consigner au rapport', h:'Tracé en main courante, ronde poursuivie', s:3, r:0, k:'continue', mc:'Anomalie consignée'},
+  {i:'📞', l:'Demander une intervention extérieure', h:'Prestataire ou secours selon le cas', s:5, r:1, k:'call', mc:'Intervention extérieure demandée'},
+];
 
 function execOrder(o){
   const a = orderAgent;
@@ -2916,7 +3065,7 @@ function openAudit(){
   const q = pick(AUDIT_QUESTIONS);
   auditState = { q, answered:false };
   let h = `<div style="padding:10px 12px;background:linear-gradient(135deg,#1a1200,#0e0a00);border:1px solid #facc15;border-radius:6px;margin-bottom:8px">
-    <div style="font-size:8.5px;color:#facc15;font-weight:700;letter-spacing:1px;margin-bottom:4px">🎖 SSIAP 3 — QUESTION D'AUDIT</div>
+    <div style="font-size:10px;color:#facc15;font-weight:800;letter-spacing:1px;margin-bottom:5px">🎖 SSIAP 3 — QUESTION D'AUDIT</div>
     <div style="font-size:10.5px;color:#e8f0f8;line-height:1.4">${q.q}</div>
   </div>`;
   for(let i=0;i<q.a.length;i++){
@@ -3038,7 +3187,7 @@ function endVacation(){
       {w:1, v:rat(K.degHandled || 0, K.degTotal || 0)},
     ]),
     rh: ax([
-      {w:3, v:rat(K.ordersGiven || 0, K.ordersAsked || 0)},
+      {w:3, v:rat((K.ordersGiven || 0) - (K.ordersDangerous || 0), K.ordersAsked || 0)},
       {w:2, v:G.stagiaire ? rat(K.binomeOk || 0, (K.binomeOk || 0) + (K.stagSolo || 0)) : null},
       {w:2, v:G.rh.datOpen ? (G.rh.datDone ? G.rh.datScore / DAT_STEPS.length : 0) : null},
       {w:1, v:rat(K.rhCovered || 0, K.rhNeeded || 0)},
@@ -3065,6 +3214,7 @@ function endVacation(){
     ['Alarmes traitées dans le délai', frac(alarmsHandled, alarms.length)],
     ['Levées de doute ≤ 5 min', frac(K.lddOnTime || 0, K.lddTotal || 0)],
     ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)],
+    ['dont manœuvres à proscrire', `${K.ordersDangerous || 0}`],
     ['Manœuvres SSI justifiées', frac(K.ssiOk || 0, K.ssiTotal || 0)],
     ['Inhibitions levées', frac(K.inhibLifted || 0, K.inhibPosed || 0)],
     ['Modes dégradés traités', frac(K.degHandled || 0, K.degTotal || 0)],
@@ -3117,7 +3267,7 @@ function endVacation(){
     </div>`;
 
   h += `<h2>📋 REGISTRE DES RONDES</h2>
-    <div class="evContent" style="font-size:9px;line-height:1.6">
+    <div class="evContent" style="font-size:10px;line-height:1.7">
       ${G.rounds.map(r => {
         const agent = r.assignedAgentId ? G.agents.find(x => x.id === r.assignedAgentId) : null;
         let icon = '○', color = '#5a6b7d';
@@ -3187,7 +3337,7 @@ function endVacation(){
     </div>`;
 
   h += `<h2>MAIN COURANTE FINALE</h2>
-    <div class="evContent" style="max-height:150px;overflow-y:auto;font-size:8px;line-height:1.45">
+    <div class="evContent" style="max-height:170px;overflow-y:auto;font-size:9.5px;line-height:1.5">
       ${G.mc.slice(-25).map(e => `<div>${fmtTime(e.t)} ${e.avatar} — ${e.txt}</div>`).join('')}
     </div>`;
 
@@ -4235,7 +4385,12 @@ function tickAwaiting(){
       G.score -= 4;
       G.k.ordersAuto = (G.k.ordersAuto || 0) + 1;
       mcAdd('PC', `⚠ ${a.name} a tranché seul (${ev.title}) faute d'instruction du PCS — défaut d'encadrement`, 'crit');
-      resolveAnomaly(ev.id, ev.severity === 3 ? 'retour' : 'notre');
+      const acts = (ev.acts && ev.acts.length) ? ev.acts : DEFAULT_ACTS;
+      /* Livré à lui-même, l'agent applique la conduite la plus prudente
+         qu'il connaisse : jamais une manœuvre dangereuse. */
+      let pick = acts.findIndex(x => x.k === 'call');
+      if(pick < 0) pick = acts.findIndex(x => x.k !== 'danger');
+      resolveAnomaly(ev.id, pick < 0 ? -1 : pick);
     }
   }
 }
@@ -4626,8 +4781,8 @@ function handleTap(e){
   if(auditBtn){ resolveAudit(+auditBtn.dataset.audit); return; }
   const anomalyBtn = t.closest('[data-resolve-anomaly]');
   if(anomalyBtn){
-    resolveAnomaly(+anomalyBtn.dataset.resolveAnomaly, anomalyBtn.dataset.order);
     $('orderScreen').classList.remove('open');
+    resolveAnomaly(+anomalyBtn.dataset.resolveAnomaly, +anomalyBtn.dataset.actIdx);
     return;
   }
   const pickAgent = t.closest('[data-pick-agent]');

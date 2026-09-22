@@ -79,6 +79,19 @@ ratio, pour que la note se lise au lieu de se subir.
 
 ## Conduite de la vacation
 
+- **Chaque anomalie a ses propres ordres.** Plus de « traiter sur place »
+  générique : les 21 anomalies de ronde portent leurs conduites à tenir
+  réelles, avec la bonne, les passables et celle à proscrire — dégager
+  l'accès à un extincteur plutôt que le déplacer, retirer la cale d'une porte
+  coupe-feu, baliser et faire consigner un câble dénudé plutôt que l'isoler au
+  ruban, couper l'arrivée de gaz sans aucune source d'énergie plutôt que
+  chercher la fuite à la lampe, ne pas toucher un objet abandonné, relever une
+  plaque à distance au lieu d'aller au contact. Une manœuvre à proscrire coûte
+  des points, vaut une remarque du SSIAP 3 et compte au débriefing. Certains
+  ordres modifient vraiment l'installation : inhiber une zone « en attendant »
+  la laisse inhibée jusqu'à la relève, remettre une détection en service la
+  réarme pour de bon — et l'anomalie « zone encore inhibée » ne se présente que
+  si une zone l'est réellement.
 - **Répondre à un agent tient en un geste.** Dès qu'un agent trouve une
   anomalie, une barre rouge apparaît juste au-dessus de ses cartes : nom,
   anomalie, zone, temps d'attente et un bouton RÉPONDRE pleine hauteur. La
