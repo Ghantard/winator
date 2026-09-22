@@ -20,6 +20,7 @@
     "dev": "ts-node src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build && vitest run --config vitest.e2e.config.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "clean": "rimraf dist"
   },
