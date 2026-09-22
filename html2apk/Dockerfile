@@ -20,19 +20,23 @@ ENV ANDROID_HOME=/opt/android-sdk \
 # JDK 17 is what Bubblewrap expects; JDK 21 is required by the Capacitor 8
 # Android template (it compiles with sourceCompatibility 21), so both are
 # installed and JAVA_HOME points at 21 for the Gradle builds.
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+ENV JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64 \
     JAVA_HOME_17=/usr/lib/jvm/java-17-openjdk-amd64 \
-    JAVA_HOME_21=/usr/lib/jvm/java-21-openjdk-amd64
+    JAVA_HOME_21=/usr/lib/jvm/temurin-21-jdk-amd64
 
 RUN set -eux; \
-    echo 'deb http://deb.debian.org/debian bookworm-backports main' \
-      > /etc/apt/sources.list.d/backports.list; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl unzip git openssh-client \
+      ca-certificates curl unzip git openssh-client gnupg \
       openjdk-17-jdk-headless; \
-    apt-get install -y --no-install-recommends -t bookworm-backports \
-      openjdk-21-jdk-headless; \
+    # Bookworm ships no JDK 21, not even in backports, so it comes from Adoptium.
+    install -d -m 0755 /etc/apt/keyrings; \
+    curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
+      | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg; \
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main" \
+      > /etc/apt/sources.list.d/adoptium.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends temurin-21-jdk; \
     rm -rf /var/lib/apt/lists/*; \
     test -x "$JAVA_HOME/bin/javac"; \
     test -x "$JAVA_HOME_17/bin/javac"

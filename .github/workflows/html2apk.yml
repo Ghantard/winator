@@ -51,10 +51,18 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
-
+      # The runner image already ships the Android SDK, so no setup action is
+      # used: android-actions/setup-android tries to install the long-removed
+      # "tools" package and fails.
       - name: Installer les composants du SDK Android
-        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          set -euo pipefail
+          # cmdline-tools is versioned on the runner (e.g. .../16.0/), not "latest".
+          sdkmanager=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f \
+            | sort -V | tail -1)
+          echo "sdkmanager: $sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$sdkmanager" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Mettre apksigner sur le PATH
         run: echo "$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_PATH"
