@@ -1624,6 +1624,7 @@ function startGame(){
   G.ledger = [];
   G.sinistres = [];
   G.demandes = [];
+  G.secours = null;
   G.deg = initDegraded();
   G.ssi = initSSI();
   G.rh = initRH();
@@ -1654,6 +1655,7 @@ function startGame(){
   }
 
   /* Le site rend compte de ce que la vacation précédente a laissé. */
+  G.priseDePoste = initPriseDePoste();
   showPassation(applySiteState(G.siteId));
 
   renderAll();
@@ -1953,12 +1955,16 @@ function openPicker(roundId){
     else if(busy) sub = `<span class="warn">Occupé (${a.state})</span>`;
     else if(a.fatigue > 60) sub = `<span class="warn">Fatigué (${Math.round(a.fatigue)}%)</span>`;
     else sub = `<span style="color:#4ade80">Disponible</span> · Fat.${Math.round(a.fatigue)}% · Badge niv.${a.skills.badge || 0}`;
-    if(G.materiel){
+    /* La dotation ne se discute que pour un agent qu'on peut encore équiper :
+       inutile de la détailler pour quelqu'un déjà parti en ronde. */
+    if(G.materiel && !dis){
       const held = agentKey(a);
       const nOut = uncoveredPoints(a, r).length;
-      const kit = [agentRadio(a) ? ICON_VHF : '', agentBadge(a) ? '📇' : ''].filter(Boolean).join(' ');
-      sub += `<br><span style="color:${nOut ? '#ff6b5e' : '#4ade80'}">${held ? held.icon + ' ' + held.name : 'sans trousseau'}${nOut ? ` · ${nOut} point(s) non ouvrable(s)` : ' · ronde couverte'}</span>`
-        + `<span style="color:#7d8fa3"> ${kit}${(!agentRadio(a) || !agentBadge(a)) ? ' <b style="color:#ff6b5e">dotation incomplète</b>' : ''}</span>`;
+      sub += `<br><span style="color:${nOut ? '#ffb020' : '#4ade80'}">${held ? held.icon + ' ' + held.name : 'sans trousseau'}`
+        + `${nOut ? ` — ${nOut} point(s) non ouvrable(s), le bon trousseau lui sera remis` : ' · ronde couverte'}</span>`;
+    } else if(G.materiel && onRound){
+      const round = G.rounds.find(x => x.id === a.currentRoundId);
+      if(round) sub += `<br><span style="color:#7d8fa3">${round.id} · point ${(a.rondeIndex || 0) + 1}/${round.points.length}</span>`;
     }
     h += `<div class="pickerAgent ${dis?'disabled':''}" data-pick-agent="${a.id}">
       <div class="paAv">${a.avatar}</div>
@@ -2445,7 +2451,8 @@ function renderAgents(){
     if(G.materiel){
       const kit = [agentRadio(a)?ICON_VHF:'', agentBadge(a)?'📇':'', agentKey(a)?agentKey(a).icon:''].filter(Boolean).join('');
       if(kit) st += ' · ' + kit;
-      else if(a.isRonde) st += ' · ⛔ sans dotation';
+      /* Ce qui compte en ronde, c'est la conséquence : il est injoignable. */
+      if(a.isRonde && !agentRadio(a)) st += ' · 📵 injoignable';
     }
     const ef = a.fatigue < 30 ? 'ok' : a.fatigue < 60 ? 'warn' : 'crit';
     const eW = 100 - a.fatigue;
@@ -2736,6 +2743,9 @@ function resolveChoice(idx){
   if(ev.type === 'feu' && /lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
     startLDD(ev);
   }
+  if(/\b18\b|\b15\b|secours|pompiers|samu/i.test(c.label) && c.score > 0){
+    callSecours(/\b15\b|samu/i.test(c.label) ? '15' : '18', ev.zoneId);
+  }
   if(ev.type === 'feu' && c.score > 0){
     G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
     /* La décision ne suffit pas : quelqu'un doit aller éteindre. */
@@ -2838,6 +2848,8 @@ function resolveAnomaly(evId, idx){
     A.fail();
   } else if(act.k === 'call'){
     radioSay(a, `Je reste sur place en surveillance jusqu'à leur arrivée.`, 'order');
+    if(/police/i.test(act.l)) mcAdd('PC', `👮 Police requise sur ${zoneName(ev.zone)}`, 'action');
+    else callSecours(/\b15\b|samu|victime/i.test(act.l) ? '15' : '18', ev.zone);
   } else if(act.k === 'return'){
     radioSay(a, `Reçu, je remonte au PCS.`, 'order');
   } else {
@@ -3321,6 +3333,7 @@ function endVacation(){
       {w:1, v:rat(K.inhibLifted || 0, K.inhibPosed || 0)},
       {w:1, v:rat(K.ssiOk || 0, K.ssiTotal || 0)},
       {w:1, v:rat(G.s3.auditsGood, G.s3.audits)},
+      {w:2, v:K.priseDePoste === undefined ? null : K.priseDePoste / 3},
     ]),
     time: ax([
       {w:3, v:rat(K.lddOnTime || 0, K.lddTotal || 0)},
@@ -3328,6 +3341,7 @@ function endVacation(){
       {w:2, v:rat(onTimeRounds, doneRounds)},
       {w:1, v:rat(K.degHandled || 0, K.degTotal || 0)},
       {w:2, v:(G.k.propagations || 0) ? Math.max(0, 1 - G.k.propagations * 0.4) : null},
+      {w:2, v:rat((K.secoursAccueillis || 0) - (K.secoursSansAccueil || 0), K.secoursAccueillis || 0)},
     ]),
     rh: ax([
       {w:3, v:rat((K.ordersGiven || 0) - (K.ordersDangerous || 0), K.ordersAsked || 0)},
@@ -3367,6 +3381,8 @@ function endVacation(){
     ['MCI conformes', frac(K.mciGood || 0, K.mciTotal || 0)],
     ['Audits SSIAP 3 réussis', frac(G.s3.auditsGood, G.s3.audits)],
     ['Actions de formation', `${G.debrief.training || 0} / ${trainingExpected} attendue(s)`],
+    ['Contrôle de prise de poste', `${K.priseDePoste === undefined ? 0 : K.priseDePoste}/3`],
+    ['Secours accueillis et guidés', frac((K.secoursAccueillis || 0) - (K.secoursSansAccueil || 0), K.secoursAccueillis || 0)],
     ['Zones remises en ordre', `${K.zonesTreated || 0}`],
     ['Départs de feu éteints sur place', `${K.feuxEteints || 0}`],
     ['Anomalies laissées non traitées', `${defautsLaisses}`],
@@ -3717,6 +3733,16 @@ function renderActions(){
   h += `<div class="matHead">📦 MATÉRIEL & RONDES</div>`;
   const hot = riskiestZone();
   const bas = G.agents.filter(a => (a.moral === undefined ? 60 : a.moral) < 35).length;
+  const pdp = G.priseDePoste;
+  const faits = [pdp.radio, pdp.cmsi, pdp.cles].filter(Boolean).length;
+  if(!pdp.bilan || faits < 3){
+    h += `<button class="orderBtn ${faits < 3 ? 'warning' : ''}" data-pcs="prise_poste"><div class="oi">📋</div>
+      <div class="ol"><b>Contrôle de prise de poste</b><span>${faits}/3 effectué(s)${pdp.bilan ? '' : ` — avant ${fmtTime(pdp.deadline)}`}</span></div></button>`;
+  }
+  if(G.secours && !G.secours.done){
+    h += `<button class="orderBtn danger" data-pcs="accueil"><div class="oi">🚒</div>
+      <div class="ol"><b>Accueil des secours</b><span>${G.secours.kind} attendu à ${fmtTime(G.secours.eta)}${G.secours.accueilId ? ' — agent désigné' : ' — PERSONNE DÉSIGNÉ'}</span></div></button>`;
+  }
   h += `<button class="orderBtn ${bas ? 'danger' : 'primary'}" data-act="open-teamstate"><div class="oi">👥</div>
     <div class="ol"><b>Équipe</b><span>${bas ? `${bas} agent(s) démotivé(s)` : 'Moral et charge de travail'}</span></div></button>`;
   h += `<button class="orderBtn ${hot && hot.r >= 60 ? 'danger' : 'primary'}" data-act="open-sitestate"><div class="oi">📍</div>
@@ -3758,6 +3784,17 @@ function execPcsAction(k){
     case 'radio_secours': execRadioBackup(); break;
     case 'surv_renf': execSurveillanceRenforcee(); break;
     case 'dat': openDAT(); break;
+    case 'prise_poste': openPriseDePoste(); break;
+    case 'accueil': {
+      const libres = G.agents.filter(a => !a.isRonde);
+      if(!libres.length){ toast('Aucun agent disponible', 'bad'); break; }
+      openMini('🚒 ACCUEIL DES SECOURS', `Qui va recevoir et guider le ${G.secours.kind} ?`,
+        libres.map(a => ({icon:a.avatar, label:a.name,
+          hint:`${a.state === 'idle' ? 'disponible' : a.state} · fatigue ${Math.round(a.fatigue)} %`,
+          cls:'primary'})),
+        i => assignAccueil(libres[i]));
+      break;
+    }
     case 'renfort': execRenfort(); break;
     case 'test_radio':
       if(G.deg.radio && !G.deg.radio.backup){
@@ -3877,6 +3914,10 @@ function issueItem(kind, itemId, agentId){
   const it = matFind(kind, itemId);
   const ag = allStaff().find(a => a.id === agentId);
   if(!it || !ag) return;
+  if(it.manquant || it.hs){
+    toast(`${it.name} indisponible`, 'bad');
+    return;
+  }
   if(it.holder && it.holder !== agentId){
     const other = allStaff().find(a => a.id === it.holder);
     toast(`${it.name} déjà porté par ${other ? other.name : 'un agent'}`, 'bad');
@@ -3904,7 +3945,7 @@ function keyForRound(round){
 function equipForRound(agent, round){
   const given = [], missing = [];
   if(!agentRadio(agent)){
-    const r = G.materiel.radios.find(x => !x.holder);
+    const r = G.materiel.radios.find(x => !x.holder && !x.hs);
     if(r){ giveItem('radios', r, agent); given.push(`${r.icon} ${r.id}`); }
     else missing.push('radio VHF');
   }
@@ -3917,7 +3958,7 @@ function equipForRound(agent, round){
     const want = keyForRound(round);
     const pass = G.materiel.keys.find(k => k.master);
     let k = null;
-    if(want && (!want.holder || want.holder === agent.id)) k = want;
+    if(want && !want.manquant && (!want.holder || want.holder === agent.id)) k = want;
     else if(pass && (!pass.holder || pass.holder === agent.id)) k = pass;
     if(k){
       giveItem('keys', k, agent);
@@ -5156,6 +5197,212 @@ function showPassation(repris){
     () => {}, 'PRENDRE LE POSTE');
 }
 
+
+/* ==========================================================
+   ========== CONTRÔLE DE PRISE DE POSTE ====================
+   Les 45 premières minutes : essais radio, contrôle du CMSI,
+   comptage du trousseau. Ce qu'on ne vérifie pas se découvre
+   au pire moment.
+   ========================================================== */
+function initPriseDePoste(){
+  const zones = G.site.zones.filter(z => z.id !== 'pcs');
+  return {
+    radio:false, cmsi:false, cles:false,
+    deadline: G.startT + 45,
+    bilan:false,
+    /* Anomalies présentes à la prise de poste, invisibles sans contrôle */
+    vhfFaible: Math.random() < 0.35,
+    derangement: Math.random() < 0.4 ? pick(zones).id : null,
+    trousseauManquant: Math.random() < 0.3 ? pick(G.materiel.keys.filter(k => !k.master)).id : null,
+  };
+}
+
+function openPriseDePoste(){
+  const p = G.priseDePoste;
+  const fait = i => i ? '✅' : '⬜';
+  openMini('📋 CONTRÔLE DE PRISE DE POSTE',
+    `À effectuer avant ${fmtTime(p.deadline)}`,
+    [
+      {icon:fait(p.radio), label:'Essai des liaisons radio', hint:p.radio ? 'Effectué' : 'Appel de chaque agent, contrôle des batteries', cls:p.radio ? '' : 'primary'},
+      {icon:fait(p.cmsi), label:'Contrôle du CMSI et du SDI', hint:p.cmsi ? 'Effectué' : 'Voyants, dérangements, zones hors service', cls:p.cmsi ? '' : 'primary'},
+      {icon:fait(p.cles), label:'Comptage du trousseau et des badges', hint:p.cles ? 'Effectué' : 'Râtelier, registre d\'emprunt', cls:p.cles ? '' : 'primary'},
+    ],
+    i => { [doEssaiRadio, doControleCMSI, doComptageCles][i](); });
+}
+
+function doEssaiRadio(){
+  const p = G.priseDePoste;
+  if(p.radio) return;
+  p.radio = true;
+  G.score += 4;
+  mcAdd('PC', `📻 Essai des liaisons radio effectué — ${G.agents.length} agent(s) contactés`, 'ok');
+  if(p.vhfFaible){
+    const vhf = G.materiel.radios.find(r => r.battery < 60);
+    if(vhf){
+      vhf.hs = true;
+      mcAdd('PC', `⚠ ${vhf.id} : batterie faible détectée à l'essai — poste écarté du service`, 'warn');
+      toast('Une VHF écartée du service', 'info');
+    }
+  }
+}
+
+function doControleCMSI(){
+  const p = G.priseDePoste;
+  if(p.cmsi) return;
+  p.cmsi = true;
+  G.score += 4;
+  mcAdd('PC', `🖥 Contrôle du CMSI : voyants, alimentation, papier — conforme`, 'ok');
+  if(p.derangement){
+    const zid = p.derangement;
+    p.derangementVu = true;
+    mcAdd('PC', `⚠ Dérangement relevé au CMSI : zone ${zoneName(zid)} en défaut depuis la vacation précédente`, 'warn');
+    if(!G.demandes.some(d => d.zone === zid && d.label === 'Dérangement de zone')){
+      G.demandes.push({ zone:zid, label:'Dérangement de zone', reste:1 });
+      mcAdd('PC', `🛠 Maintenance SSI demandée pour ${zoneName(zid)}`, 'info');
+    }
+    toast('Dérangement relevé au CMSI', 'info');
+  }
+}
+
+function doComptageCles(){
+  const p = G.priseDePoste;
+  if(p.cles) return;
+  p.cles = true;
+  G.score += 4;
+  if(p.trousseauManquant){
+    const k = G.materiel.keys.find(x => x.id === p.trousseauManquant);
+    if(k){
+      k.manquant = true;
+      p.trousseauVu = true;
+      mcAdd('PC', `🔑 Comptage : ${k.name} MANQUANT au râtelier — non restitué par la vacation précédente`, 'warn');
+      mcAdd('PC', `🔑 Les rondes concernées se feront au passe général, avec traçabilité`, 'info');
+      toast(`${k.name} manquant`, 'bad');
+    }
+  } else {
+    mcAdd('PC', `🔑 Comptage du trousseau et des badges : effectif complet`, 'ok');
+  }
+}
+
+function tickPriseDePoste(){
+  const p = G.priseDePoste;
+  if(!p || p.bilan) return;
+  if(G.t < p.deadline) return;
+  p.bilan = true;
+  const faits = [p.radio, p.cmsi, p.cles].filter(Boolean).length;
+  G.k.priseDePoste = faits;
+  if(faits === 3){
+    G.score += 8;
+    mcAdd('PC', `✅ Contrôle de prise de poste complet — le poste est tenu`, 'ok');
+  } else {
+    G.score -= (3 - faits) * 5;
+    mcAdd('PC', `⚠ Contrôle de prise de poste incomplet (${faits}/3) — le SSIAP 3 le relèvera`, 'warn');
+    /* Ce qui n'a pas été vérifié se découvre plus tard, tout seul. */
+    if(!p.radio && p.vhfFaible){
+      /* Batterie non contrôlée : le poste lâchera en cours de vacation,
+         qu'il soit déjà en main ou remis plus tard. */
+      const vhf = G.materiel.radios.find(r => r.battery < 60);
+      if(vhf) vhf.fragile = true;
+    }
+    if(!p.cmsi && p.derangement){
+      /* Le dérangement non relevé prive la zone de détection, en silence. */
+      G.deg.detect = G.deg.detect || { zoneId:p.derangement, since:G.t, until:G.t + 400, covered:false, lastPenalty:G.t, silencieux:true };
+      logCause(p.derangement, `Dérangement du SDI non relevé à la prise de poste : ${zoneName(p.derangement)} sans détection.`);
+    }
+    if(!p.cles && p.trousseauManquant){
+      const k = G.materiel.keys.find(x => x.id === p.trousseauManquant);
+      if(k){ k.manquant = true; k.holder = 'INTROUVABLE'; }
+    }
+  }
+}
+
+/* ==========================================================
+   ============ ACCUEIL ET GUIDAGE DES SECOURS ==============
+   Appeler le 18 ne suffit pas : il faut les recevoir.
+   ========================================================== */
+function callSecours(kind, zoneId){
+  if(G.secours && !G.secours.done) return;
+  G.secours = {
+    kind, zoneId, calledAt:G.t,
+    eta: G.t + 8 + Math.floor(Math.random() * 5),
+    accueilId:null, arrived:false, done:false, retard:0,
+  };
+  mcAdd('PC', `📞 ${kind} alerté pour ${zoneName(zoneId)} — délai d'arrivée annoncé ${Math.round(G.secours.eta - G.t)} min`, 'crit');
+  mcAdd('PC', `👮 Un agent doit être désigné pour l'accueil et le guidage des secours`, 'warn');
+  toast(`${kind} en route — accueil à prévoir`, 'bad');
+}
+
+function assignAccueil(agent){
+  if(!G.secours || G.secours.done) { toast('Aucun secours attendu', 'info'); return; }
+  G.secours.accueilId = agent.id;
+  agent.accueil = true;
+  const entree = G.site.zones[0].id;
+  agent.state = 'moving';
+  agent.targetId = entree;
+  agent.until = G.t + 3;
+  agent.workTime = 30;
+  mcAdd('PC', `👮 ${agent.name} désigné pour l'accueil des secours à ${zoneName(entree)}`, 'action');
+  radioSay(agent, `Je me poste à l'entrée avec le plan et le trousseau, j'attends les secours.`, 'order');
+  renderAll();
+}
+
+/* Une batterie non contrôlée lâche après une vingtaine de minutes d'usage */
+function tickRadioFragile(){
+  for(const r of G.materiel.radios){
+    if(!r.fragile || r.hs) continue;
+    if(!r.holder){ r.porte = 0; continue; }
+    r.porte = (r.porte || 0) + 0.3 * (G.speed || 1);
+    if(r.porte < 20) continue;
+    const ag = allStaff().find(a => a.id === r.holder);
+    r.hs = true;
+    r.holder = null;
+    r.fragile = false;
+    if(ag){
+      ag.noRadio = true;
+      mcAdd('PC', `📻 ${r.id} hors service — ${ag.name} n'est plus joignable, batterie non contrôlée à la prise de poste`, 'crit');
+      logCause(ag.pos, `Liaison radio perdue avec ${ag.name} : batterie non vérifiée à la prise de poste.`, 1);
+      toast(`${ag.name} injoignable`, 'bad');
+      moralChange(ag, -2, 'talkie tombé en panne faute de contrôle');
+    }
+    renderAll();
+  }
+}
+
+function tickSecours(){
+  const sc = G.secours;
+  if(!sc || sc.done) return;
+  if(G.t < sc.eta + sc.retard) return;
+
+  const ag = sc.accueilId ? allStaff().find(a => a.id === sc.accueilId) : null;
+  const present = ag && ag.pos === G.site.zones[0].id;
+  if(!present && sc.retard < 6){
+    sc.retard = 6;
+    G.score -= 8;
+    G.k.secoursSansAccueil = (G.k.secoursSansAccueil || 0) + 1;
+    mcAdd('PC', `⏱ Secours sur site sans personne pour les recevoir — 6 min perdues à trouver l'accès`, 'crit');
+    logCause(sc.zoneId, `Secours arrivés sans accueil ni guidage : six minutes perdues avant la prise en compte.`);
+    toast('Secours non accueillis !', 'bad');
+    return;
+  }
+
+  sc.arrived = true;
+  sc.done = true;
+  if(ag){ ag.accueil = false; ag.state = 'idle'; }
+  G.k.secoursAccueillis = (G.k.secoursAccueillis || 0) + 1;
+  if(present){
+    G.score += 10;
+    mcAdd('PC', `🚒 Secours accueillis et guidés par ${ag.name} — plan du site et clés remis, prise en compte immédiate`, 'ok');
+  } else {
+    mcAdd('PC', `🚒 Secours enfin sur les lieux`, 'warn');
+  }
+  /* Les secours prennent le sinistre à leur compte. */
+  const z = G.zones[sc.zoneId];
+  if(z && z.feu){
+    mcAdd('PC', `🚒 Sinistre pris en charge par les sapeurs-pompiers en ${zoneName(sc.zoneId)}`, 'ok');
+    z.feu = null;
+  }
+  renderMC(true);
+}
+
 /* ==========================================================
    6 quater. AGENTS EN ATTENTE D'ORDRES
    Un agent qui attend bloque sa ronde : il relance, puis il tranche seul.
@@ -5343,6 +5590,9 @@ function escalateEvent(ev){
 function tickV6(){
   if(!G) return;
   tickCoach();
+  tickPriseDePoste();
+  tickRadioFragile();
+  tickSecours();
   tickZones();
   tickFireAttack();
   tickEvents();
@@ -5361,6 +5611,9 @@ function updateAlertStrip(){
   if(pending) bits.push(`🔔 ${pending} alarme(s)`);
   const waiting = awaitingAgents().length;
   if(waiting) bits.push(`⏸ ${waiting} agent(s) en attente`);
+  if(G.secours && !G.secours.done){
+    bits.push(`🚒 ${G.secours.kind} à ${fmtTime(G.secours.eta)}${G.secours.accueilId ? '' : ' — accueil !'}`);
+  }
   if(G.zones){
     const feux = Object.keys(G.zones).filter(id => G.zones[id].feu && G.zones[id].feu.detected);
     for(const id of feux) bits.push(`🔥 Feu en cours — ${zoneName(id)}`);
@@ -5423,6 +5676,7 @@ function resumeShift(){
   G.ledger = G.ledger || [];
   G.sinistres = G.sinistres || [];
   G.demandes = G.demandes || [];
+  G.priseDePoste = G.priseDePoste || initPriseDePoste();
   G.deg = G.deg || initDegraded();
   G.ssi = G.ssi || initSSI();
   G.rh = G.rh || initRH();

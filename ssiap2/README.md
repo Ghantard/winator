@@ -141,6 +141,27 @@ Vérifié par simulation : la vacation négligente termine systématiquement ave
 13 ou 14 causes tracées et la note plafonnée à 45, la vacation soignée avec
 trois causes mineures et 55 à 60.
 
+## La prise de poste et l'accueil des secours
+
+**Les 45 premières minutes comptent.** Trois contrôles sont attendus : essai
+des liaisons radio, contrôle du CMSI et du SDI, comptage du trousseau et des
+badges. Chaque vacation cache des anomalies que seuls ces contrôles révèlent —
+une VHF à batterie faible, un dérangement de zone hérité de la veille, un
+trousseau non restitué. Contrôlées, elles sont traitées : le poste défaillant
+est écarté, la maintenance SSI demandée, le trousseau manquant signalé et les
+rondes basculées sur le passe général. Non contrôlées, elles se rappellent au
+bon souvenir du PCS : le talkie lâche en pleine ronde et l'agent devient
+injoignable, la zone en dérangement reste sans détection — en silence, jusqu'au
+jour où il s'y passe quelque chose.
+
+**Appeler les secours ne suffit pas, il faut les recevoir.** Un appel au 18 ou
+au 15 déclenche un délai d'arrivée réel, affiché au bandeau, et il faut
+désigner un agent pour l'accueil et le guidage. Personne à l'entrée : six
+minutes perdues à chercher l'accès, une pénalité, et une ligne au registre des
+causes que la commission relèvera. Agent présent : plan du site et clés remis,
+prise en compte immédiate, et les sapeurs-pompiers prennent le sinistre à leur
+compte.
+
 ## Le site garde la trace des vacations précédentes
 
 Ce qu'une vacation laisse derrière elle, la suivante le trouve. Chaque site
