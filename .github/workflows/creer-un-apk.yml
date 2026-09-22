@@ -1,0 +1,116 @@
+# One-click APK: no install, no command line. Actions tab → this workflow →
+# "Run workflow" → type a site address → download the APK from the run page.
+name: Créer un APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: "Adresse du site (https://...) ou dossier du dépôt (ex. html2apk/examples/hello)"
+        required: true
+        default: "https://example.com"
+      nom:
+        description: "Nom de l'application affiché sous l'icône"
+        required: false
+        default: ""
+      identifiant:
+        description: "Identifiant Android (ex. com.moi.monapp)"
+        required: false
+        default: ""
+
+defaults:
+  run:
+    working-directory: html2apk
+
+jobs:
+  apk:
+    name: Construire l'APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: html2apk/package-lock.json
+
+      # Capacitor 8's Android template compiles with sourceCompatibility 21.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer les composants du SDK Android
+        run: |
+          set -euo pipefail
+          # cmdline-tools is versioned on the runner (e.g. .../16.0/), not "latest".
+          sdkmanager=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f \
+            | sort -V | tail -1)
+          yes | "$sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$sdkmanager" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Mettre apksigner sur le PATH
+        run: echo "$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_PATH"
+
+      - run: npm ci
+      - run: npm run build
+
+      # A repository folder is given relative to the repository root, while this
+      # job runs inside html2apk/, so it is resolved from the root here.
+      - name: Construire l'APK
+        id: build
+        env:
+          SITE: ${{ inputs.site }}
+          NOM: ${{ inputs.nom }}
+          IDENTIFIANT: ${{ inputs.identifiant }}
+        run: |
+          set -euo pipefail
+          source="$SITE"
+          case "$source" in
+            http://*|https://*) ;;
+            *)
+              source="$GITHUB_WORKSPACE/$source"
+              if [ ! -d "$source" ]; then
+                echo "::error::Dossier introuvable dans le dépôt : $SITE"
+                exit 1
+              fi
+              ;;
+          esac
+
+          mkdir -p artifacts
+          # A filename from the app name, or "app": no spaces, no surprises.
+          slug=$(printf '%s' "${NOM:-app}" \
+            | tr '[:upper:]' '[:lower:]' \
+            | tr -cs 'a-z0-9' '-' \
+            | sed 's/^-*//; s/-*$//')
+          slug=${slug:-app}
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
+          node dist/cli.js build "$source" \
+            --no-docker \
+            --output "artifacts/$slug.apk" \
+            ${NOM:+--app-name "$NOM"} \
+            ${IDENTIFIANT:+--app-id "$IDENTIFIANT"}
+
+      - name: Résumé
+        run: |
+          apk=$(ls artifacts/*.apk | head -1)
+          {
+            echo "### APK prêt"
+            echo
+            echo "| Source | Fichier | Taille |"
+            echo "|---|---|---|"
+            echo "| ${{ inputs.site }} | $(basename "$apk") | $(du -h "$apk" | cut -f1) |"
+            echo
+            echo "Téléchargez-le dans la section **Artifacts** en bas de cette page,"
+            echo "puis copiez le fichier \`.apk\` sur votre téléphone Android et ouvrez-le."
+            echo
+            echo "Signature de debug : installable directement, mais non publiable sur le Play Store."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ steps.build.outputs.slug }}
+          path: html2apk/artifacts/*.apk
+          if-no-files-found: error

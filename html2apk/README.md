@@ -9,6 +9,27 @@ html2apk build https://exemple.fr --output ./exemple.apk
 
 Un site d'exemple est fourni dans `examples/hello` pour un premier essai.
 
+## Le plus simple : sans rien installer
+
+L'onglet **Actions** du dépôt → workflow **Créer un APK** → bouton **Run workflow** :
+indiquez l'adresse du site, éventuellement un nom d'application, et lancez. Quelques minutes
+plus tard, l'APK se télécharge depuis la section **Artifacts** en bas de la page du run.
+Rien à installer, ni Node, ni Docker, ni SDK Android.
+
+Copiez ensuite le fichier `.apk` sur votre téléphone et ouvrez-le (il faut autoriser
+l'installation depuis des sources inconnues).
+
+## Le plus simple en local : un double-clic
+
+Depuis le dossier du projet, sans taper de commande :
+
+- **Windows** : double-cliquez sur `html2apk.cmd`
+- **macOS / Linux** : lancez `./html2apk.sh`
+
+Le script installe ce qui manque, compile si nécessaire, puis demande l'adresse du site et le
+nom de l'application. Il accepte aussi les options directement :
+`html2apk.cmd https://exemple.fr --app-name "Exemple"`.
+
 ## Comment ça marche
 
 Les deux sources passent par le même pipeline : un projet [Capacitor](https://capacitorjs.com)
