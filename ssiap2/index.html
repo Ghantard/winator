@@ -1239,102 +1239,367 @@ const ROUND_INCIDENTS = {
   ],
 };
 
+/* ==========================================================
+   SCÉNARIOS — SITUATIONS RÉELLES DU POSTE DE SÉCURITÉ
+   Chaque situation arrive au PCS comme dans la réalité : ce que
+   montre le tableau de signalisation, ce que dit la radio, ce que
+   dit le téléphone, qui se présente au poste. Les conduites
+   proposées décrivent une action, jamais son mérite : aucune
+   n'est annoncée comme « la bonne », et l'ordre d'affichage est
+   tiré au sort à chaque fois.
+   k     : effet appliqué par applyEventChoice()
+   urgent / delay : temps laissé au PCS avant que la situation se
+                    solde sans lui.
+   ========================================================== */
 const EVENTS = [
-  {id:'feu_poubelle',type:'feu',weight:1,sites:['all'],
-   ctx:'Odeur âcre, particules caméra',event:'DÉCLENCHEMENT SDI',
-   pcs:'Voyant feu clignotant.',radio:'« Chef, fumée sort du local ! »',
-   phone:null,presence:null,dilemma:'Levée de doute 3-5 min obligatoire.',
+
+  /* ---------- 1. Alarme feu sur une seule détection ---------- */
+  {id:'feu_detect', type:'feu', weight:4, sites:['all'],
+   ctx:'Le tableau de signalisation passe en alarme feu. Un seul détecteur est concerné, rien d’autre ne remonte pour l’instant.',
+   event:'ALARME FEU — DÉTECTION AUTOMATIQUE',
+   pcs:'Voyant rouge « feu » fixe, signal sonore en cours. La zone de détection est identifiée au tableau, le détecteur aussi. Aucun autre point en alarme.',
+   radio:null, phone:null, presence:null,
+   dilemma:'Le signal sonore couvre les communications et personne, à cet instant, ne sait ce qui se passe réellement sur la zone.',
    choices:[
-     {label:'Envoyer agent lever de doute',hint:'Procédure',score:3,reg:2,time:-1,consequence:'Agent envoyé.'},
-     {label:'Inhiber puis envoyer',hint:'DANGEREUX',score:-5,reg:-3,consequence:'Violation.'},
-     {label:'Appeler 18 direct',hint:'Anticipation',score:-2,reg:-1,consequence:'Prématuré.'}],
+     {k:'ldd', label:'Arrêter le signal sonore, relever la zone et envoyer un agent en levée de doute',
+      hint:'Le tableau reste en alarme, l’agent part avec un moyen d’extinction et sa radio',
+      score:6, reg:3, consequence:'Agent désigné, délai de levée de doute engagé.'},
+     {k:'ag', label:'Déclencher l’alarme générale immédiatement',
+      hint:'Évacuation du public sur la foi d’une seule détection non vérifiée',
+      score:-3, reg:-2, consequence:'Évacuation engagée sans connaître la cause.'},
+     {k:'call18', label:'Alerter les sapeurs-pompiers avant toute reconnaissance',
+      hint:'Engins engagés sur une alarme dont personne n’a encore vérifié l’origine',
+      score:-2, reg:-1, consequence:'Secours sollicités sans levée de doute.'},
+     {k:'inhib', label:'Inhiber la zone de détection pour faire cesser l’alarme',
+      hint:'Le tableau se tait, la zone cesse d’être surveillée',
+      score:-9, reg:-4, consequence:'Détection neutralisée sans aucune vérification.'}],
    mci:[
-     {text:'Fumée local. RAS.',good:false},
-     {text:'Détection SDI zone [X]. Levée de doute [heure]. Cause : corbeille en combustion. Extinction extincteur CO2 + contrôle post-incendie. 18 alerté.',good:true},
-     {text:'Petit feu.',good:false}]},
-  {id:'feu_reel',type:'feu',weight:1,sites:['all'],
-   ctx:'Multi-alarmes',event:'⚠ FEU CONFIRMÉ',pcs:'3 détecteurs zone.',
-   radio:'« AU FEU ! Évacuation ! »',phone:'📞 Standard : « Plusieurs alarmes ! »',
-   presence:'SSIAP 3 : « Compte-rendu ! »',dilemma:'Évacuation + 18 + info SSIAP 3.',
+     {text:'Alarme feu ZD 3 à 14:12, signal sonore arrêté, zone relevée au tableau. Levée de doute confiée à l’agent de ronde, départ 14:13, compte rendu 14:16 : corbeille en combustion, extinction par extincteur à eau pulvérisée. Contrôle post-incendie effectué, cause supprimée, détecteur réarmé à 14:31. Exploitant informé.', good:true},
+     {text:'Alarme feu à 14:12 au tableau. Levée de doute effectuée par un agent, tout est rentré dans l’ordre, installation réarmée.', good:false},
+     {text:'Alarme feu réserves 14:12, agent envoyé, RAS, réarmement.', good:false}]},
+
+  /* ---------- 2. Feu confirmé ---------- */
+  {id:'feu_confirme', type:'feu', weight:2, sites:['all'],
+   ctx:'Trois détecteurs d’une même zone sont passés en alarme en moins d’une minute et le standard reçoit des appels du public.',
+   event:'FEU CONFIRMÉ — PLUSIEURS DÉTECTIONS',
+   pcs:'Trois points en alarme sur la même zone de détection, report d’asservissements en cours au tableau.',
+   radio:'« Chef, je vois les fumées d’ici, ça sort par le haut de la porte ! »',
+   phone:'📞 Standard : « Il y a de la fumée partout, les gens commencent à sortir. »',
+   presence:null,
+   dilemma:'Le doute est levé par les faits : le sinistre est confirmé avant même qu’un agent soit sur place.',
    choices:[
-     {label:'Alarme gén. + 18 + info S3',hint:'Complet',score:6,reg:3,consequence:'Évacuation.'},
-     {label:'Attendre confirmation',hint:'Retard',score:-3,reg:-2,consequence:'Danger public.'},
-     {label:'Renfort + 18 sans évac',hint:'Risqué',score:-2,reg:-1,consequence:'Non conforme.'}],
+     {k:'feu_total', label:'Alarme générale, alerte des secours et engagement d’un binôme sur le foyer',
+      hint:'Évacuation, message d’alerte au 18, attaque à deux avec liaison radio',
+      score:10, reg:4, consequence:'Chaîne complète engagée.'},
+     {k:'ldd', label:'Envoyer d’abord un agent en levée de doute',
+      hint:'Reconnaissance d’un sinistre déjà confirmé par trois détecteurs et des témoins',
+      score:-4, reg:-2, consequence:'Minutes perdues à vérifier ce qui est établi.'},
+     {k:'ag', label:'Déclencher l’alarme générale et attendre d’y voir plus clair',
+      hint:'Public évacué, aucun secours prévenu à ce stade',
+      score:-3, reg:-2, consequence:'Évacuation sans alerte des secours.'},
+     {k:'call18', label:'Alerter le 18 et attendre son arrivée sans évacuer',
+      hint:'Secours en route, public maintenu à l’intérieur',
+      score:-9, reg:-4, consequence:'Public laissé dans un établissement en feu.'}],
    mci:[
-     {text:'Feu maîtrisé.',good:false},
-     {text:'Multi-détecteurs zone [X]. Feu actif confirmé. Alarme générale, évacuation, appel 18, info SSIAP 3. Bilan [X] évacués.',good:true},
-     {text:'Gros incendie.',good:false}]},
-  {id:'malaise',type:'medical',weight:3,sites:['all'],
-   ctx:'Appel standard',event:'URGENCE MÉDICALE',pcs:'Aucune alarme.',
-   radio:'« Quelqu\'un est tombé ! »',phone:'📞 Standard : « Client ne se sent pas bien. »',
-   presence:null,dilemma:'Agent SST + 15 ou juste 15 ?',
+     {text:'21:03 — Alarme feu, trois détecteurs ZD 5 (galerie niveau 1), confirmée par appels du public. Alarme générale diffusée 21:04, évacuation totale vers le point de rassemblement. 18 alerté 21:05, message complet, accueil désigné. Binôme engagé sur le foyer avec deux extincteurs. Feu éteint 21:11, 214 personnes évacuées, comptage sans manquant. SSIAP 3 informé 21:06.', good:true},
+     {text:'21:03 — Feu confirmé galerie, évacuation générale et appel des pompiers. Sinistre maîtrisé par l’équipe.', good:false},
+     {text:'Feu galerie 21:03. Évacuation. 18 appelé. Tout s’est bien passé.', good:false}]},
+
+  /* ---------- 3. Déclencheur manuel actionné ---------- */
+  {id:'feu_dm', type:'feu', weight:3, sites:['all'], noFire:true,
+   ctx:'Un déclencheur manuel vient d’être actionné. Aucun détecteur automatique n’est en alarme.',
+   event:'ALARME FEU — DÉCLENCHEUR MANUEL',
+   pcs:'Origine : DM n° 12, niveau 1, circulation ouest. La temporisation avant diffusion de l’alarme générale est en cours.',
+   radio:null,
+   phone:null, presence:null,
+   dilemma:'Un déclencheur manuel est actionné par quelqu’un qui a vu quelque chose. L’information est vraie jusqu’à preuve du contraire, et la temporisation ne dure pas.',
    choices:[
-     {label:'Agent SST + appel 15',hint:'Complet',score:4,reg:3,consequence:'Double action.'},
-     {label:'Appeler 15 seulement',hint:'Insuffisant',score:-1,reg:-1,consequence:'Pas d\'agent.'},
-     {label:'Agent seul',hint:'Non conforme',score:-2,reg:-2,consequence:'Risque.'}],
+     {k:'ldd', label:'Envoyer un agent au déclencheur pendant que la temporisation court',
+      hint:'Reconnaissance sur le lieu du déclenchement sans interrompre le processus d’alarme',
+      score:7, reg:3, consequence:'Agent envoyé au DM, temporisation maintenue.'},
+     {k:'ag', label:'Diffuser l’alarme générale sans attendre la fin de la temporisation',
+      hint:'Évacuation engagée sur la foi de la personne qui a actionné le déclencheur',
+      score:3, reg:2, consequence:'Évacuation engagée par précaution.'},
+     {k:'stop_tempo', label:'Interrompre la temporisation et remettre le tableau en veille',
+      hint:'Le processus d’alarme est arrêté avant toute vérification sur place',
+      score:-10, reg:-4, consequence:'Ordre d’évacuation annulé sans savoir pourquoi il a été donné.'}],
    mci:[
-     {text:'Client tombé.',good:false},
-     {text:'Malaise zone [X] [heure]. Agent SST sur place. Victime inconsciente, PLS. Appel 15, constantes. SAMU [heure].',good:true},
-     {text:'Malaise.',good:false}]},
-  {id:'at_industriel',type:'at',weight:3,sites:['industriel'],
-   ctx:'Alarme machine',event:'ACCIDENT DU TRAVAIL',pcs:'Arrêt machine.',
-   radio:'« Chute de hauteur ! »',phone:'📞 Standard : « Accident atelier ! »',
-   presence:'SSIAP 3 : « Protège la scène ! »',dilemma:'Ne pas déplacer, DAT obligatoire.',
+     {text:'03:22 — Alarme feu, origine DM n° 12 (circulation ouest, niveau 1). Temporisation maintenue, agent envoyé sur place 03:22, compte rendu 03:25 : vitre brisée, aucun feu ni fumée, personne dans le secteur. Vitre remplacée, DM réarmé, installation remise en veille 03:34. Fait signalé à la direction, images de vidéoprotection à exploiter.', good:true},
+     {text:'03:22 — Déclencheur manuel actionné circulation ouest. Vérification faite, pas de feu, réarmement du système.', good:false},
+     {text:'DM cassé 03:22, rien à signaler, remis en service.', good:false}]},
+
+  /* ---------- 4. Feu de cuisson ---------- */
+  {id:'feu_cuisson', type:'feu', weight:2, sites:['erp_m','erp_on','erp_u'],
+   ctx:'Un agent signale des flammes sur un appareil de cuisson. La hotte est en service, l’huile est enflammée dans le bac.',
+   event:'FEU SUR APPAREIL DE CUISSON',
+   pcs:'Alarme feu sur la zone cuisine, un détecteur. Report de l’extraction en marche.',
+   radio:'« Chef, le bac de friture est en feu, les flammes montent dans la hotte ! »',
+   phone:null, presence:null,
+   dilemma:'Un feu d’huile ne se traite pas comme un feu de matériaux courants, et le conduit d’extraction propage vite.',
    choices:[
-     {label:'Protéger + 15/18 + DAT',hint:'Procédure AT',score:5,reg:3,consequence:'Victime protégée.'},
-     {label:'Déplacer victime',hint:'DANGEREUX',score:-5,reg:-3,consequence:'Aggravation.'},
-     {label:'Évacuer + direction',hint:'Passable',score:1,consequence:'Non priorisé.'}],
+     {k:'feu_cuisson_ok', label:'Couper l’énergie de l’appareil, étouffer le foyer et faire évacuer la cuisine',
+      hint:'Coupure, couverture ou extincteur adapté aux feux d’huile, personnel écarté',
+      score:9, reg:4, consequence:'Coupure faite, foyer étouffé, local dégagé.'},
+     {k:'danger_eau', label:'Faire attaquer au robinet d’incendie armé',
+      hint:'Jet d’eau sur un bac d’huile enflammée',
+      score:-12, reg:-5, consequence:'Projection d’huile enflammée, le feu se répand.'},
+     {k:'ag', label:'Déclencher l’alarme générale et attendre les secours',
+      hint:'Évacuation immédiate, aucun moyen engagé sur un foyer encore petit',
+      score:1, reg:1, consequence:'Public évacué, le foyer prospère.'},
+     {k:'call18', label:'Alerter le 18 et laisser le personnel de cuisine gérer',
+      hint:'Secours prévenus, intervention laissée à des personnes non formées',
+      score:-6, reg:-3, consequence:'Personnel de cuisine laissé seul face au feu.'}],
    mci:[
-     {text:'Accident.',good:false},
-     {text:'AT zone [X] [heure]. Chute hauteur. Victime protégée. Appel 15+18. Direction informée. DAT ouverte.',good:true},
-     {text:'Chute.',good:false}]},
-  {id:'absence',type:'rh',weight:3,sites:['all'],
-   ctx:'Agent non arrivé',event:'ABSENCE / RETARD',pcs:'Effectif incomplet.',radio:null,
-   phone:'📞 Absent : « Bloqué, j\'arrive dans 1h. »',presence:'SSIAP 3 : « Organise-toi. »',
-   dilemma:'Rappeler, prestataire, ou ronde réduite ?',
+     {text:'12:47 — Feu sur bac de friture, cuisine niveau 0. Énergie de l’appareil coupée, foyer étouffé par couverture anti-feu, extraction arrêtée, personnel écarté. Aucune victime. Contrôle du conduit d’extraction effectué, aucune propagation. Exploitant informé, appareil consigné dans l’attente du contrôle de l’installateur. Registre de sécurité renseigné.', good:true},
+     {text:'12:47 — Départ de feu en cuisine sur friteuse. Feu éteint par nos soins, pas de dégâts.', good:false},
+     {text:'Feu de friteuse en cuisine à 12:47, éteint par le personnel de cuisine, service repris normalement.', good:false}]},
+
+  /* ---------- 5. Malaise ---------- */
+  {id:'malaise', type:'medical', weight:4, sites:['all'],
+   ctx:'Le standard signale une personne au sol dans une circulation. Aucun report au tableau de signalisation.',
+   event:'URGENCE — PERSONNE AU SOL',
+   pcs:'Aucune alarme technique. Appel reçu au PCS.',
+   radio:null,
+   phone:'📞 Standard : « Une personne vient de s’effondrer, elle ne réagit pas bien, venez vite. »',
+   presence:null,
+   dilemma:'Personne n’a encore fait de bilan : on ne sait ni ce qu’elle a, ni si elle respire.',
    choices:[
-     {label:'Rappeler agent repos',hint:'Rapide',score:3,reg:2,consequence:'Effectif complet.'},
-     {label:'Prestataire',hint:'Procédure',score:2,reg:2,consequence:'Renfort externe.'},
-     {label:'Attendre',hint:'Passif',score:-2,reg:-2,consequence:'Compromis.'}],
+     {k:'sst', label:'Envoyer un agent secouriste avec le sac de premiers secours et le défibrillateur',
+      hint:'Bilan sur place avant toute alerte, le PCS reste en liaison radio',
+      score:7, reg:3, consequence:'Agent secouriste en route, bilan attendu.'},
+     {k:'call15', label:'Appeler le 15 immédiatement et transmettre ce que dit le standard',
+      hint:'Régulation alertée à partir d’une information de seconde main',
+      score:-1, reg:0, consequence:'15 alerté sans bilan, aucun agent sur place.'},
+     {k:'attendre', label:'Demander au standard de rappeler si l’état empire',
+      hint:'Aucun agent envoyé, aucune alerte donnée',
+      score:-9, reg:-4, consequence:'Victime laissée sans prise en charge.'}],
    mci:[
-     {text:'Agent absent.',good:false},
-     {text:'Agent [Nom] absent [heure]. Retard signalé. Rappel agent repos / Prestataire. SSIAP 3 informé.',good:true},
-     {text:'Pas de nouvelle.',good:false}]},
-  {id:'defaut',type:'ssi',weight:3,sites:['all'],
-   ctx:'Voyant jaune CMSI',event:'DÉFAUT SYSTÈME',pcs:'Voyant jaune.',
-   radio:'« Chef, tu peux acquitter ? »',phone:'📞 Prestataire SSI.',presence:null,
-   dilemma:'Acquitter + maintenance + tracer.',
+     {text:'16:08 — Appel du standard : personne au sol, galerie niveau 0. Agent SST dépêché 16:08 avec sac de premiers secours et DAE, sur place 16:11. Bilan : victime inconsciente, ventilation présente, mise en position latérale de sécurité. 15 alerté 16:12, consignes suivies, surveillance continue. Accueil des secours désigné, SAMU sur place 16:23, victime transportée. Famille prévenue par l’exploitant.', good:true},
+     {text:'16:08 — Malaise d’un client galerie niveau 0, agent SST sur place, 15 appelé, victime prise en charge par le SAMU.', good:false},
+     {text:'Malaise galerie 16:08. SAMU venu. Personne évacuée.', good:false}]},
+
+  /* ---------- 6. Arrêt cardiaque ---------- */
+  {id:'acr', type:'medical', weight:1, sites:['all'], delay:8,
+   ctx:'Un agent de ronde annonce une personne inconsciente qui ne respire pas.',
+   event:'URGENCE VITALE — VICTIME QUI NE RESPIRE PAS',
+   pcs:'Aucune alarme technique. Compte rendu radio d’un agent déjà sur les lieux.',
+   radio:'« Chef, elle ne réagit pas, elle ne respire pas ! »',
+   phone:null, presence:null,
+   dilemma:'Chaque minute sans massage ni défibrillateur diminue les chances de survie. Le PCS n’a pas le temps d’un deuxième avis.',
    choices:[
-     {label:'Acquit + maintenance + surveillance',hint:'Procédure',score:4,reg:3,consequence:'Tracé.'},
-     {label:'Acquitter seul',hint:'Non conforme',score:-3,reg:-3,consequence:'Masqué.'},
-     {label:'Ne rien faire',hint:'GRAVE',score:-5,reg:-3,consequence:'Non-conformité.'}],
+     {k:'sst_acr', label:'Faire commencer la réanimation, envoyer le défibrillateur en renfort et alerter le 15',
+      hint:'Massage sans délai, DAE apporté par un second agent, régulation en ligne',
+      score:12, reg:4, consequence:'Réanimation engagée, DAE en route, 15 alerté.'},
+     {k:'sst', label:'Envoyer un second agent secouriste faire le bilan',
+      hint:'Renfort sur place, alerte différée au bilan',
+      score:1, reg:0, consequence:'Renfort envoyé, alerte retardée.'},
+     {k:'call15', label:'Appeler le 15 et attendre ses instructions avant d’agir',
+      hint:'Aucun geste engagé tant que la régulation n’a pas répondu',
+      score:-8, reg:-4, consequence:'Aucun geste pendant l’attente.'}],
    mci:[
-     {text:'Défaut.',good:false},
-     {text:'Défaut [type] CMSI [heure]. Zone [X]. Acquittement. Maintenance SSI. Surveillance renforcée. Résolu [heure].',good:true},
-     {text:'Voyant jaune.',good:false}]},
-  {id:'permis',type:'permis',weight:3,sites:['erp_m','igh','industriel'],
-   ctx:'Artisan au PCS',event:'PERMIS DE FEU',pcs:'Aucune alarme.',radio:null,
-   phone:'📞 Direction.',presence:'Permis partiel.',dilemma:'Vérifier conditions.',
+     {text:'02:41 — Agent en ronde signale victime inconsciente sans ventilation, parking niveau -1. Réanimation cardio-pulmonaire débutée 02:41 par l’agent SST. DAE apporté par un second agent 02:43, un choc délivré sur indication de l’appareil. 15 alerté 02:42, consignes du médecin régulateur appliquées. Relais par le SMUR 02:52. Matériel de secours remis en état, DAE réarmé, électrodes remplacées.', good:true},
+     {text:'02:41 — Arrêt cardiaque parking, massage cardiaque et DAE par les agents, SMUR sur place, victime transportée.', good:false},
+     {text:'Personne inconsciente parking 02:41, secours appelés, massage fait.', good:false}]},
+
+  /* ---------- 7. Accident du travail ---------- */
+  {id:'at_industriel', type:'at', weight:2, sites:['industriel'],
+   ctx:'Un opérateur a chuté d’une passerelle. La machine tourne encore, des collègues se sont attroupés.',
+   event:'ACCIDENT DU TRAVAIL — CHUTE DE HAUTEUR',
+   pcs:'Report d’arrêt d’urgence non actionné. Aucune alarme incendie.',
+   radio:'« Il est tombé de la passerelle, il est conscient mais il ne peut pas bouger ! »',
+   phone:'📞 Chef d’atelier : « On le relève et on l’amène à l’infirmerie ? »',
+   presence:null,
+   dilemma:'La zone est encore dangereuse pour la victime comme pour les secouristes, et les lieux devront être préservés.',
    choices:[
-     {label:'Contrôle + isolement + surveillance',hint:'Complet',score:4,reg:3,consequence:'Validé.'},
-     {label:'Signer sans contrôle',hint:'Non conforme',score:-5,reg:-3,consequence:'Danger.'},
-     {label:'Refuser',hint:'Rigide',score:-1,consequence:'Bloqué.'}],
+     {k:'at_ok', label:'Faire consigner la machine et baliser, puis envoyer un secouriste sans mobiliser la victime',
+      hint:'Protection avant secours, victime laissée en place, lieux préservés',
+      score:10, reg:4, consequence:'Zone sécurisée, bilan en cours, lieux préservés.'},
+     {k:'at_bouger', label:'Faire relever la victime et la conduire à l’infirmerie',
+      hint:'Victime mobilisée après une chute de hauteur',
+      score:-12, reg:-5, consequence:'Victime mobilisée malgré le risque de lésion.'},
+     {k:'call15', label:'Alerter le 15 et laisser l’atelier s’organiser',
+      hint:'Secours prévenus, aucune protection de la zone',
+      score:-4, reg:-2, consequence:'Machine en marche, attroupement maintenu.'}],
    mci:[
-     {text:'Permis signé.',good:false},
-     {text:'Permis de feu n°[X] [heure] par [artisan]. Vérif zones, extincteurs, SSI. Zone isolée. Surveillance /30min. Fin [heure]. Contrôle post-travaux.',good:true},
-     {text:'OK.',good:false}]},
-  {id:'conflit',type:'conflit',weight:2,sites:['all'],
-   ctx:'2 agents désaccord',event:'CONFLIT INTERNE',pcs:'Tension RH.',radio:null,
-   phone:'📞 Agent : « L\'autre refuse. »',presence:'Les deux au PCS.',
-   dilemma:'Recadrer, écouter, tracer.',
+     {text:'09:34 — Chute de hauteur depuis la passerelle, atelier. Machine consignée et zone balisée 09:35, agent SST sur place 09:36. Bilan : victime consciente, douleur rachidienne, non mobilisée. 15 alerté 09:37, immobilisation maintenue jusqu’à l’arrivée du SMUR 09:52. Lieux préservés en l’état, témoins identifiés, direction et responsable HSE informés. Déclaration d’accident du travail en cours.', good:true},
+     {text:'09:34 — Accident du travail, chute d’un opérateur, secours appelés, victime évacuée par le SAMU, DAT à faire.', good:false},
+     {text:'Chute atelier 09:34. 15 appelé. Victime partie à l’hôpital.', good:false}]},
+
+  /* ---------- 8. Dérangement SSI ---------- */
+  {id:'defaut_ssi', type:'ssi', weight:3, sites:['all'],
+   ctx:'Un voyant jaune s’allume au tableau : ce n’est pas une alarme, c’est un dérangement.',
+   event:'DÉRANGEMENT SSI',
+   pcs:'Voyant « dérangement » et signal sonore propre au défaut. L’équipement signale une ligne de détection en défaut sur une zone.',
+   radio:null,
+   phone:'📞 Société de maintenance SSI : « On peut passer demain matin, ça vous va ? »',
+   presence:null,
+   dilemma:'Un dérangement n’est pas une alarme, mais une ligne en défaut, c’est une zone qui n’est plus surveillée.',
    choices:[
-     {label:'Écoute séparée + rappel + tracer',hint:'Management',score:4,reg:1,consequence:'Apaisé.'},
-     {label:'Imposer autorité',hint:'Rigide',score:-2,consequence:'Dégradé.'},
-     {label:'Laisser',hint:'Absent',score:-3,reg:-1,consequence:'Persistant.'}],
+     {k:'acquit_ssi', label:'Acquitter le dérangement, le consigner au registre et demander l’intervention de la maintenance',
+      hint:'Défaut pris en compte et tracé, organe identifié, intervention demandée',
+      score:7, reg:3, consequence:'Dérangement tracé, maintenance sollicitée.'},
+     {k:'compens', label:'Mettre en place une surveillance humaine renforcée sur la zone en défaut',
+      hint:'Rondes rapprochées tant que la détection n’est pas rétablie',
+      score:8, reg:4, consequence:'Mesures compensatoires engagées sur la zone.'},
+     {k:'masquer', label:'Couper le signal sonore et reprendre la vacation',
+      hint:'Le bruit cesse, le défaut reste et n’est écrit nulle part',
+      score:-7, reg:-4, consequence:'Défaut masqué, aucune trace, zone non surveillée.'}],
    mci:[
-     {text:'Souci agents.',good:false},
-     {text:'Tension entre [Nom 1] et [Nom 2] [heure]. Entretien séparé. Rappel procédures. Accord trouvé.',good:true},
-     {text:'Engueulade.',good:false}]},
+     {text:'23:05 — Dérangement au tableau : ligne de détection ZD 7 (local technique) en défaut. Défaut acquitté et consigné au registre de sécurité. Société de maintenance SSI avisée 23:10, intervention annoncée sous 24 h. Surveillance humaine renforcée mise en place sur la zone : ronde toutes les heures jusqu’à rétablissement. SSIAP 3 informé, consigne transmise à la relève.', good:true},
+     {text:'23:05 — Défaut SSI sur une zone. Maintenance prévenue, surveillance renforcée mise en place.', good:false},
+     {text:'Voyant jaune 23:05, acquitté, maintenance appelée.', good:false}]},
+
+  /* ---------- 9. Permis de feu ---------- */
+  {id:'permis', type:'permis', weight:2, sites:['erp_m','igh','industriel'],
+   ctx:'Une entreprise extérieure se présente au poste pour des travaux de soudure prévus cet après-midi.',
+   event:'TRAVAUX PAR POINT CHAUD',
+   pcs:'Aucune alarme. Permis de feu présenté au PCS, partiellement renseigné.',
+   radio:null,
+   phone:'📞 Services techniques : « Ils sont attendus, il faut que ça avance aujourd’hui. »',
+   presence:'Deux soudeurs au poste, permis de feu à la main, non signé par la direction.',
+   dilemma:'La majorité des sinistres par travaux se déclarent après le départ des ouvriers, pas pendant les travaux.',
+   choices:[
+     {k:'permis_ok', label:'Contrôler la zone, écarter les matières combustibles, poser un extincteur et prévoir la surveillance après travaux',
+      hint:'Contrôle avant, surveillance pendant, puis deux heures de surveillance après la fin du chantier',
+      score:9, reg:4, consequence:'Travaux encadrés, surveillance après travaux programmée.'},
+     {k:'permis_signe', label:'Signer le permis et laisser les travaux commencer',
+      hint:'Chantier lancé sans contrôle des abords ni moyens de secours sur place',
+      score:-8, reg:-4, consequence:'Travaux par point chaud engagés sans contrôle.'},
+     {k:'permis_inhib', label:'Inhiber la détection de la zone et laisser travailler',
+      hint:'Plus de déclenchement intempestif, plus de détection non plus',
+      score:-5, reg:-3, consequence:'Zone en travaux sans détection ni compensation.'},
+     {k:'permis_refus', label:'Refuser les travaux tant que le permis n’est pas signé par la direction',
+      hint:'Chantier reporté, l’exploitant devra arbitrer',
+      score:2, reg:2, consequence:'Travaux différés, direction saisie.'}],
+   mci:[
+     {text:'14:00 — Travaux par point chaud (soudure) en local technique, entreprise extérieure, permis de feu n° 27 complété et signé. Zone contrôlée avant travaux : matières combustibles écartées, écran de protection posé, extincteur à eau pulvérisée et extincteur CO2 mis à disposition. Détection de la zone inhibée pendant les travaux avec surveillance humaine permanente. Fin des travaux 16:10, détection remise en service 16:12, essai concluant. Surveillance de la zone maintenue jusqu’à 18:10, aucun point chaud résiduel.', good:true},
+     {text:'14:00 — Permis de feu délivré pour soudure en local technique. Zone contrôlée, surveillance assurée, travaux terminés à 16:10 sans incident.', good:false},
+     {text:'Travaux soudure local technique 14:00-16:10. Permis signé. RAS.', good:false}]},
+
+  /* ---------- 10. Ascenseur bloqué ---------- */
+  {id:'ascenseur', type:'tech', weight:2, sites:['erp_m','erp_on','igh','erp_u'], urgent:true, delay:14,
+   ctx:'L’alarme d’une cabine d’ascenseur sonne au poste. Une personne est bloquée entre deux niveaux.',
+   event:'PERSONNE BLOQUÉE EN ASCENSEUR',
+   pcs:'Report d’alarme cabine au PCS. Interphone de la cabine ouvert.',
+   radio:null,
+   phone:'📞 Cabine : « Je suis coincée, il fait chaud, ça fait dix minutes, sortez-moi de là ! »',
+   presence:null,
+   dilemma:'Le dégagement des occupants est le métier de l’ascensoriste. Une manœuvre improvisée sur une cabine à l’arrêt peut tuer.',
+   choices:[
+     {k:'ascenseur_ok', label:'Maintenir le contact par l’interphone, envoyer un agent à l’étage et appeler l’ascensoriste',
+      hint:'Personne rassurée et surveillée en permanence, dégagement laissé au professionnel',
+      score:9, reg:4, consequence:'Contact maintenu, ascensoriste en route.'},
+     {k:'ascenseur_forcer', label:'Faire ouvrir les portes palières par les agents pour la sortir',
+      hint:'Ouverture d’une cabine arrêtée entre deux niveaux par du personnel non habilité',
+      score:-11, reg:-5, consequence:'Manœuvre engagée sur une cabine entre deux niveaux.'},
+     {k:'call18', label:'Demander l’intervention des sapeurs-pompiers',
+      hint:'Moyens de secours publics engagés pour un blocage sans détresse signalée',
+      score:0, reg:1, consequence:'Secours sollicités pour un dégagement technique.'},
+     {k:'attendre', label:'Rassurer la personne et attendre la prochaine visite de maintenance',
+      hint:'Personne laissée en cabine sans intervention programmée',
+      score:-10, reg:-4, consequence:'Personne abandonnée dans la cabine.'}],
+   mci:[
+     {text:'18:52 — Alarme cabine ascenseur A, une personne bloquée entre les niveaux 1 et 2. Contact établi et maintenu par interphone, personne rassurée, aucun signe de détresse. Agent dépêché à l’étage 18:53, liaison permanente avec le PCS. Société d’ascenseurs appelée 18:54, intervention annoncée sous 45 min, arrivée 19:28, dégagement 19:35. Personne indemne, refus d’examen médical noté. Ascenseur consigné dans l’attente du contrôle.', good:true},
+     {text:'18:52 — Personne bloquée dans l’ascenseur A. Ascensoriste appelé, personne dégagée vers 19:35, tout s’est bien passé.', good:false},
+     {text:'Ascenseur bloqué 18:52, dépannage appelé, personne sortie.', good:false}]},
+
+  /* ---------- 11. Odeur de gaz ---------- */
+  {id:'gaz', type:'tech', weight:1, sites:['erp_m','erp_on','industriel','erp_u'], urgent:true, delay:10,
+   ctx:'Un agent signale une forte odeur de gaz dans un local technique.',
+   event:'ODEUR DE GAZ EN LOCAL TECHNIQUE',
+   pcs:'Aucune détection incendie. Aucun report gaz au tableau.',
+   radio:'« Chef, ça sent très fort le gaz devant le local, je n’entre pas. »',
+   phone:null, presence:null,
+   dilemma:'Toute étincelle est une source d’inflammation : un interrupteur, une lampe, un moteur d’extraction.',
+   choices:[
+     {k:'gaz_ok', label:'Interdire l’accès, faire couper l’arrivée depuis l’extérieur, ventiler naturellement et alerter le 18',
+      hint:'Aucune manœuvre électrique, coupure au robinet extérieur, secteur évacué',
+      score:11, reg:5, consequence:'Secteur évacué, arrivée coupée, secours alertés.'},
+     {k:'gaz_danger', label:'Faire entrer l’agent avec une lampe pour localiser la fuite',
+      hint:'Recherche d’une fuite de gaz avec un appareil électrique en atmosphère explosive',
+      score:-14, reg:-5, consequence:'Agent envoyé avec une source d’énergie en atmosphère gazeuse.'},
+     {k:'gaz_ventil', label:'Mettre l’extraction mécanique du local en marche',
+      hint:'Démarrage d’un moteur pour ventiler un local chargé en gaz',
+      score:-9, reg:-4, consequence:'Moteur démarré en atmosphère explosive.'},
+     {k:'call18', label:'Alerter le 18 et maintenir l’agent en surveillance à distance',
+      hint:'Secours alertés, arrivée de gaz laissée en service',
+      score:4, reg:2, consequence:'Secours alertés, fuite toujours alimentée.'}],
+   mci:[
+     {text:'05:15 — Forte odeur de gaz signalée devant le local technique -1. Accès interdit et balisé, aucune manœuvre électrique effectuée. Arrivée de gaz coupée au robinet extérieur 05:17. Ventilation naturelle par ouverture des accès extérieurs, secteur évacué. 18 alerté 05:16, message complet, accueil désigné, sapeurs-pompiers sur place 05:26, contrôle d’explosimétrie négatif à 05:41. Distributeur de gaz avisé, local consigné.', good:true},
+     {text:'05:15 — Odeur de gaz local technique. Gaz coupé, local ventilé, pompiers prévenus, plus rien à signaler.', good:false},
+     {text:'Odeur de gaz -1 à 05:15. Pompiers appelés. Fuite traitée.', good:false}]},
+
+  /* ---------- 12. Intrusion ---------- */
+  {id:'intrusion', type:'surete', weight:2, sites:['all'], shift:'night',
+   ctx:'Une alarme intrusion se déclenche sur un accès de service, site fermé au public.',
+   event:'ALARME INTRUSION — ACCÈS DE SERVICE',
+   pcs:'Report d’alarme intrusion, aucune détection incendie. Vidéoprotection disponible sur ce secteur.',
+   radio:null, phone:null, presence:null,
+   dilemma:'Un agent de sécurité incendie n’est pas un policier, et un agent isolé face à une intrusion est un agent en danger.',
+   choices:[
+     {k:'surete_ok', label:'Lever le doute par la vidéoprotection avant d’envoyer qui que ce soit',
+      hint:'Image du secteur consultée depuis le poste, engagement décidé ensuite',
+      score:8, reg:3, consequence:'Doute levé depuis le poste, décision prise sur image.'},
+     {k:'police', label:'Demander l’intervention de la police et maintenir les agents en observation',
+      hint:'Forces de l’ordre requises, personnel maintenu à distance',
+      score:6, reg:3, consequence:'Police requise, agents à distance.'},
+     {k:'surete_solo', label:'Envoyer un agent seul faire le tour du secteur',
+      hint:'Agent isolé engagé sur une intrusion possible, de nuit',
+      score:-8, reg:-4, consequence:'Agent seul envoyé au contact.'},
+     {k:'rien', label:'Acquitter l’alarme et poursuivre la vacation',
+      hint:'Alarme effacée sans vérification',
+      score:-6, reg:-3, consequence:'Alarme intrusion effacée sans contrôle.'}],
+   mci:[
+     {text:'02:58 — Alarme intrusion accès de service nord. Levée de doute par vidéoprotection depuis le PCS : porte ouverte par le vent, aucune présence. Contrôle sur place par deux agents en binôme 03:02, porte refermée et verrouillée, secteur contrôlé, rien à signaler. Alarme acquittée 03:09, fait consigné, consigne de contrôle du dispositif de fermeture transmise aux services techniques.', good:true},
+     {text:'02:58 — Alarme intrusion accès nord. Vérification faite, fausse alarme, porte refermée.', good:false},
+     {text:'Intrusion nord 02:58, contrôle OK, acquittée.', good:false}]},
+
+  /* ---------- 13. Effectif incomplet ---------- */
+  {id:'absence', type:'rh', weight:3, sites:['all'],
+   ctx:'Un agent de l’équipe n’est pas arrivé à la prise de poste et prévient qu’il aura une heure de retard.',
+   event:'EFFECTIF INCOMPLET',
+   pcs:'Aucune alarme. Effectif de sécurité incendie sous le nombre prévu par les consignes du site.',
+   radio:null,
+   phone:'📞 L’agent : « Je suis bloqué, je serai là dans une heure. »',
+   presence:null,
+   dilemma:'L’effectif de sécurité incendie n’est pas une commodité d’organisation : il conditionne l’ouverture au public.',
+   choices:[
+     {k:'rh_astreinte', label:'Rappeler un agent d’astreinte et informer la direction du sous-effectif',
+      hint:'Titulaire formé au site, hiérarchie avertie du créneau découvert',
+      score:7, reg:3, consequence:'Astreinte rappelée, direction informée.'},
+     {k:'rh_presta', label:'Demander un agent à la société prestataire',
+      hint:'Renfort extérieur à accueillir, former aux consignes et doter en matériel',
+      score:4, reg:2, consequence:'Prestataire sollicité, accueil à prévoir.'},
+     {k:'rh_rien', label:'Répartir les rondes entre les agents présents en attendant',
+      hint:'Vacation tenue en sous-effectif, sans information de la hiérarchie',
+      score:-6, reg:-3, consequence:'Sous-effectif absorbé en silence.'}],
+   mci:[
+     {text:'07:02 — Effectif de sécurité incendie incomplet à la prise de poste : un agent absent, retard annoncé d’une heure. SSIAP 3 et direction informés 07:05. Rappel de l’agent d’astreinte 07:06, arrivée 07:48, accueil, consignes et dotation matériel effectués. Rondes maintenues avec adaptation du parcours entre 07:02 et 07:48, aucun point de contrôle supprimé. Effectif réglementaire rétabli 07:48.', good:true},
+     {text:'07:02 — Un agent absent à la prise de poste. Astreinte rappelée, effectif complété dans la matinée.', good:false},
+     {text:'Agent absent à la prise de poste de 07:02, remplacé dans la matinée, rondes assurées entre-temps.', good:false}]},
+
+  /* ---------- 14. Conflit dans l'équipe ---------- */
+  {id:'conflit', type:'conflit', weight:1, sites:['all'],
+   ctx:'Deux agents se présentent au poste, le ton monte : l’un reproche à l’autre de lui laisser systématiquement les rondes de nuit les plus longues.',
+   event:'TENSION DANS L’ÉQUIPE',
+   pcs:'Aucune alarme. Deux agents au poste, un troisième écoute depuis le couloir.',
+   radio:null, phone:null,
+   presence:'Les deux agents concernés, devant le tableau de signalisation.',
+   dilemma:'Le chef d’équipe est responsable de la répartition de la charge. Ce qui se règle mal au poste se paiera en ronde.',
+   choices:[
+     {k:'rh_ecoute', label:'Recevoir chacun séparément, rappeler la règle de répartition et tracer l’entretien',
+      hint:'Chacun entendu, décision annoncée aux deux, trace écrite',
+      score:7, reg:2, consequence:'Entretiens menés, répartition arbitrée et tracée.'},
+     {k:'rh_autorite', label:'Trancher immédiatement devant tout le monde',
+      hint:'Décision imposée sans avoir entendu les deux versions',
+      score:-3, reg:-1, consequence:'Décision imposée, rancune installée.'},
+     {k:'rh_laisser', label:'Les renvoyer à leur poste et voir plus tard',
+      hint:'Différend laissé en l’état pendant la vacation',
+      score:-5, reg:-2, consequence:'Tension laissée sans traitement.'}],
+   mci:[
+     {text:'20:40 — Différend entre deux agents sur la répartition des rondes de nuit. Entretien individuel avec chacun au poste, rappel de la règle de répartition et du planning affiché. Rondes R5 et R6 réattribuées pour équilibrer la charge, décision annoncée aux deux agents. Aucun incident d’exploitation. SSIAP 3 informé à la relève.', good:true},
+     {text:'20:40 — Tension entre deux agents, entretien mené, situation apaisée.', good:false},
+     {text:'Dispute entre deux agents au poste à 20:40, calmée par le chef d’équipe, reprise du service.', good:false}]},
 ];
 
 /* ==========================================================
@@ -2652,14 +2917,15 @@ function tick(){
 function trySpawnEvent(){
   const activeCount = G.events.filter(e=>!e.resolved).length;
   if(activeCount >= 2) return;
-  const valid = EVENTS.filter(e => e.sites.includes('all') || e.sites.includes(G.siteId));
+  const valid = EVENTS.filter(e => (e.sites.includes('all') || e.sites.includes(G.siteId))
+                                && (!e.shift || e.shift === G.shift));
   if(!valid.length) return;
 
   /* Une zone laissée à risque finit par produire son sinistre : le feu
      n'est plus un tirage, c'est la conséquence de l'état du site. */
   const hot = riskiestZone();
   if(hot && hot.r >= 45 && Math.random() < hot.r / 135){
-    const feux = valid.filter(e => e.type === 'feu');
+    const feux = valid.filter(e => e.type === 'feu' && !e.noFire);
     if(feux.length){ spawnEvent(pick(feux).id, hot.id); return; }
   }
   const pool = [];
@@ -2671,15 +2937,16 @@ function spawnEvent(evId, forcedZone){
   const ev = EVENTS.find(e => e.id === evId);
   if(!ev) return;
   const zoneId = forcedZone || zoneWeightedPick(ev.type);
-  const urgent = ['feu','medical','at'].includes(ev.type);
+  const urgent = ev.urgent !== undefined ? ev.urgent : ['feu','medical','at'].includes(ev.type);
+  const delay = ev.delay || (urgent ? 12 : 25);
   const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId, spawnedAt: G.t,
     resolved:false, awaitingOrders:false,
-    urgent, delay: urgent ? 12 : 25,
-    deadline: G.t + (urgent ? 12 : 25),
+    urgent, delay,
+    deadline: G.t + delay,
     autoOpen: true, escalated:false, hidden:false};
   G.events.push(instance);
 
-  if(ev.type === 'feu'){
+  if(ev.type === 'feu' && !ev.noFire){
     igniteZone(zoneId, instance);
     const causes = zoneRiskCauses(zoneId);
     if(causes.length) mcAdd('PC', `📍 ${zoneName(zoneId)} — ${causes.join(', ')}`, 'warn');
@@ -2739,18 +3006,23 @@ function renderEventModal(ev){
   if(G.stagiaire) h += `<div class="agentTag"><b>${G.stagiaire.avatar} ${G.stagiaire.name}</b><br>Stagiaire · Tuteur : ${G.agents[0].name}</div>`;
   h += `</div>`;
   h += `<h2>DILEMME</h2><div class="evContent">${ev.dilemma||'Quelle décision prendre ?'}</div>`;
-  h += `<h2>CHOIX DE DÉCISION</h2><div class="evChoices">`;
-  for(let i=0;i<ev.choices.length;i++){
+  h += `<h2>CONDUITE À TENIR</h2><div class="evChoices">`;
+  /* L'ordre d'affichage est tiré au sort à la première ouverture : la
+     bonne conduite n'est jamais à la même place. */
+  if(!ev.ordre) ev.ordre = ev.choices.map((x, i) => i).sort(() => Math.random() - 0.5);
+  for(let k=0;k<ev.ordre.length;k++){
+    const i = ev.ordre[k];
     const c = ev.choices[i];
     h += `<button class="evChoice" data-choice="${i}">
-      <b>${String.fromCharCode(65+i)} — ${c.label}</b>
+      <b>${String.fromCharCode(65+k)} — ${c.label}</b>
       <span>${c.hint}</span></button>`;
   }
   h += `</div>`;
   $('eventContent').innerHTML = h;
 }
 function iconFor(t){
-  return {feu:'🔥',medical:'🚑',at:'🩹',rh:'👥',ssi:'⚙',permis:'📝',conflit:'💬',anomalie:'⚠'}[t] || '⚠';
+  return {feu:'🔥',medical:'🚑',at:'🩹',rh:'👥',ssi:'⚙',permis:'📝',conflit:'💬',
+          tech:'🛗',surete:'🔓',anomalie:'⚠'}[t] || '⚠';
 }
 
 function resolveChoice(idx){
@@ -2764,67 +3036,10 @@ function resolveChoice(idx){
   ev.deadline = null;
   ev.decidedAt = G.t;
   G.score += c.score || 0;
-  if(ev.type === 'rh') G.debrief.rh += c.score > 0 ? 2 : -1;
-  if(ev.type === 'conflit') G.debrief.rh += c.score > 0 ? 1 : -1;
 
   mcAdd('PC', `Décision : ${c.label} — ${c.consequence}`, 'action');
 
-  if(ev.type === 'feu' && /lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
-    /* Le PCS ne « lance » pas une levée de doute : il désigne l'agent
-       qui part sur place. */
-    laterMini(() => { if(!G.ld) openDispatch('ldd', ev.zoneId, {evId:ev.instId}); });
-  }
-  if(/\b18\b|\b15\b|secours|pompiers|samu/i.test(c.label) && c.score > 0){
-    callSecours(/\b15\b|samu/i.test(c.label) ? '15' : '18', ev.zoneId);
-  }
-  if(ev.type === 'feu' && c.score > 0){
-    G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-    /* Détection feu : les asservissements de la zone sinistrée partent. */
-    dasOpen(ev.zoneId, 'clapet', 'asservissement de la détection incendie');
-    /* La décision ne suffit pas : il faut envoyer quelqu'un sur place. */
-    if(!/lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
-      laterMini(() => { if(!G.ld && !G.missions.some(m => m.zoneId === ev.zoneId)) openDispatch('ldd', ev.zoneId, {evId:ev.instId}); });
-    }
-  }
-  /* Urgence médicale ou accident du travail : c'est un agent SST qui part,
-     avec le sac de secours — pas le chef de poste depuis son fauteuil. */
-  if((ev.type === 'medical' || ev.type === 'at') && c.score > 0 && ev.zoneId){
-    const cas = ev.type === 'at' ? 'trauma' : undefined;
-    setTimeout(() => {
-      if(G && !G.missions.some(m => m.kind === 'sst' && m.zoneId === ev.zoneId))
-        openDispatch('sst', ev.zoneId, {evId:ev.instId, cas});
-    }, 320);
-  }
-  if(ev.type === 'permis'){
-    const z = G.zones[ev.zoneId];
-    if(z){
-      z.travaux = true;
-      z.travauxUntil = G.t + 90;
-      /* Un permis signé sans contrôle laisse un point chaud non surveillé. */
-      if(c.score <= 0) z.encombrement = Math.min(3, z.encombrement + 1);
-      mcAdd('PC', `🔧 Travaux par point chaud en ${zoneName(ev.zoneId)} jusqu'à ${fmtTime(z.travauxUntil)}${c.score <= 0 ? ' — sans contrôle préalable' : ' — zone contrôlée et surveillée'}`, c.score <= 0 ? 'warn' : 'info');
-      if(c.score <= 0) logCause(ev.zoneId, `Permis de feu accordé en ${zoneName(ev.zoneId)} sans contrôle préalable des moyens de secours.`);
-    }
-  }
-  if(ev.type === 'at' && !G.rh.datOpen){
-    G.rh.datOpen = true;
-    mcAdd('PC', `🩹 Dossier d'accident du travail à constituer — voir ACTIONS PCS`, 'warn');
-    toast('DAT à saisir', 'bad');
-  }
-  if(ev.type === 'rh') G.k.rhNeeded = (G.k.rhNeeded || 0) + 1;
-  if(ev.type === 'rh' && !G.rh.reinforced && !G.rh.incoming){
-    mcAdd('PC', `👥 Effectif incomplet — possibilité de rappel d'astreinte depuis les ACTIONS PCS`, 'info');
-  }
-
-  const idle = G.agents.find(a => a.state === 'idle');
-  if(idle && ['feu','medical','at','ssi','permis','stagiaire','conflit'].includes(ev.type) && c.score > 0){
-    const speedBonus = idle.skills && idle.skills.vitesse ? (1 - idle.skills.vitesse*0.08) : 1;
-    idle.state = 'moving';
-    idle.targetId = ev.zoneId;
-    idle.until = G.t + (3 + Math.random()*2) * speedBonus;
-    idle.workTime = 2 + Math.random()*2;
-    mcAdd(idle.id, `→ En route vers ${zoneName(ev.zoneId)}`, 'info');
-  }
+  applyEventChoice(ev, c);
 
   $('eventScreen').classList.remove('open');
   G.activeModal = null;
@@ -2839,6 +3054,272 @@ function resolveChoice(idx){
     renderMC(true);
   }
   toast(`Choix validé · ${c.score>0?'+':''}${c.score} pts`, c.score>0?'good':c.score<0?'bad':'info');
+}
+
+/* ----------------------------------------------------------
+   Ce qu'une conduite déclenche réellement. Chaque situation
+   porte une clé d'effet : le moteur n'interprète plus le
+   libellé du bouton, il applique la procédure choisie.
+   ---------------------------------------------------------- */
+function applyEventChoice(ev, c){
+  const zid = ev.zoneId;
+  const zn = zoneName(zid);
+  const z = G.zones[zid];
+  /* Une alarme feu laisse le tableau en alarme et envoie les
+     asservissements de la zone : c'est vrai quelle que soit la suite. */
+  const alarmeFeu = () => {
+    G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
+    dasOpen(zid, 'clapet', 'asservissement de la détection incendie');
+  };
+  const envoyer = (kind, extra) => laterMini(() => {
+    if(!(G.missions || []).some(m => m.kind === kind && m.zoneId === zid)){
+      openDispatch(kind, zid, Object.assign({evId:ev.instId}, extra || {}));
+    }
+  });
+
+  switch(c.k){
+    case 'ldd':
+      alarmeFeu();
+      if(!G.ld) envoyer('ldd');
+      break;
+
+    case 'ag':
+      alarmeFeu();
+      laterMini(openAlarmeGenerale);
+      break;
+
+    case 'feu_total':
+      alarmeFeu();
+      callSecours('18', zid);
+      laterMini(openAlarmeGenerale);
+      laterMini(() => {
+        const a = missionAvailable()[0];
+        if(a){ sendMission(a, 'extinction', zid, {}); askBinome(zid, a); }
+      });
+      break;
+
+    case 'feu_cuisson_ok':
+      alarmeFeu();
+      mcAdd('PC', `⚡ Énergie de l'appareil coupée et extraction arrêtée en ${zn} — le conduit ne propage plus`, 'action');
+      envoyer('extinction');
+      break;
+
+    case 'danger_eau':
+      alarmeFeu();
+      if(z && z.feu){ z.feu.stage = Math.min(3, z.feu.stage + 1); z.feu.lastGrow = G.t; }
+      mcAdd('PC', `⛔ Eau projetée sur un feu d'huile — projections enflammées, le foyer s'étend`, 'crit');
+      logCause(zid, `Attaque à l'eau ordonnée sur un feu d'huile en ${zn}.`);
+      envoyer('ldd');
+      break;
+
+    case 'call18':
+      if(ev.type === 'feu') alarmeFeu();
+      callSecours('18', zid);
+      if(ev.type === 'feu' && !G.ld) envoyer('ldd');
+      break;
+
+    case 'call15':
+      callSecours('15', zid);
+      break;
+
+    case 'inhib':
+      if(!G.ssi.inhibited.includes(zid)){
+        G.ssi.inhibited.push(zid);
+        G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
+      }
+      mcAdd('PC', `🚫 Zone ${zn} inhibée alors qu'une alarme feu n'a pas été levée — détection neutralisée`, 'crit');
+      logCause(zid, `Zone ${zn} inhibée pour faire cesser une alarme feu sans levée de doute.`);
+      break;
+
+    case 'stop_tempo':
+      G.ssi.alarmActive = false; G.ssi.buzzer = false;
+      mcAdd('PC', `⛔ Temporisation interrompue et tableau remis en veille sans reconnaissance du déclencheur`, 'crit');
+      logCause(zid, `Processus d'alarme interrompu après action d'un déclencheur manuel, sans vérification sur place.`);
+      break;
+
+    case 'sst':
+      envoyer('sst', {cas: ev.type === 'at' ? 'trauma' : undefined});
+      break;
+
+    case 'sst_acr':
+      callSecours('15', zid);
+      envoyer('sst', {cas:'acr'});
+      break;
+
+    case 'at_ok':
+      mcAdd('PC', `🔒 Machine consignée et zone balisée en ${zn} — lieux préservés pour l'enquête`, 'ok');
+      envoyer('sst', {cas:'trauma'});
+      break;
+
+    case 'at_bouger':
+      mcAdd('PC', `⛔ Victime de chute de hauteur relevée et déplacée — aggravation possible des lésions`, 'crit');
+      logCause(zid, `Victime d'une chute de hauteur mobilisée en ${zn} avant tout bilan.`);
+      callSecours('15', zid);
+      break;
+
+    case 'acquit_ssi':
+      mcAdd('PC', `📒 Dérangement acquitté, organe identifié et consigné au registre de sécurité`, 'ok');
+      if(!G.demandes.some(d => d.zone === zid && d.label === 'Dérangement de zone')){
+        G.demandes.push({ zone:zid, label:'Dérangement de zone', reste:1 });
+        mcAdd('PC', `🛠 Intervention de la société de maintenance SSI demandée pour ${zn}`, 'info');
+      }
+      G.k.degHandled = (G.k.degHandled || 0) + 1;
+      break;
+
+    case 'compens':
+      mcAdd('PC', `📡 Surveillance humaine renforcée sur ${zn} — rondes rapprochées jusqu'au rétablissement`, 'ok');
+      if(G.deg.detect && G.deg.detect.zoneId === zid) G.deg.detect.covered = true;
+      G.k.degHandled = (G.k.degHandled || 0) + 1;
+      if(!G.demandes.some(d => d.zone === zid && d.label === 'Dérangement de zone')){
+        G.demandes.push({ zone:zid, label:'Dérangement de zone', reste:1 });
+      }
+      break;
+
+    case 'masquer':
+      G.ssi.buzzer = false;
+      mcAdd('PC', `⚠ Signal de dérangement coupé sans prise en compte — le défaut n'est écrit nulle part`, 'crit');
+      logCause(zid, `Dérangement du SSI masqué sans consignation ni demande d'intervention : ${zn} sans détection fiable.`);
+      break;
+
+    case 'permis_ok':
+      if(z){
+        z.travaux = true;
+        z.travauxUntil = G.t + 90;
+        z.surveillancePost = true;
+        mcAdd('PC', `🔧 Travaux par point chaud en ${zn} jusqu'à ${fmtTime(z.travauxUntil)} — abords dégagés, extincteurs en place`, 'info');
+        mcAdd('PC', `⏱ Surveillance après travaux programmée deux heures après la fin du chantier`, 'ok');
+      }
+      break;
+
+    case 'permis_signe':
+      if(z){
+        z.travaux = true;
+        z.travauxUntil = G.t + 90;
+        z.encombrement = Math.min(3, z.encombrement + 1);
+        mcAdd('PC', `🔧 Travaux par point chaud engagés en ${zn} sans contrôle préalable des abords`, 'warn');
+        logCause(zid, `Permis de feu signé sans contrôle des abords ni moyens de secours sur place en ${zn}.`);
+      }
+      break;
+
+    case 'permis_inhib':
+      if(z){ z.travaux = true; z.travauxUntil = G.t + 90; }
+      if(!G.ssi.inhibited.includes(zid)){
+        G.ssi.inhibited.push(zid);
+        G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
+      }
+      mcAdd('PC', `🚫 Détection de ${zn} inhibée pour la durée des travaux — aucune surveillance compensatoire prévue`, 'warn');
+      logCause(zid, `Détection inhibée pour des travaux par point chaud en ${zn} sans surveillance humaine.`);
+      break;
+
+    case 'permis_refus':
+      mcAdd('PC', `⛔ Travaux refusés : permis de feu non signé par la direction — arbitrage renvoyé à l'exploitant`, 'info');
+      break;
+
+    case 'ascenseur_ok':
+      mcAdd('PC', `📞 Contact permanent établi avec la cabine — société d'ascenseurs appelée, intervention en route`, 'ok');
+      envoyer('ascenseur');
+      break;
+
+    case 'ascenseur_forcer':
+      mcAdd('PC', `⛔ Ouverture des portes palières engagée par du personnel non habilité sur une cabine entre deux niveaux`, 'crit');
+      logCause(zid, `Dégagement d'un ascenseur bloqué tenté par les agents, hors habilitation, cabine entre deux niveaux.`);
+      break;
+
+    case 'gaz_ok':
+      mcAdd('PC', `🚷 Accès interdit et balisé en ${zn}, arrivée de gaz coupée à l'extérieur, ventilation naturelle`, 'ok');
+      callSecours('18', zid);
+      break;
+
+    case 'gaz_danger':
+      mcAdd('PC', `⛔ Agent envoyé avec une source d'énergie dans une atmosphère chargée en gaz`, 'crit');
+      logCause(zid, `Recherche de fuite de gaz engagée avec un appareil électrique en ${zn}.`);
+      callSecours('18', zid);
+      break;
+
+    case 'gaz_ventil':
+      mcAdd('PC', `⛔ Extraction mécanique démarrée dans un local chargé en gaz — moteur en atmosphère explosive`, 'crit');
+      logCause(zid, `Ventilation mécanique mise en marche dans une atmosphère gazeuse en ${zn}.`);
+      callSecours('18', zid);
+      break;
+
+    case 'surete_ok':
+      mcAdd('PC', `📹 Levée de doute par vidéoprotection sur ${zn} avant tout engagement d'agent`, 'ok');
+      break;
+
+    case 'police':
+      mcAdd('PC', `👮 Intervention de la police demandée sur ${zn} — agents maintenus en observation à distance`, 'action');
+      break;
+
+    case 'surete_solo':
+      mcAdd('PC', `⚠ Agent envoyé seul de nuit sur une intrusion possible — aucun binôme, aucune couverture`, 'crit');
+      logCause(zid, `Agent isolé engagé de nuit sur une alarme intrusion en ${zn}.`);
+      break;
+
+    case 'rh_astreinte':
+    case 'rh_presta':
+      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
+      G.rh.incoming = { at:G.t + (c.k === 'rh_astreinte' ? 45 : 30), kind: c.k === 'rh_astreinte' ? 'astreinte' : 'presta' };
+      G.debrief.rh += c.k === 'rh_astreinte' ? 3 : 2;
+      mcAdd('PC', c.k === 'rh_astreinte'
+        ? `📞 Agent d'astreinte rappelé — arrivée annoncée sous 45 min, direction informée du sous-effectif`
+        : `📞 Société prestataire sollicitée — agent extérieur sous 30 min, accueil et consignes à prévoir`, 'action');
+      break;
+
+    case 'rh_rien':
+      G.debrief.rh -= 2;
+      mcAdd('PC', `⚠ Vacation tenue en sous-effectif sans information de la hiérarchie`, 'warn');
+      logCause(G.site.zones[0].id, `Effectif de sécurité incendie incomplet assumé sans information de la direction.`);
+      break;
+
+    case 'rh_ecoute':
+      G.debrief.rh += 3;
+      for(const a of G.agents) moralChange(a, 2, null);
+      mcAdd('PC', `🗣 Entretiens individuels menés au poste, répartition des rondes arbitrée et tracée`, 'ok');
+      break;
+
+    case 'rh_autorite':
+      G.debrief.rh -= 1;
+      if(G.agents[0]) moralChange(G.agents[0], -3, 'arbitrage imposé sans avoir été entendu');
+      break;
+
+    case 'rh_laisser':
+      G.debrief.rh -= 3;
+      for(const a of G.agents) moralChange(a, -3, 'différend laissé sans arbitrage par le chef d\'équipe');
+      break;
+
+    case 'attendre':
+    case 'rien':
+      break;
+  }
+
+  if(ev.type === 'at' && !G.rh.datOpen){
+    G.rh.datOpen = true;
+    mcAdd('PC', `🩹 Dossier d'accident du travail à constituer — voir ACTIONS PCS`, 'warn');
+    toast('DAT à saisir', 'bad');
+  }
+  if(ev.type === 'rh') G.k.rhNeeded = (G.k.rhNeeded || 0) + 1;
+}
+
+/* L'alarme générale : la méthode d'évacuation dépend de l'établissement,
+   c'est au chef d'équipe de l'ordonner. */
+function openAlarmeGenerale(){
+  if(G.evac && !G.evac.termine){ openEvacScreen(); return; }
+  const ordres = ['totale','horizontale','compartiment','ascenseur'];
+  openMini('🚨 ALARME GÉNÉRALE', 'Quelle conduite ordonnez-vous ?',
+    ordres.map(m => ({icon:m === 'ascenseur' ? '⛔' : '🚨', label:EVAC_METHODES[m].label,
+                      hint:EVAC_METHODES[m].hint, cls:m === 'ascenseur' ? 'danger' : 'warning'})),
+    i => {
+      if(ordres[i] === 'ascenseur'){
+        G.score -= 20;
+        G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
+        mcAdd('PC', `⛔ Ordre d'évacuation par les ascenseurs — manœuvre proscrite en cas d'incendie`, 'crit');
+        mcAdd('S3', `Jamais les ascenseurs. Jamais.`, 'crit');
+        logCause(G.site.zones[0].id, `Évacuation ordonnée par les ascenseurs, manœuvre proscrite en cas d'incendie.`);
+        toast('Manœuvre proscrite !', 'bad');
+        return;
+      }
+      startEvacuation(ordres[i]);
+    });
 }
 
 /* Les ordres qui touchent l'installation la modifient vraiment :
@@ -3873,26 +4354,7 @@ function execPcsAction(k){
     case 'desinhib': execDesinhib(); break;
     case 'desenf': execDesenf(); break;
     case 'compart': execCompart(); break;
-    case 'alarme_gen': {
-      if(G.evac && !G.evac.termine){ openEvacScreen(); break; }
-      const ordres = ['totale','horizontale','compartiment','ascenseur'];
-      openMini('🚨 ALARME GÉNÉRALE', 'Quelle conduite ordonnez-vous ?',
-        ordres.map(m => ({icon:m === 'ascenseur' ? '⛔' : '🚨', label:EVAC_METHODES[m].label,
-                          hint:EVAC_METHODES[m].hint, cls:m === 'ascenseur' ? 'danger' : 'warning'})),
-        i => {
-          if(ordres[i] === 'ascenseur'){
-            G.score -= 20;
-            G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
-            mcAdd('PC', `⛔ Ordre d'évacuation par les ascenseurs — manœuvre proscrite en cas d'incendie`, 'crit');
-            mcAdd('S3', `Jamais les ascenseurs. Jamais.`, 'crit');
-            logCause(G.site.zones[0].id, `Évacuation ordonnée par les ascenseurs, manœuvre proscrite en cas d'incendie.`);
-            toast('Manœuvre proscrite !', 'bad');
-            return;
-          }
-          startEvacuation(ordres[i]);
-        });
-      break;
-    }
+    case 'alarme_gen': openAlarmeGenerale(); break;
     case 'groupe': execGenerator(); break;
     case 'radio_secours': execRadioBackup(); break;
     case 'surv_renf': execSurveillanceRenforcee(); break;
@@ -4600,6 +5062,9 @@ const MISSIONS = {
   binome:     {icon:'🧑‍🚒', name:'Équipier du binôme d’attaque',
                sub:'On n’attaque jamais seul : second extincteur, liaison radio, repli', work:4,
                say:zn => `Je rejoins le binôme en ${zn}, deuxième extincteur avec moi.`},
+  ascenseur:  {icon:'🛗', name:'Assistance à personne bloquée',
+               sub:'Contact permanent à l’étage jusqu’à l’arrivée de l’ascensoriste', work:25,
+               say:zn => `Je monte à ${zn}, je garde le contact avec la cabine.`},
   dispo:      {icon:'🛗', name:'Dispositions pour les secours',
                sub:'Ascenseurs, fluides, itinéraire et voie d’accès', work:5,
                say:() => `Reçu, je prépare l’accès : ascenseurs, fluides et voie engins.`},
@@ -4719,6 +5184,15 @@ function completeMission(agent){
   }
 
   if(m.kind === 'dispo'){ finishDispo(agent, m); return; }
+
+  if(m.kind === 'ascenseur'){
+    G.k.ascenseurOk = (G.k.ascenseurOk || 0) + 1;
+    G.score += 6;
+    mcAdd(agent.id, `🛗 Personne dégagée par l'ascensoriste en présence de ${agent.name} — indemne, cabine consignée`, 'ok');
+    radioSay(agent, `Personne sortie, elle va bien, la cabine est consignée.`, 'radio');
+    endMission(agent, m);
+    return;
+  }
 
   if(m.kind === 'extinction' || m.kind === 'binome'){
     const z = G.zones[m.zoneId];
@@ -4864,6 +5338,19 @@ function sstReport(m){
   const agent = allStaff().find(a => a.id === m.agentId);
   const nonSST = agent && !agent.sst;
   const cas = m.data.cas || (Math.random() < 0.35 ? 'inconscient' : Math.random() < 0.5 ? 'malaise' : 'trauma');
+  if(cas === 'acr'){
+    return {
+      grave:true, titre:'Arrêt cardiaque — réanimation en cours',
+      radio:`Chef, elle ne respire pas, j'ai commencé le massage, il me faut le défibrillateur !`,
+      mc:`Bilan ${zn} : arrêt cardio-respiratoire, réanimation engagée${nonSST ? ' par un agent non recyclé SST' : ''}`,
+      desc:`Victime inconsciente, aucune ventilation. Massage cardiaque débuté. Le défibrillateur est au PCS, l'agent est seul sur place et ne peut pas quitter la victime.`,
+      acts:[
+        {i:'🫀', l:'Envoyer un second agent avec le DAE et rester en ligne avec le 15', h:'Relais du massage, défibrillateur sur place, régulation en ligne', s:16, r:4, k:'dae'},
+        {i:'📞', l:'Rappeler le 15 pour un renfort médical et laisser l’agent seul', h:'Massage poursuivi seul, aucun défibrillateur apporté', s:-4, r:-2, k:'secours15_garde'},
+        {i:'🚶', l:'Faire interrompre le massage pour aller chercher le DAE', h:'Réanimation interrompue par l’agent qui la conduit', s:-12, r:-4, k:'danger_rien'},
+      ],
+    };
+  }
   if(cas === 'inconscient'){
     return {
       grave:true, titre:'Victime inconsciente qui respire',
@@ -5012,6 +5499,18 @@ function applyMissionAct(m, act, a){
       mcAdd('PC', `⚡ Alimentation du secteur ${zn} coupée sur ordre du PCS`, 'action');
       resteSurPlace(`Coupure faite, je surveille en attendant les secours.`);
       break;
+    case 'dae': {
+      callSecours('15', m.zoneId);
+      const renfort = missionAvailable().find(x => !a || x.id !== a.id);
+      if(renfort){
+        sendMission(renfort, 'sst', m.zoneId, {cas:'inconscient'});
+        mcAdd('PC', `🫀 ${renfort.name} envoyé avec le défibrillateur en renfort — relais du massage`, 'crit');
+      } else {
+        mcAdd('PC', `⚠ Aucun agent disponible pour apporter le défibrillateur`, 'warn');
+      }
+      resteSurPlace(`Je continue le massage, envoie-moi le DAE !`);
+      break;
+    }
     case 'secours15_garde':
       callSecours('15', m.zoneId);
       resteSurPlace(`Je reste au bilan, je surveille la victime et je rappelle si ça change.`);
@@ -5377,6 +5876,9 @@ function initZones(site){
       encombrement: 0,        // stockage gênant, accès condamné
       compartimentage: 1,     // 1 intact, 0 percé (porte calée non traitée)
       travaux: false,         // permis de feu en cours
+      surveillancePost:false, // surveillance des 2 h après travaux prévue
+      postUntil: 0,           // fin de cette surveillance
+      pointChaud: 0,          // zone laissée chaude : reprise de feu possible
       defauts: [],            // anomalies laissées en l'état
       enAttente: [],          // anomalies dont l'intervention est demandée
       feu: null,              // { stage, since, detected, controlled }
@@ -5400,6 +5902,7 @@ function zoneRisk(id){
   const enAttente = (z.enAttente || []).filter(d => z.defauts.includes(d)).length;
   let r = z.charge * 7 + z.encombrement * 12 + (z.defauts.length - enAttente) * 13 + enAttente * 6;
   if(z.travaux) r += 26;
+  if(z.pointChaud) r += 14;
   if(zoneDetection(id) !== 'service') r += 16;
   if(!z.compartimentage) r += 13;
   if(G.shift === 'night' && z.charge >= 2) r += 4;
@@ -5411,6 +5914,8 @@ function zoneRiskCauses(id){
   const c = [];
   if(!z) return c;
   if(z.travaux) c.push('travaux par point chaud en cours');
+  if(z.pointChaud) c.push('zone laissée chaude après travaux, sans surveillance');
+  if(z.postUntil) c.push('surveillance après travaux en cours');
   if(zoneDetection(id) === 'inhibee') c.push('détection inhibée');
   if(zoneDetection(id) === 'panne') c.push('détection hors service');
   if(!z.compartimentage) c.push('compartimentage percé');
@@ -5503,9 +6008,36 @@ function revealFire(zoneId, how){
 function tickZones(){
   for(const id in G.zones){
     const z = G.zones[id];
-    if(z.travaux && G.t > z.travauxUntil) {
+    /* Un feu de travaux se déclare rarement pendant les travaux : il se
+       déclare après, quand tout le monde est parti. D'où la surveillance
+       maintenue deux heures après la fin du chantier. */
+    if(z.travaux && G.t > z.travauxUntil){
       z.travaux = false;
-      mcAdd('PC', `🔧 Fin des travaux par point chaud en ${zoneName(id)} — contrôle post-travaux à faire`, 'info');
+      if(z.surveillancePost){
+        z.postUntil = G.t + 120;
+        mcAdd('PC', `🔧 Fin des travaux par point chaud en ${zoneName(id)} — surveillance de la zone maintenue jusqu'à ${fmtTime(z.postUntil)}`, 'info');
+      } else {
+        z.pointChaud = G.t;
+        mcAdd('PC', `⚠ Fin des travaux par point chaud en ${zoneName(id)} — chantier quitté sans surveillance après travaux`, 'warn');
+        logCause(id, `Travaux par point chaud terminés en ${zoneName(id)} sans la surveillance après travaux.`);
+      }
+    }
+    if(z.postUntil && G.t > z.postUntil){
+      z.postUntil = 0;
+      z.surveillancePost = false;
+      G.score += 6;
+      G.k.postTravaux = (G.k.postTravaux || 0) + 1;
+      mcAdd('PC', `✅ Surveillance après travaux terminée en ${zoneName(id)} — aucun point chaud résiduel, zone rendue à l'exploitation`, 'ok');
+    }
+    /* Zone laissée chaude : la reprise de feu est le scénario classique. */
+    if(z.pointChaud && !z.feu){
+      if(G.t - z.pointChaud > 120) z.pointChaud = 0;
+      else if(Math.random() < 0.006 * (G.speed || 1)){
+        z.pointChaud = 0;
+        mcAdd('PC', `🔥 Reprise de feu en ${zoneName(id)} sur les travaux de la journée — aucune surveillance n'avait été maintenue`, 'crit');
+        logCause(id, `Reprise de feu en ${zoneName(id)} après des travaux par point chaud laissés sans surveillance.`);
+        spawnEvent('feu_detect', id);
+      }
     }
     if(!z.feu || z.feu.controlled) continue;
 

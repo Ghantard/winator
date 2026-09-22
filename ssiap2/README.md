@@ -274,6 +274,65 @@ Le débriefing ajoute cinq lignes : *alarmes avec un agent envoyé sur zone*,
 *DAS réarmés avant la relève*, *messages d'alerte complets*, *attaques menées
 en binôme* et *dispositions prises avant l'arrivée des engins*.
 
+## Les situations du poste
+
+Les quatorze situations du jeu sont écrites comme elles arrivent réellement au
+PCS : ce que montre le tableau de signalisation, ce que dit la radio, ce que dit
+le téléphone, qui se présente au poste. **Aucune conduite proposée n'est
+annoncée comme la bonne** — les libellés décrivent une action, jamais son
+mérite, et l'ordre d'affichage est tiré au sort à chaque ouverture, de sorte que
+la bonne réponse n'est jamais à la même place.
+
+- **Alarme feu sur une seule détection** — arrêt du signal sonore, lecture de la
+  zone, envoi d'un agent en levée de doute. L'alarme générale immédiate est
+  disproportionnée, l'alerte des secours prématurée, l'inhibition proscrite.
+- **Feu confirmé** — trois détections et des appels du public : le doute est
+  levé par les faits. Alarme générale, message d'alerte, binôme sur le foyer.
+  Faire une levée de doute à ce stade, c'est perdre des minutes.
+- **Déclencheur manuel** — quelqu'un a vu quelque chose : l'information est vraie
+  jusqu'à preuve du contraire. On envoie un agent au déclencheur **sans
+  interrompre la temporisation**. La couper, c'est annuler un ordre d'évacuation
+  sans savoir pourquoi il a été donné.
+- **Feu sur appareil de cuisson** — coupure de l'énergie, étouffement du foyer,
+  contrôle du conduit d'extraction. L'attaque au RIA projette l'huile enflammée.
+- **Personne au sol** et **arrêt cardiaque** — agent secouriste avec le sac et le
+  DAE, bilan, puis alerte. Sur un arrêt cardiaque, le massage commence tout de
+  suite et c'est un **second agent** qui apporte le défibrillateur : interrompre
+  la réanimation pour aller le chercher est sanctionné.
+- **Accident du travail** — protéger avant de secourir : machine consignée, zone
+  balisée, victime non mobilisée, lieux préservés, DAT.
+- **Dérangement SSI** — ce n'est pas une alarme, c'est une ligne en défaut :
+  acquittement, consignation au registre de sécurité, demande d'intervention et
+  surveillance humaine renforcée tant que la zone n'est pas surveillée.
+- **Travaux par point chaud** — contrôle des abords avant, surveillance pendant,
+  et surtout **deux heures de surveillance après la fin du chantier**. Un permis
+  signé sans cela laisse la zone chaude, et le jeu en tire les conséquences :
+  la reprise de feu après le départ des ouvriers est un événement à part entière.
+- **Personne bloquée en ascenseur** — contact permanent par l'interphone, agent à
+  l'étage, dégagement laissé à l'ascensoriste. Forcer les portes palières sur une
+  cabine arrêtée entre deux niveaux est une faute grave.
+- **Odeur de gaz** — aucune manœuvre électrique, coupure à l'extérieur,
+  ventilation naturelle, évacuation, alerte. Démarrer l'extraction mécanique ou
+  entrer avec une lampe met un moteur ou une étincelle dans une atmosphère
+  explosive.
+- **Alarme intrusion** (nuit) — levée de doute par la vidéoprotection avant
+  d'engager qui que ce soit ; un agent isolé de nuit sur une intrusion possible
+  est un agent en danger.
+- **Effectif incomplet** — l'effectif de sécurité incendie conditionne
+  l'ouverture au public : rappel d'astreinte ou prestataire, et information de la
+  direction. L'absorber en silence est un manquement.
+- **Tension dans l'équipe** — chacun entendu séparément, règle de répartition
+  rappelée, décision tracée.
+
+Chaque conduite porte une **clé d'effet** : le moteur n'interprète plus le texte
+du bouton, il applique la procédure choisie (envoi en levée de doute, alarme
+générale avec choix de la méthode, message d'alerte, inhibition, consignation,
+mesures compensatoires, reprise de feu…).
+
+Les trois rédactions de main courante proposées après chaque situation sont
+toutes plausibles : elles se distinguent par leur **contenu** — qui, quand, où,
+quoi, conséquences, mesures prises — et non plus par leur longueur.
+
 ## Le site garde la trace des vacations précédentes
 
 Ce qu'une vacation laisse derrière elle, la suivante le trouve. Chaque site
@@ -413,6 +472,9 @@ réarmement des DAS et refus de réarmement du CMSI sans compte-rendu, chaîne
 secours à victime (bilan → 15 → accueil), bascule groupe,
 liaison de secours, surveillance compensatoire, inhibition/levée, refus du
 compartimentage hors IGH, DAT complète, renfort RH, règle du binôme,
-composition du message d'alerte (complet comme abandonné), dispositions
+composition du message d'alerte (complet comme abandonné), les quatorze
+situations du poste (textes, clés d'effet, ordre d'affichage tiré au sort,
+déclencheur manuel sans feu réel, surveillance après travaux et reprise de feu,
+odeur de gaz, ascenseur bloqué, arrêt cardiaque avec DAE), dispositions
 d'accueil et retard des engins quand elles manquent, binôme d'attaque
 constitué ou laissé seul, refus de réarmement tant que le COS est engagé.
