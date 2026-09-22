@@ -239,10 +239,40 @@ cela implique : il faut quelqu'un de disponible, joignable, et qualifié.
   compte.
 
 Le bandeau d'état compte en permanence les alarmes sans agent sur zone, les
-comptes-rendus en attente d'ordre et les DAS à réarmer ; l'écran **ACTIONS**
-ouvre un bloc *Missions terrain* pour répondre à chacun. Le débriefing ajoute
-deux lignes : *alarmes avec un agent envoyé sur zone* et *DAS réarmés avant la
-relève*.
+comptes-rendus en attente d'ordre, les DAS à réarmer, le binôme à compléter et
+les dispositions d'accueil à prendre ; l'écran **ACTIONS** ouvre un bloc
+*Missions terrain* pour répondre à chacun.
+
+## L'alerte, le binôme et l'accueil des engins
+
+Décrocher ne suffit pas, et un agent seul sur un foyer n'est pas une équipe.
+
+- **Le message d'alerte se compose.** Appeler le 18 ou le 15 ouvre trois
+  rubriques : qui parle et d'où, la nature exacte du sinistre et sa
+  localisation, puis les victimes, les mesures déjà prises et l'itinéraire
+  d'accès. Les propositions sont **mélangées et non commentées** : c'est au
+  chef d'équipe de savoir ce que doit contenir un message d'alerte. Message
+  complet, les engins partent sur une adresse précise ; message tronqué, deux
+  minutes de plus ; message bâclé ou communication abandonnée, quatre minutes
+  de plus, une pénalité et une ligne au registre des causes.
+- **On n'attaque jamais seul.** Ordonner l'attaque d'un foyer engage l'agent et
+  ouvre aussitôt la désignation de **l'équipier du binôme**. Seul, l'agent
+  attaque deux fois moins vite — il doit surveiller son propre repli — et le
+  dit à la radio ; sans équipier au bout de deux minutes, c'est une mise en
+  danger consignée au registre.
+- **Les dispositions avant l'arrivée.** Un agent est envoyé ramener les
+  ascenseurs au niveau d'accès et les condamner, couper les fluides du secteur
+  et dégager la voie engins — l'itinéraire de brancardage et l'ascenseur
+  réservé quand c'est le 15 qui vient. Sans ces dispositions, les engins
+  perdent trois minutes à se mettre en station, et c'est au registre.
+- **L'accueil et le guidage** restent une mission à part entière : plan du
+  site, trousseau, bilan remis au COS.
+- **Le COS garde la main.** Tant que les secours sont engagés sur le sinistre,
+  le CMSI refuse le réarmement : l'installation n'appartient plus au PCS.
+
+Le débriefing ajoute cinq lignes : *alarmes avec un agent envoyé sur zone*,
+*DAS réarmés avant la relève*, *messages d'alerte complets*, *attaques menées
+en binôme* et *dispositions prises avant l'arrivée des engins*.
 
 ## Le site garde la trace des vacations précédentes
 
@@ -382,4 +412,7 @@ en levée de doute et compte-rendu terrain, conduites à tenir par constat,
 réarmement des DAS et refus de réarmement du CMSI sans compte-rendu, chaîne
 secours à victime (bilan → 15 → accueil), bascule groupe,
 liaison de secours, surveillance compensatoire, inhibition/levée, refus du
-compartimentage hors IGH, DAT complète, renfort RH, règle du binôme.
+compartimentage hors IGH, DAT complète, renfort RH, règle du binôme,
+composition du message d'alerte (complet comme abandonné), dispositions
+d'accueil et retard des engins quand elles manquent, binôme d'attaque
+constitué ou laissé seul, refus de réarmement tant que le COS est engagé.
