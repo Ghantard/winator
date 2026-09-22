@@ -7,6 +7,8 @@ html2apk build ./mon-site --output ./mon-app.apk
 html2apk build https://exemple.fr --output ./exemple.apk
 ```
 
+Un site d'exemple est fourni dans `examples/hello` pour un premier essai.
+
 ## Comment ça marche
 
 Les deux sources passent par le même pipeline : un projet [Capacitor](https://capacitorjs.com)
@@ -98,7 +100,16 @@ npm run typecheck
 Les tests e2e construisent de vrais APK : ils sont dans leur propre suite avec un timeout de
 5 minutes, et se désactivent en annonçant ce qui manque si ni Docker ni toolchain locale ne
 sont disponibles. `HTML2APK_E2E_REQUIRE=1` transforme ce skip en échec, pour qu'une CI ne
-passe pas au vert sans avoir rien construit.
+passe pas au vert sans avoir rien construit. `HTML2APK_E2E_MODE=docker|local` force un mode
+plutôt que de prendre celui qui se trouve disponible.
+
+## Intégration continue
+
+`.github/workflows/html2apk.yml` lance trois jobs : les tests unitaires, un build réel avec
+la toolchain du runner (`--no-docker`), et un build réel dans l'image Docker. Les deux
+derniers construisent les APK de démonstration et les publient en artifacts téléchargeables
+depuis la page du run — c'est le moyen le plus simple d'obtenir un APK installable sans rien
+installer localement.
 
 ## État
 

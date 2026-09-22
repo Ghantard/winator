@@ -1,0 +1,134 @@
+name: html2apk
+
+on:
+  push:
+    paths:
+      - "html2apk/**"
+      - ".github/workflows/html2apk.yml"
+  pull_request:
+    paths:
+      - "html2apk/**"
+      - ".github/workflows/html2apk.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: html2apk
+
+jobs:
+  unit:
+    name: Typecheck et tests unitaires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: html2apk/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e-local:
+    name: Build réel (toolchain locale)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: html2apk/package-lock.json
+
+      # Capacitor 8's Android template compiles with sourceCompatibility 21.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Installer les composants du SDK Android
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Mettre apksigner sur le PATH
+        run: echo "$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_PATH"
+
+      - run: npm ci
+
+      # HTML2APK_E2E_REQUIRE=1 so a missing toolchain fails the job instead of
+      # skipping it and reporting green.
+      - name: Tests e2e
+        run: npm run test:e2e
+        env:
+          HTML2APK_E2E_MODE: local
+          HTML2APK_E2E_REQUIRE: "1"
+
+      - name: Construire les APK de démonstration
+        run: |
+          mkdir -p artifacts
+          node dist/cli.js build ./examples/hello \
+            --no-docker --output artifacts/hello.apk --app-name "Hello World"
+          node dist/cli.js build https://example.com \
+            --no-docker --output artifacts/example.apk --app-name "Example"
+
+      - name: Résumé
+        run: |
+          {
+            echo "### APK construits"
+            echo
+            echo '| Fichier | Taille |'
+            echo '|---|---|'
+            for apk in artifacts/*.apk; do
+              echo "| $(basename "$apk") | $(du -h "$apk" | cut -f1) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-toolchain-locale
+          path: html2apk/artifacts/*.apk
+          if-no-files-found: error
+
+  e2e-docker:
+    name: Build réel (Docker)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: html2apk/package-lock.json
+
+      - run: npm ci
+
+      # Built explicitly rather than letting the CLI do it, so a broken
+      # Dockerfile fails on its own step instead of inside a test.
+      - name: Construire l'image
+        run: docker build -t html2apk:local .
+
+      - name: Tests e2e
+        run: npm run test:e2e
+        env:
+          HTML2APK_E2E_MODE: docker
+          HTML2APK_E2E_REQUIRE: "1"
+
+      - name: Construire l'APK de démonstration
+        run: |
+          mkdir -p artifacts
+          node dist/cli.js build ./examples/hello \
+            --output artifacts/hello-docker.apk --app-name "Hello World"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-docker
+          path: html2apk/artifacts/*.apk
+          if-no-files-found: error

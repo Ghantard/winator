@@ -61,7 +61,9 @@ function localToolchain(): { ok: true } | { ok: false; missing: string[] } {
 /**
  * Decide how to run the e2e builds: through Docker when its daemon answers
  * (the CLI's own default), otherwise with a local toolchain, otherwise not at
- * all. A missing toolchain makes the suite skip rather than fail, but
+ * all. HTML2APK_E2E_MODE=docker|local forces one of them, so CI can exercise
+ * each path in its own job instead of whichever happens to be available.
+ * A missing toolchain makes the suite skip rather than fail, but
  * HTML2APK_E2E_REQUIRE=1 turns that into an error so CI cannot go green
  * without ever having built an APK.
  */
@@ -72,6 +74,29 @@ export function detectMode(): E2eMode {
       reason: `${cliPath()} est absent : lancez « npm run build » avant les tests e2e.`,
     };
   }
+
+  const forced = process.env["HTML2APK_E2E_MODE"];
+  if (forced === "docker") {
+    return dockerUsable()
+      ? { kind: "docker" }
+      : { kind: "unavailable", reason: "HTML2APK_E2E_MODE=docker mais le démon Docker ne répond pas." };
+  }
+  if (forced === "local") {
+    const local = localToolchain();
+    return local.ok
+      ? { kind: "local" }
+      : {
+          kind: "unavailable",
+          reason: `HTML2APK_E2E_MODE=local mais il manque ${local.missing.join(", ")}.`,
+        };
+  }
+  if (forced !== undefined) {
+    return {
+      kind: "unavailable",
+      reason: `HTML2APK_E2E_MODE=${forced} inconnu : utilisez « docker » ou « local ».`,
+    };
+  }
+
   if (dockerUsable()) {
     return { kind: "docker" };
   }
