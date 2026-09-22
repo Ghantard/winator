@@ -408,6 +408,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .matInfo{flex:1;min-width:0}
 .matName{font-size:10px;font-weight:800;color:#e8f0f8}
 .matSub{font-size:8px;color:#7d8fa3;font-weight:500;margin-top:1px}
+.matZones{font-size:7.5px;color:#7ab0ff;line-height:1.35;margin-top:2px}
 .matBtns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:112px}
 .matBtn{padding:5px 7px;border-radius:6px;border:1px solid rgba(80,140,220,.3);cursor:pointer;
   background:rgba(80,140,220,.12);color:#7ab0ff;font-family:inherit;font-size:9px;font-weight:800}
@@ -1399,11 +1400,13 @@ function renderPlanningStrip(){
     btn = `<button class="psBtn assign" data-act="open-picker" data-round="${next.id}">Assigner</button>`;
   }
 
+  const stripKey = G.materiel ? ` · 🔑 ${keyHint(next)}` : '';
+
   strip.innerHTML = `<div class="psInner">
     <div class="psIcon">${ROUND_TYPES[next.type].icon}</div>
     <div class="psInfo">
       <div class="psLabel"><span class="psid">${next.id}</span> · <span class="pstime">${fmtTime(next.time)}</span> · ${ROUND_TYPES[next.type].name}</div>
-      <div class="psSub">${sub}</div>
+      <div class="psSub">${sub}${stripKey}</div>
     </div>
     ${btn}
   </div>`;
@@ -1483,12 +1486,30 @@ function renderPlanning(){
       return `<span${p.hidden ? ' class="hidden-pt"' : ''}>${zname}${p.hasBadge ? '<span class="badge-pt">📇</span>' : ''}${icon}</span>`;
     }).join(' · ');
 
+    // Trousseau nécessaire pour cette ronde + contrôle de la dotation
+    let keyTxt = '';
+    if(r.status !== 'done' && r.status !== 'missed'){
+      const hint = keyHint(r);
+      if(agent){
+        const held = agentKey(agent);
+        const nOut = uncoveredPoints(agent, r).length;
+        keyTxt = nOut
+          ? `<span style="color:#ff6b5e">🔑 ${held ? held.id + ' insuffisant' : 'aucun trousseau'} — ${nOut} point(s) non ouvrable(s) · remettre ${hint}</span>`
+          : `<span style="color:#4ade80">🔑 ${held.id} — tous les points ouvrables</span>`;
+        const miss = [!agentRadio(agent) ? 'radio' : '', !agentBadge(agent) ? 'badge' : ''].filter(Boolean);
+        if(miss.length) keyTxt += `<br><span style="color:#ff6b5e">⚠ ${agent.name} sans ${miss.join(' ni ')}</span>`;
+      } else {
+        keyTxt = `<span style="color:#ffb020">🔑 Trousseau à prévoir : ${hint}</span>`;
+      }
+    }
+
     h += `<div class="${cls}">
       <div class="riIcon">${ROUND_TYPES[r.type].icon}</div>
       <div class="riInfo">
         <div class="riName"><span class="riid">${r.id}</span> · ${r.label}</div>
         <div class="riTime">${fmtTime(r.time)} — ${ROUND_TYPES[r.type].name}<span class="riTol">tol. ±${tol}min</span></div>
         <div class="riStatus">${statusTxt}</div>
+        ${keyTxt ? `<div class="riStatus">${keyTxt}</div>` : ''}
         <div class="riZones">${zonesHtml}</div>
       </div>
       <div class="riActions">${actions}</div>
@@ -1503,7 +1524,7 @@ function openPicker(roundId){
   const r = G.rounds.find(x => x.id === roundId);
   if(!r) return;
   $('pickerSub').textContent = `${r.id} · ${ROUND_TYPES[r.type].name} à ${fmtTime(r.time)} (tol. ±${r.tolerance}min)`;
-  let h = '';
+  let h = `<div class="matHint">🔑 Trousseau nécessaire pour cette ronde : <b style="color:#e8f0f8">${keyHint(r)}</b> — zones : ${[...new Set(r.points.map(p=>p.zoneId))].map(z=>zoneName(z)).join(' · ')}</div>`;
   for(const a of [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])]){
     const busy = a.state !== 'idle' && a.state !== 'pause';
     const onRound = a.isRonde || a.currentRoundId;
@@ -1514,6 +1535,13 @@ function openPicker(roundId){
     else if(busy) sub = `<span class="warn">Occupé (${a.state})</span>`;
     else if(a.fatigue > 60) sub = `<span class="warn">Fatigué (${Math.round(a.fatigue)}%)</span>`;
     else sub = `<span style="color:#4ade80">Disponible</span> · Fat.${Math.round(a.fatigue)}% · Badge niv.${a.skills.badge || 0}`;
+    if(G.materiel){
+      const held = agentKey(a);
+      const nOut = uncoveredPoints(a, r).length;
+      const kit = [agentRadio(a) ? '📻' : '', agentBadge(a) ? '📇' : ''].filter(Boolean).join(' ');
+      sub += `<br><span style="color:${nOut ? '#ff6b5e' : '#4ade80'}">${held ? held.id : 'sans trousseau'}${nOut ? ` · ${nOut} point(s) non ouvrable(s)` : ' · ronde couverte'}</span>`
+        + `<span style="color:#7d8fa3"> ${kit}${(!agentRadio(a) || !agentBadge(a)) ? ' <b style="color:#ff6b5e">dotation incomplète</b>' : ''}</span>`;
+    }
     h += `<div class="pickerAgent ${dis?'disabled':''}" data-pick-agent="${a.id}">
       <div class="paAv">${a.avatar}</div>
       <div class="paInfo">
@@ -3092,6 +3120,41 @@ function allStaff(){ return [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])]
 function agentKey(agent){ return matHolderItem('keys', agent.id); }
 function agentRadio(agent){ return matHolderItem('radios', agent.id); }
 function agentBadge(agent){ return matHolderItem('badges', agent.id); }
+/* Trousseau(x) nécessaire(s) pour couvrir tous les points d'une ronde.
+   Un agent ne porte qu'un trousseau : s'il en faut plusieurs, c'est le passe
+   général qu'il faut lui remettre. */
+function keysForRound(round){
+  const keys = G.materiel.keys.filter(k => !k.master);
+  const zones = [...new Set(round.points.map(p => p.zoneId))];
+  const full = keys.filter(k => zones.every(z => k.zones.includes(z)));
+  if(full.length) return { ids: full.map(k => k.id), single:true, missing:[] };
+  const chosen = [];
+  let rest = zones.slice();
+  while(rest.length){
+    let best = null, bestCov = 0;
+    for(const k of keys){
+      if(chosen.includes(k)) continue;
+      const cov = rest.filter(z => k.zones.includes(z)).length;
+      if(cov > bestCov){ best = k; bestCov = cov; }
+    }
+    if(!best) break;
+    chosen.push(best);
+    rest = rest.filter(z => !best.zones.includes(z));
+  }
+  return { ids: chosen.map(k => k.id), single:false, missing:rest };
+}
+/* Libellé court du trousseau à remettre pour une ronde */
+function keyHint(round){
+  const need = keysForRound(round);
+  if(need.single) return need.ids.join(' ou ');
+  if(need.missing.length) return 'PG (passe général)';
+  return need.ids.join(' + ') + ' → PG';
+}
+/* Points d'une ronde que le trousseau d'un agent n'ouvre pas */
+function uncoveredPoints(agent, round){
+  const k = agentKey(agent);
+  return round.points.filter(p => !k || !k.zones.includes(p.zoneId));
+}
 function keyCovers(agent, zoneId){
   const k = agentKey(agent);
   return !!(k && k.zones.includes(zoneId));
@@ -3102,6 +3165,9 @@ function renderMateriel(){
   const staff = allStaff();
   const line = (kind, it) => {
     const h = it.holder ? staff.find(a => a.id === it.holder) : null;
+    const zoneList = kind === 'keys'
+      ? it.zones.filter(z => z !== 'pcs').map(z => zoneName(z)).join(' · ')
+      : '';
     const extra = kind === 'keys'
       ? `${it.zones.filter(z=>z!=='pcs').length} zones ouvrables`
       : (kind === 'radios' ? `Batterie ${it.battery}%` : it.desc);
@@ -3110,6 +3176,7 @@ function renderMateriel(){
       <div class="matInfo">
         <div class="matName">${it.id} — ${it.name}${it.master?' <span class="tag stag">PG</span>':''}</div>
         <div class="matSub">${it.desc}${kind==='keys'?' · '+extra:''}</div>
+        ${zoneList ? `<div class="matZones">🔓 ${zoneList}</div>` : ''}
         <div class="matSub">${h ? '👤 En dotation : <b style="color:#ffb020">'+h.name+'</b>' : '<span style="color:#4ade80">Au râtelier PCS</span>'}</div>
       </div>
       <div class="matBtns">

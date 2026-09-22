@@ -21,7 +21,10 @@ progression est sauvegardée dans le `localStorage`).
   Un trousseau inadapté = porte verrouillée, 6 minutes perdues et point de ronde
   non contrôlé ; un départ sans radio coupe la liaison terrain ; un départ sans
   badge rend le pointage quasi impossible ; le matériel non restitué à la relève
-  est sanctionné.
+  est sanctionné. Le registre liste les zones ouvertes par chaque trousseau, et
+  le planning, le bandeau de ronde et l'écran d'affectation indiquent le
+  trousseau nécessaire, les points que la dotation de l'agent n'ouvre pas et les
+  radios ou badges manquants.
 - **Modes dégradés** : coupure secteur (bascule groupe électrogène à confirmer
   sous 3 min), panne du relais VHF (messages brouillés, liaison téléphonique de
   secours à activer), panne de détection sur une zone (mesures compensatoires :
