@@ -235,10 +235,9 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   z-index:100;display:none;align-items:center;justify-content:center;padding:12px}
 .ov.open{display:flex}
-.ov{z-index:50}
-#pickerScreen,#miniScreen,#materielScreen,#datScreen{z-index:60}
-#eventScreen,#mciScreen,#qcmScreen,#auditScreen{z-index:65}
-#debriefScreen{z-index:70}
+#pickerScreen,#miniScreen,#materielScreen,#datScreen{z-index:110}
+#eventScreen,#mciScreen,#qcmScreen,#auditScreen{z-index:115}
+#debriefScreen{z-index:120}
 .cd{background:linear-gradient(180deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
   border:1px solid rgba(80,110,150,.2);border-radius:14px;padding:16px 14px;
   max-width:540px;width:100%;box-shadow:0 24px 72px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.04);
@@ -540,7 +539,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 <div class="ov open" id="siteScreen">
   <div class="cd">
     <h1>SSIAP 2 SIMULATOR</h1>
-    <div class="sub">PRO EDITION · v5.0 — RONDES COMPLÈTES</div>
+    <div class="sub">PRO EDITION · v6.0 — MATÉRIEL, MODES DÉGRADÉS, SSI</div>
     <div id="careerHeader"></div>
     <div class="siteGrid" id="siteGrid"></div>
     <div class="sub" style="margin-top:10px">TYPE DE VACATION (12 H)</div>
@@ -707,7 +706,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 
 <script>
 /* ==========================================================
-   SSIAP 2 SIMULATOR PRO — v5.0
+   SSIAP 2 SIMULATOR PRO — v6.0
    TOUT : rondes plus fréquentes + pointage badge + tolérance + points cachés
    ========================================================== */
 const TICK = 250;
