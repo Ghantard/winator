@@ -141,6 +141,38 @@ Vérifié par simulation : la vacation négligente termine systématiquement ave
 13 ou 14 causes tracées et la note plafonnée à 45, la vacation soignée avec
 trois causes mineures et 55 à 60.
 
+## Les agents se souviennent
+
+Chaque SSIAP 1 porte un **moral** qui survit d'une vacation à l'autre, avec la
+liste de ses griefs. Il baisse quand on le laisse sans instruction, qu'on
+l'envoie épuisé ou sans talkie, qu'on classe son signalement sans suite, qu'on
+lui ordonne une manœuvre à proscrire, ou qu'il encaisse trois rondes de plus
+que ses collègues. Il remonte quand on lui répond vite, qu'on traite ce qu'il a
+trouvé, qu'on lui accorde une pause quand il est fatigué, qu'on le forme.
+
+Le moral n'est pas cosmétique, il change ce que l'agent fait :
+
+- **sous 35** il traîne (20 % plus lent) et **cesse de remonter les anomalies
+  mineures** — il les « note » sans demander d'ordre, et elles s'inscrivent
+  dans l'état de la zone comme non traitées ;
+- **sous 20** il refuse une ronde s'il a déjà fait plus que sa part, et la
+  ronde revient au planning ;
+- **au-dessus de 80** il est 10 % plus rapide.
+
+La boucle est donc fermée avec le reste : un agent qu'on a mal commandé fait
+monter le risque d'une zone sans qu'on le sache, et c'est la commission de
+sécurité qui le révèle après le sinistre.
+
+L'équipe est tirée en priorité parmi les agents avec qui vous avez déjà
+tourné — sans équipe stable, la mémoire ne voudrait rien dire —, et la prise de
+poste dit ce que chacun a gardé de la dernière fois. Le **stagiaire** suit une
+progression de formation (rondes en binôme, QCM, anomalies expliquées) et passe
+son examen SSIAP 1 après trois vacations : réussi au-dessus de 70/100, sinon
+« l'encadrement n'a pas suivi ».
+
+L'écran **ÉQUIPE** des actions PCS donne le moral, la fatigue, la charge et les
+griefs de chacun, et la progression du stagiaire.
+
 ## Conduite de la vacation
 
 - **Chaque anomalie a ses propres ordres.** Plus de « traiter sur place »

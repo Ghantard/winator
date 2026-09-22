@@ -235,7 +235,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   z-index:100;display:none;align-items:center;justify-content:center;padding:12px}
 .ov.open{display:flex}
-#pickerScreen,#miniScreen,#materielScreen,#datScreen,#siteStateScreen{z-index:110}
+#pickerScreen,#miniScreen,#materielScreen,#datScreen,#siteStateScreen,#teamStateScreen{z-index:110}
 #eventScreen,#mciScreen,#qcmScreen,#auditScreen{z-index:115}
 #debriefScreen{z-index:120}
 .cd{background:linear-gradient(180deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
@@ -432,6 +432,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .zrBar{height:4px;border-radius:2px;background:rgba(80,110,150,.18);margin:6px 0 5px;overflow:hidden}
 .zrBar span{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#4ade80,#ffb020,#ff453a)}
 .zrCauses{font-size:10px;color:#8fa4b8;line-height:1.5}
+.griefs{font-size:9.5px;color:#ff8b7e;line-height:1.55;margin-top:5px}
 .zrFire{font-size:10.5px;color:#ff8b7e;font-weight:800;margin-top:5px}
 .matHint{font-size:8.5px;color:#7d8fa3;line-height:1.5;padding:8px 10px;border-radius:7px;
   background:rgba(80,140,220,.07);border:1px solid rgba(80,140,220,.18);margin-bottom:8px}
@@ -923,6 +924,15 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
   </div>
 </div>
 
+<div class="ov" id="teamStateScreen">
+  <div class="cd">
+    <h1>👥 ÉQUIPE</h1>
+    <div class="sub">Moral, charge et griefs</div>
+    <div id="teamStateContent"></div>
+    <button class="btn-sec" data-act="close-teamstate">FERMER</button>
+  </div>
+</div>
+
 <div class="ov" id="siteStateScreen">
   <div class="cd">
     <h1>📍 ÉTAT DU SITE</h1>
@@ -1402,8 +1412,13 @@ function writeSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE));
 
 function ensureAgentData(){
   if(!SAVE.agents) SAVE.agents = {};
+  if(!SAVE.stagiaires) SAVE.stagiaires = {};
   for(const a of [...AGENT_POOL, ...STAG_POOL]){
     if(!SAVE.agents[a.id]) SAVE.agents[a.id] = { xp:0, skills:{vitesse:0,vigilance:0,endurance:0,badge:0} };
+    const d = SAVE.agents[a.id];
+    if(typeof d.moral !== 'number') d.moral = 60;
+    if(!Array.isArray(d.griefs)) d.griefs = [];
+    if(typeof d.vacations !== 'number') d.vacations = 0;
   }
   writeSave();
 }
@@ -1488,8 +1503,21 @@ function renderSiteGrid(){
 }
 
 function generateTeam(){
-  const pool = [...AGENT_POOL].sort(() => Math.random() - 0.5);
-  const a1 = pool[0], a2 = pool[1];
+  ensureAgentData();
+  /* On retrouve en priorité les agents avec qui on a déjà tourné : sans
+     équipe stable, la mémoire des agents ne voudrait rien dire. */
+  const connus = AGENT_POOL.filter(a => (SAVE.agents[a.id] || {}).vacations > 0);
+  const neufs = AGENT_POOL.filter(a => !((SAVE.agents[a.id] || {}).vacations > 0));
+  const melange = arr => arr.slice().sort(() => Math.random() - 0.5);
+  const pool = connus.length
+    ? [...melange(connus), ...melange(neufs)]
+    : melange(neufs);
+  /* Une place sur deux reste ouverte au renouvellement de l'équipe. */
+  if(pool.length > 2 && neufs.length && Math.random() < 0.4){
+    const nouveau = melange(neufs)[0];
+    pool.splice(1, 0, nouveau);
+  }
+  const a1 = pool[0], a2 = pool.find(x => x.id !== a1.id);
   const hasStag = Math.random() < 0.5;
   const stag = hasStag ? [...STAG_POOL].sort(()=>Math.random()-0.5)[0] : null;
   return {
@@ -1511,6 +1539,9 @@ function mkAgent(a, role){
     scanningPoint:null, scanning:false,
     stress: role === 'stagiaire' ? 25 : 0,
     noRadio:false, noBadge:false, ldd:false, tutorId:null,
+    moral: role === 'stagiaire' ? 70 : d.moral,
+    griefs: (d.griefs || []).slice(),
+    rondesFaites: 0, formation: 0,
   };
 }
 
@@ -1599,6 +1630,13 @@ function startGame(){
   mcAdd('PC', `Équipe : ${G.agents.map(a=>a.name).join(', ')}${G.stagiaire?' + '+G.stagiaire.name:''}`, 'ok');
   mcAdd('PC', `📋 ${G.rounds.length} rondes programmées · pointage badge obligatoire`, 'round');
   mcAdd('PC', `📦 Registre matériel ouvert : ${G.materiel.keys.length} trousseaux, ${G.materiel.radios.length} VHF, ${G.materiel.badges.length} badges au râtelier`, 'action');
+  for(const a of G.agents){
+    if(a.moral < 50 && a.griefs.length){
+      mcAdd('PC', `😒 ${a.name} prend son poste sans entrain — il garde de la vacation précédente : ${a.griefs[a.griefs.length-1].txt}`, 'warn');
+    } else if(a.moral >= 75){
+      mcAdd('PC', `🙂 ${a.name} prend son poste avec entrain — le commandement de la vacation précédente a porté`, 'ok');
+    }
+  }
   if(G.stagiaire) mcAdd('PC', `🎓 Stagiaire ${G.stagiaire.name} présent — binôme obligatoire avec ${G.agents.find(a=>a.id===G.stagiaire.tutorId)?.name || G.agents[0].name}`, 'info');
   if(shift === 'night'){
     const hiddenCount = G.rounds.reduce((sum,r) => sum + r.points.filter(p=>p.hidden).length, 0);
@@ -1961,6 +1999,15 @@ function unassignRound(roundId){
 }
 
 function startRoundForAgent(agent, round){
+  if(moralRefusesRound(agent)){
+    moralChange(agent, -1, null);
+    mcAdd(agent.id, `🚫 ${agent.name} refuse la ronde : « j'ai déjà fait ma part, envoie quelqu'un d'autre »`, 'crit');
+    radioSay(agent, `Non chef. J'ai enchaîné, qu'un autre y aille.`, 'major');
+    toast(`${agent.name} refuse la ronde`, 'bad');
+    round.assignedAgentId = null;
+    round.status = 'pending';
+    return;
+  }
   agent.isRonde = true;
   agent.rondeType = round.type;
   agent.rondeIndex = 0;
@@ -1968,7 +2015,7 @@ function startRoundForAgent(agent, round){
   agent.currentRoundId = round.id;
   agent.state = 'moving';
   agent.targetId = round.points[0].zoneId;
-  agent.until = G.t + 3 + Math.random()*2;
+  agent.until = G.t + (3 + Math.random()*2) * moralSpeed(agent);
   agent.workTime = 2 + Math.random()*2;
   round.status = 'running';
   round.startedAt = G.t;
@@ -2113,6 +2160,18 @@ function completeBadgeScan(agent){
         else zoneEl.classList.add('alert');
       }
 
+      /* Agent démotivé : il ne demande plus d'ordre sur une anomalie
+         mineure, il la laisse — et la zone s'en souvient. */
+      if(incident.severity === 'minor' && !moralReportsMinor(agent)){
+        zoneAddDefect(point.zoneId, incident.label);
+        logCause(point.zoneId, `${incident.label} en ${zoneName(point.zoneId)} non remontée au PCS par ${agent.name} (agent démotivé).`);
+        mcAdd(agent.id, `${incident.emoji} ${incident.label} — « rien de grave, je note »`, 'warn');
+        round.incidents = (round.incidents || 0) + 1;
+        agent.rondeIndex++;
+        nextRoundPoint(agent);
+        return;
+      }
+
       const anoZone = incident.req === 'inhibited' && G.ssi.inhibited.length
         ? G.ssi.inhibited[0] : point.zoneId;
 
@@ -2187,6 +2246,8 @@ function nextRoundPoint(agent){
 
     round.status = 'done';
     round.doneAt = G.t;
+    checkWorkload(agent);
+    if(round.binome) formationGain(3, `ronde ${round.id} effectuée en binôme`);
 
     // Calcul du score
     const basePts = 12 + round.points.length * 2 + (round.incidents || 0) * 4;
@@ -2216,7 +2277,7 @@ function nextRoundPoint(agent){
   const nextPoint = round.points[agent.rondeIndex];
   agent.state = 'moving';
   agent.targetId = nextPoint.zoneId;
-  agent.until = G.t + 2 + Math.random() * 2;
+  agent.until = G.t + (2 + Math.random() * 2) * moralSpeed(agent);
   agent.workTime = 1.5;
 }
 
@@ -2365,6 +2426,7 @@ function renderAgents(){
     else if(a.state === 'pause'){ st = '☕ Pause'; cls = 'ok'; }
     else { st = `🟢 ${zoneName(a.pos)}`; cls = 'ok'; }
     if(a.suspendedRound && !a.isRonde) st = `⏸ ${a.suspendedRound.roundId} suspendue`;
+    if(a.role !== 'stagiaire' && a.moral !== undefined && a.moral < 60) st = moralLabel(a.moral).icon + ' ' + st;
     if(a.role === 'stagiaire') st += ` · 😰${Math.round(a.stress||0)}%`;
     if(a.state === 'binome') st = `🎓 Binôme — ${zoneName(a.pos)}`;
     if(G.materiel){
@@ -2809,6 +2871,13 @@ function resolveAnomaly(evId, idx){
 
   applyAnomalyEffect(act.fx, ev);
   applyZoneEffect(ev, act);
+  /* L'agent retient la suite donnée à son signalement. */
+  if(!ev.autoDecided){
+    const rapide = (G.t - (ev.askedAt || G.t)) <= 4;
+    if(act.k === 'danger') moralChange(a, -5, `ordre à proscrire sur « ${ev.title} »`);
+    else if((act.s || 0) >= 6) moralChange(a, rapide ? 3 : 2, null);
+    else moralChange(a, -3, `signalement « ${ev.title} » classé sans suite`);
+  }
   if(act.k !== 'danger') A.success();
   toast(`Ordre transmis${scorePts ? ` (${scorePts > 0 ? '+' : ''}${scorePts} pts)` : ''}`, act.k === 'danger' ? 'bad' : 'good');
   renderMC(true);
@@ -3043,6 +3112,7 @@ function execOrder(o){
     return;
   }
   if(o === 'pause'){
+    if(a.fatigue > 55) moralChange(a, 4, null);
     a.state = 'pause'; a.pos = 'pcs'; a.until = G.t + 15; a.workTime = 15;
     mcAdd(a.id, `☕ Pause 15 min`, 'info');
     return;
@@ -3100,6 +3170,8 @@ function finishQCM(){
   G.debrief.training += good >= 2 ? 2 : 0;
   ensureAgentData();
   SAVE.agents[s.agent.id].xp += good * 6;
+  moralChange(s.agent, 3, null);
+  if(G.stagiaire && G.stagiaire.state !== 'binome') formationGain(4, 'QCM suivi au PCS');
   s.agent.xp += good * 6;
   s.agent.state = 'idle';
   SAVE.stats.qcms++;
@@ -3310,6 +3382,22 @@ function endVacation(){
   SAVE.money = (SAVE.money || 0) + prime;
   if(G.rh.datDone) SAVE.stats.datDone = (SAVE.stats.datDone || 0) + 1;
 
+  /* L'équipe garde la mémoire de la vacation. */
+  for(const a of G.agents){
+    const d = SAVE.agents[a.id];
+    if(!d) continue;
+    d.moral = Math.round(a.moral === undefined ? 60 : a.moral);
+    d.griefs = (a.griefs || []).slice(-5);
+    d.vacations = (d.vacations || 0) + 1;
+  }
+  if(G.stagiaire){
+    const sd = SAVE.stagiaires[G.stagiaire.id] || { formation:0, vacations:0 };
+    sd.formation = clamp(sd.formation + (G.stagiaire.formation || 0), 0, 100);
+    sd.vacations = (sd.vacations || 0) + 1;
+    sd.stress = Math.round(G.stagiaire.stress || 0);
+    SAVE.stagiaires[G.stagiaire.id] = sd;
+  }
+
   SAVE.vacations++;
   SAVE.xp += xpGain;
   SAVE.rhScore += G.debrief.rh;
@@ -3376,6 +3464,19 @@ function endVacation(){
 
   const risques = G.site.zones.map(z => ({z, r:zoneRisk(z.id), c:zoneRiskCauses(z.id)}))
     .filter(x => x.r >= 40).sort((a, b) => b.r - a.r);
+  const stv = stagiaireVerdict();
+  h += `<h2>👥 ÉQUIPE</h2>
+    <div class="evContent" style="line-height:1.7">
+      ${G.agents.map(a => {
+        const m = Math.round(a.moral === undefined ? 60 : a.moral);
+        const lab = moralLabel(m);
+        return `<div>${lab.icon} <b>${a.name}</b> — moral ${m}/100 (${lab.txt}) · ${a.rondesFaites || 0} ronde(s)` +
+          (a.griefs && a.griefs.length ? `<br><span style="color:#ff8b7e;font-size:9.5px">dernier grief : ${a.griefs[a.griefs.length-1].txt}</span>` : '') + `</div>`;
+      }).join('')}
+      ${stv ? `<div style="margin-top:6px">🎓 <b>${G.stagiaire.name}</b> — formation ${stv.total}/100 · stress ${stv.stressMoyen} % · vacation n°${stv.vac}</div>` : ''}
+      ${stv && stv.verdict ? `<div style="margin-top:5px;color:${stv.verdict.ok ? '#4ade80' : '#ff6b5e'};font-weight:800">${stv.verdict.txt}</div>` : ''}
+    </div>`;
+
   h += `<h2>📍 ÉTAT DU SITE À LA RELÈVE</h2>
     <div class="evContent" style="line-height:1.7">
       ${risques.length
@@ -3596,6 +3697,9 @@ function renderActions(){
 
   h += `<div class="matHead">📦 MATÉRIEL & RONDES</div>`;
   const hot = riskiestZone();
+  const bas = G.agents.filter(a => (a.moral === undefined ? 60 : a.moral) < 35).length;
+  h += `<button class="orderBtn ${bas ? 'danger' : 'primary'}" data-act="open-teamstate"><div class="oi">👥</div>
+    <div class="ol"><b>Équipe</b><span>${bas ? `${bas} agent(s) démotivé(s)` : 'Moral et charge de travail'}</span></div></button>`;
   h += `<button class="orderBtn ${hot && hot.r >= 60 ? 'danger' : 'primary'}" data-act="open-sitestate"><div class="oi">📍</div>
     <div class="ol"><b>État du site</b><span>${hot && hot.r >= 25 ? `Zone la plus exposée : ${zoneName(hot.id)} (${hot.r}/100)` : 'Aucune zone exposée'}</span></div></button>`;
   h += `<button class="orderBtn primary" data-act="open-materiel"><div class="oi">📦</div>
@@ -3932,6 +4036,40 @@ function openSlot(kind, agentId){
 
 function openMateriel(){ if(!G) return; renderMateriel(); $('materielScreen').classList.add('open'); }
 
+/* Tableau de bord humain : ce que l'équipe retient de votre commandement. */
+function renderTeamState(){
+  if(!G) return;
+  let h = `<div class="matHint">Un agent se souvient d'une vacation à l'autre. Laissé sans instruction, envoyé épuisé ou sans talkie, signalement classé sans suite : le moral baisse, l'agent traîne, puis cesse de remonter les anomalies mineures — et finit par refuser une ronde.</div>`;
+  for(const a of G.agents){
+    const m = Math.round(a.moral === undefined ? 60 : a.moral);
+    const lab = moralLabel(m);
+    h += `<div class="agentKit">
+      <div class="akHead"><span class="akAv">${a.avatar}</span>
+        <span class="akName">${a.name}</span>
+        <span class="tag ${lab.cls === 'crit' ? 'stag' : lab.cls === 'ok' ? 'n2' : 'n1'}">${lab.icon} ${lab.txt}</span></div>
+      <div class="zrBar"><span style="width:${m}%"></span></div>
+      <div class="matSub">Moral ${m}/100 · fatigue ${Math.round(a.fatigue)} % · ${a.rondesFaites || 0} ronde(s) ce poste</div>
+      ${a.griefs && a.griefs.length
+        ? `<div class="griefs">${a.griefs.slice(-3).map(g => `• ${g.txt}`).join('<br>')}</div>`
+        : `<div class="matSub" style="color:#4ade80">Aucun grief</div>`}
+    </div>`;
+  }
+  const st = G.stagiaire;
+  if(st){
+    const v = stagiaireVerdict();
+    h += `<div class="matHead">🎓 STAGIAIRE</div>
+    <div class="agentKit">
+      <div class="akHead"><span class="akAv">${st.avatar}</span>
+        <span class="akName">${st.name}</span>
+        <span class="tag stag">STAGIAIRE</span></div>
+      <div class="zrBar"><span style="width:${v.total}%"></span></div>
+      <div class="matSub">Formation ${v.total}/100 · stress ${Math.round(st.stress || 0)} % · vacation n°${v.vac} · tuteur : ${(G.agents.find(x => x.id === st.tutorId) || {}).name || '—'}</div>
+      <div class="matSub">${v.vac >= 3 ? 'Présenté à l\'examen à la fin de cette vacation.' : `Examen SSIAP 1 après ${3 - v.vac} vacation(s).`}</div>
+    </div>`;
+  }
+  $('teamStateContent').innerHTML = h;
+}
+
 /* Tableau de bord du risque : la cause de chaque danger est nommée. */
 function renderSiteState(){
   if(!G || !G.zones) return;
@@ -3959,6 +4097,8 @@ function checkDotation(agent, round){
   const radio = agentRadio(agent), badge = agentBadge(agent), key = agentKey(agent);
   G.k.departs = (G.k.departs || 0) + 1;
   if(radio && badge && key && !uncoveredPoints(agent, round).length) G.k.departsComplete = (G.k.departsComplete || 0) + 1;
+  if(!radio) moralChange(agent, -3, 'envoyé en ronde sans talkie');
+  if(agent.fatigue > 75) moralChange(agent, -4, `envoyé en ronde à ${Math.round(agent.fatigue)} % de fatigue`);
   if(!radio){
     G.materiel.noRadioDepartures++;
     mcAdd('PC', `⚠ ${agent.name} part en ronde SANS RADIO — liaison PCS impossible`, 'warn');
@@ -4761,6 +4901,100 @@ function commissionCap(){
   return 75;                  // aléa
 }
 
+
+/* ==========================================================
+   ============ MÉMOIRE DES AGENTS — MORAL ==================
+   Un agent se souvient de la façon dont il a été commandé, d'une
+   vacation à l'autre. Le moral n'est pas cosmétique : il change
+   ce que l'agent fait sur le terrain.
+   ========================================================== */
+const MORAL_LABELS = [
+  {max:20, icon:'😠', txt:'remonté', cls:'crit'},
+  {max:35, icon:'😒', txt:'démotivé', cls:'warn'},
+  {max:60, icon:'😐', txt:'neutre', cls:''},
+  {max:80, icon:'🙂', txt:'impliqué', cls:'ok'},
+  {max:101, icon:'😃', txt:'très impliqué', cls:'ok'},
+];
+function moralLabel(v){ return MORAL_LABELS.find(m => v < m.max) || MORAL_LABELS[2]; }
+
+function moralChange(agent, delta, grief){
+  if(!agent || agent.role === 'stagiaire') return;
+  const before = agent.moral;
+  agent.moral = clamp((agent.moral || 60) + delta, 0, 100);
+  if(grief && delta < 0){
+    agent.griefs.push({ t:G.t, txt:grief });
+    if(agent.griefs.length > 8) agent.griefs.shift();
+  }
+  /* On ne signale que les franchissements de seuil : pas de bruit. */
+  const seuils = [35, 20];
+  for(const s of seuils){
+    if(before >= s && agent.moral < s){
+      mcAdd('PC', `😠 ${agent.name} — moral au plus bas (${Math.round(agent.moral)}/100) : ${grief || 'accumulation de griefs'}`, 'warn');
+      toast(`${agent.name} se démotive`, 'bad');
+    }
+  }
+  if(before < 75 && agent.moral >= 75){
+    mcAdd('PC', `🙂 ${agent.name} — équipe motivée, l'agent prend des initiatives`, 'ok');
+  }
+}
+
+/* Effets concrets du moral sur le terrain */
+function moralSpeed(agent){
+  const m = agent.moral === undefined ? 60 : agent.moral;
+  if(m < 20) return 1.35;      // traîne franchement
+  if(m < 35) return 1.2;
+  if(m >= 80) return 0.9;      // plus allant
+  return 1;
+}
+function moralReportsMinor(agent){
+  /* Un agent démotivé cesse de remonter les anomalies mineures : il les
+     règle « à sa façon », c'est-à-dire qu'il les laisse. */
+  return (agent.moral === undefined ? 60 : agent.moral) >= 35;
+}
+function moralRefusesRound(agent){
+  if((agent.moral === undefined ? 60 : agent.moral) >= 20) return false;
+  /* Il refuse s'il a déjà fait plus que sa part */
+  const moyenne = G.agents.reduce((n, a) => n + (a.rondesFaites || 0), 0) / Math.max(1, G.agents.length);
+  return (agent.rondesFaites || 0) > moyenne;
+}
+
+/* Répartition de la charge : celui qui encaisse tout finit par le dire */
+function checkWorkload(agent){
+  agent.rondesFaites = (agent.rondesFaites || 0) + 1;
+  const autres = G.agents.filter(a => a.id !== agent.id);
+  if(!autres.length) return;
+  const mini = Math.min(...autres.map(a => a.rondesFaites || 0));
+  if((agent.rondesFaites - mini) >= 3){
+    moralChange(agent, -3, `${agent.rondesFaites} rondes contre ${mini} pour ses collègues`);
+    radioSay(agent, `Chef, ça fait ${agent.rondesFaites} rondes pour moi. Les autres, ils font quoi ?`, 'order');
+  }
+}
+
+/* ==========================================================
+   STAGIAIRE : formation et examen
+   ========================================================== */
+function formationGain(n, motif){
+  const st = G.stagiaire;
+  if(!st) return;
+  st.formation = clamp((st.formation || 0) + n, 0, 100);
+  if(motif) st.formationLog = (st.formationLog || []).concat([{t:G.t, txt:motif, n}]);
+}
+function stagiaireVerdict(){
+  const st = G.stagiaire;
+  if(!st) return null;
+  const d = SAVE.stagiaires[st.id] || { formation:0, vacations:0 };
+  const total = clamp(d.formation + (st.formation || 0), 0, 100);
+  const vac = d.vacations + 1;
+  const stressMoyen = Math.round(st.stress || 0);
+  let verdict = null;
+  if(vac >= 3){
+    verdict = total >= 70
+      ? { ok:true, txt:`${st.name} est prêt pour l'examen SSIAP 1 (${total}/100 après ${vac} vacations).` }
+      : { ok:false, txt:`${st.name} n'est pas prêt : ${total}/100 après ${vac} vacations. L'encadrement n'a pas suivi.` };
+  }
+  return { total, vac, stressMoyen, verdict };
+}
+
 /* ==========================================================
    6 quater. AGENTS EN ATTENTE D'ORDRES
    Un agent qui attend bloque sa ronde : il relance, puis il tranche seul.
@@ -4776,10 +5010,12 @@ function tickAwaiting(){
 
     if(waited > 4 && ev.nagged < 1){
       ev.nagged = 1;
+      moralChange(a, -2, `laissé ${Math.round(waited)} min sans instruction sur « ${ev.title} »`);
       radioSay(a, `Chef, je suis toujours en attente d'ordres sur ${zoneName(ev.zone)}. Ma ronde est à l'arrêt.`, 'order');
       toast(`${a.name} attend un ordre`, 'bad');
     } else if(waited > 8 && ev.nagged < 2){
       ev.nagged = 2;
+      moralChange(a, -4, `laissé ${Math.round(waited)} min sans instruction sur « ${ev.title} »`);
       radioSay(a, `Chef, ça fait ${Math.round(waited)} minutes. Je fais quoi ?`, 'major');
       mcAdd('PC', `⏸ ${a.name} sans instruction depuis ${Math.round(waited)} min — ronde suspendue`, 'warn');
     } else if(waited > 12 && !ev.autoDecided){
@@ -5218,6 +5454,8 @@ function handleTap(e){
   if(act === 'close-actions'){ $('actionsScreen').classList.remove('open'); return; }
   if(act === 'open-materiel'){ $('actionsScreen').classList.remove('open'); openMateriel(); return; }
   if(act === 'open-sitestate'){ $('actionsScreen').classList.remove('open'); renderSiteState(); $('siteStateScreen').classList.add('open'); return; }
+  if(act === 'open-teamstate'){ $('actionsScreen').classList.remove('open'); renderTeamState(); $('teamStateScreen').classList.add('open'); return; }
+  if(act === 'close-teamstate'){ $('teamStateScreen').classList.remove('open'); return; }
   if(act === 'close-sitestate'){ $('siteStateScreen').classList.remove('open'); return; }
   if(act === 'close-materiel'){ $('materielScreen').classList.remove('open'); return; }
   if(act === 'close-mini'){ closeMini(); return; }
