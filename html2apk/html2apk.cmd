@@ -1,6 +1,6 @@
 @echo off
-rem Double-clickable launcher: installs what is missing, then asks for the site
-rem address if none was given on the command line.
+rem Double-clickable launcher: installs what is missing, then opens the
+rem interface in the browser. Arguments, if any, go straight to the CLI.
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
@@ -22,21 +22,12 @@ if not exist dist\cli.js (
 )
 
 if not "%~1"=="" (
-  node dist\cli.js build %*
+  node dist\cli.js %*
   exit /b %errorlevel%
 )
 
-set "SITE="
-set "NOM="
-set /p "SITE=Adresse du site (https://...) ou chemin d'un dossier : "
-if "!SITE!"=="" goto :fail
-set /p "NOM=Nom de l'application (Entree pour la valeur par defaut) : "
-
-if "!NOM!"=="" (
-  node dist\cli.js build "!SITE!"
-) else (
-  node dist\cli.js build "!SITE!" --app-name "!NOM!"
-)
+rem No argument: open the interface in the browser and keep the window open.
+node dist\cli.js ui
 echo.
 pause
 exit /b %errorlevel%

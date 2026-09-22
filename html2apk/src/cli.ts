@@ -3,21 +3,15 @@ import { resolve } from "node:path";
 
 import { Command, InvalidArgumentError } from "commander";
 
-import { CAPACITOR_BUILD_STEPS, DEFAULT_APP_ID, selectBuilder } from "./builders";
-import type { BuildOptions } from "./builders";
+import { runBuild } from "./build";
+import { DEFAULT_APP_ID } from "./builders";
+import { startGui, DEFAULT_PORT, OUTPUT_DIR } from "./gui";
 import {
-  buildInDocker,
   createUi,
   DEBUG_KEYSTORE_PATH,
   DEFAULT_IMAGE,
   describeSource,
   detectSource,
-  DOCKER_BUILD_STEPS,
-  ensureKeystore,
-  isInsideContainer,
-  resolveSigningConfig,
-  SIGN_STEPS,
-  signApk,
 } from "./utils";
 import type { LogLevel } from "./utils";
 
@@ -36,6 +30,12 @@ interface BuildCommandOptions {
   keystorePassword?: string;
   keyAlias?: string;
   verbose?: boolean;
+}
+
+interface UiCommandOptions {
+  logLevel: LogLevel;
+  port?: number;
+  outputDir?: string;
 }
 
 function parseLogLevel(value: string): LogLevel {
@@ -84,71 +84,61 @@ export function createProgram(): Command {
         logger.info(`Source : ${describeSource(source)}`);
         logger.debug(`Sortie : ${output}`);
 
-        // Docker is the default; inside the image we always take the local path,
-        // both because --no-docker is passed in and as a guard against recursion.
-        const useDocker = options.docker && !isInsideContainer();
-
-        if (useDocker) {
-          progress.plan(DOCKER_BUILD_STEPS);
-          const result = await buildInDocker({
+        const outcome = await runBuild(
+          {
             source,
             output,
-            logger,
-            progress,
+            docker: options.docker,
             logLevel: options.verbose === true ? "debug" : options.logLevel,
             appId: options.appId,
             ...(options.appName !== undefined ? { appName: options.appName } : {}),
-            ...(options.dockerImage !== undefined ? { image: options.dockerImage } : {}),
+            ...(options.dockerImage !== undefined ? { dockerImage: options.dockerImage } : {}),
             ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
             ...(options.keyAlias !== undefined ? { keyAlias: options.keyAlias } : {}),
             ...(options.keystorePassword !== undefined
               ? { keystorePassword: options.keystorePassword }
               : {}),
-          });
-          ui.summary({ apkPath: result.apkPath, ms: Date.now() - startedAt, viaDocker: true });
-          return;
-        }
-
-        const builder = selectBuilder(source);
-        logger.debug(`Builder : ${builder.name}`);
-
-        // Resolved and prepared before the build so a bad signing setup fails
-        // fast, rather than after a Gradle run that takes minutes.
-        const signing = resolveSigningConfig({
-          ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
-          ...(options.keystorePassword !== undefined ? { password: options.keystorePassword } : {}),
-          ...(options.keyAlias !== undefined ? { alias: options.keyAlias } : {}),
-        });
-        await ensureKeystore(signing, { logger });
-
-        // Both builders run the same Capacitor pipeline, so the count is the same.
-        progress.plan(CAPACITOR_BUILD_STEPS + SIGN_STEPS);
-
-        const buildOptions: BuildOptions = {
-          source,
-          output,
-          logger,
-          progress,
-          appId: options.appId,
-        };
-        if (options.appName !== undefined) {
-          buildOptions.appName = options.appName;
-        }
-
-        const result = await builder.build(buildOptions);
-        await signApk(result.apkPath, signing, { logger, progress });
+          },
+          { logger, progress },
+        );
 
         ui.summary({
-          apkPath: result.apkPath,
+          apkPath: outcome.apkPath,
           ms: Date.now() - startedAt,
-          viaDocker: false,
-          signedWith: signing.isDebug ? "keystore de debug" : signing.keystore,
+          viaDocker: outcome.viaDocker,
+          ...(outcome.signedWith !== undefined ? { signedWith: outcome.signedWith } : {}),
         });
       } catch (error: unknown) {
         ui.failure(error);
         process.exitCode = 1;
       } finally {
         progress.stop();
+      }
+    });
+
+  program
+    .command("ui", { isDefault: true })
+    .alias("interface")
+    .description("Open the graphical interface in a browser")
+    .option("--port <number>", `port to listen on (default: ${DEFAULT_PORT})`, (value) => {
+      const port = Number.parseInt(value, 10);
+      if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+        throw new InvalidArgumentError("Expected a port between 1 and 65535.");
+      }
+      return port;
+    })
+    .option("--output-dir <dir>", `where to write the APKs (default: ${OUTPUT_DIR})`)
+    .option("--log-level <level>", `one of ${LOG_LEVELS.join(", ")}`, parseLogLevel, "info")
+    .action(async (options: UiCommandOptions) => {
+      try {
+        await startGui({
+          logLevel: options.logLevel,
+          ...(options.port !== undefined ? { port: options.port } : {}),
+          ...(options.outputDir !== undefined ? { outputDir: options.outputDir } : {}),
+        });
+      } catch (error: unknown) {
+        createUi({}).failure(error);
+        process.exitCode = 1;
       }
     });
 

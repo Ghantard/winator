@@ -140,3 +140,42 @@ jobs:
           name: apk-docker
           path: html2apk/artifacts/*.apk
           if-no-files-found: error
+
+  executables:
+    name: Exécutables téléchargeables
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: html2apk/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      # One self-contained binary per platform: Node is bundled in, so the only
+      # thing left to install is Docker (or a local JDK 21 + Android SDK 36).
+      - name: Construire les binaires
+        run: npm run package
+
+      - name: Résumé
+        run: |
+          {
+            echo "### Exécutables"
+            echo
+            echo '| Fichier | Taille |'
+            echo '|---|---|'
+            for exe in build/*; do
+              echo "| $(basename "$exe") | $(du -h "$exe" | cut -f1) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: html2apk-executables
+          path: html2apk/build/*
+          if-no-files-found: error

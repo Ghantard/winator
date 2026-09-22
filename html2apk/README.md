@@ -9,26 +9,49 @@ html2apk build https://exemple.fr --output ./exemple.apk
 
 Un site d'exemple est fourni dans `examples/hello` pour un premier essai.
 
-## Le plus simple : sans rien installer
+## L'interface graphique
+
+```bash
+html2apk            # ou : npm run ui, ou double-clic sur l'exécutable
+```
+
+Une page s'ouvre dans le navigateur : un champ pour l'adresse du site ou le dossier, le nom
+de l'application, l'identifiant Android, le choix de l'environnement de build. Un bouton, une
+barre de progression étape par étape, et l'APK se télécharge à la fin. Il est aussi enregistré
+dans `~/html2apk`.
+
+Le serveur écoute sur `127.0.0.1` uniquement : la page peut désigner n'importe quel dossier de
+la machine comme source, elle n'est donc jamais exposée au réseau.
+
+## L'exécutable, sans rien installer
+
+Chaque run de CI publie un exécutable autonome pour Windows, macOS (Intel et Apple Silicon) et
+Linux, dans l'artifact **html2apk-executables** : onglet **Actions** → dernier run → section
+**Artifacts**. Node.js est embarqué dedans, il n'y a rien à installer ni à compiler.
+
+Il reste besoin de **Docker Desktop** pour la chaîne Android (JDK, SDK, Gradle : ~2 Go que
+l'exécutable ne peut pas contenir), ou d'un JDK 21 + SDK Android 36 déjà installés, auquel cas
+choisissez « Outils installés sur cette machine » dans l'interface.
+
+## Un APK sans rien installer du tout
 
 L'onglet **Actions** du dépôt → workflow **Créer un APK** → bouton **Run workflow** :
 indiquez l'adresse du site, éventuellement un nom d'application, et lancez. Quelques minutes
 plus tard, l'APK se télécharge depuis la section **Artifacts** en bas de la page du run.
-Rien à installer, ni Node, ni Docker, ni SDK Android.
+Rien à installer, pas même Docker : tout se passe sur les serveurs de GitHub.
 
 Copiez ensuite le fichier `.apk` sur votre téléphone et ouvrez-le (il faut autoriser
 l'installation depuis des sources inconnues).
 
-## Le plus simple en local : un double-clic
+## Les lanceurs locaux
 
 Depuis le dossier du projet, sans taper de commande :
 
 - **Windows** : double-cliquez sur `html2apk.cmd`
 - **macOS / Linux** : lancez `./html2apk.sh`
 
-Le script installe ce qui manque, compile si nécessaire, puis demande l'adresse du site et le
-nom de l'application. Il accepte aussi les options directement :
-`html2apk.cmd https://exemple.fr --app-name "Exemple"`.
+Le script installe ce qui manque, compile si nécessaire, puis ouvre l'interface. Il accepte
+aussi les options directement : `html2apk.cmd build https://exemple.fr --app-name "Exemple"`.
 
 ## Comment ça marche
 

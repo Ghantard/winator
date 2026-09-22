@@ -1,6 +1,6 @@
 #!/bin/sh
-# Launcher: installs what is missing, then asks for the site address if none was
-# given on the command line.
+# Launcher: installs what is missing, then opens the interface in the browser.
+# Arguments, if any, go straight to the CLI.
 set -e
 cd "$(dirname "$0")"
 
@@ -13,16 +13,8 @@ fi
 [ -f dist/cli.js ] || { echo "Compilation…"; npm run build; }
 
 if [ "$#" -gt 0 ]; then
-  exec node dist/cli.js build "$@"
+  exec node dist/cli.js "$@"
 fi
 
-printf "Adresse du site (https://...) ou chemin d'un dossier : "
-read -r site
-[ -n "$site" ] || { echo "Aucune source indiquée." >&2; exit 1; }
-printf "Nom de l'application (Entrée pour la valeur par défaut) : "
-read -r nom
-
-if [ -n "$nom" ]; then
-  exec node dist/cli.js build "$site" --app-name "$nom"
-fi
-exec node dist/cli.js build "$site"
+# No argument: open the interface in the browser.
+exec node dist/cli.js ui
