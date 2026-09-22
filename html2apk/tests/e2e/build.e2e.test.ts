@@ -105,9 +105,8 @@ describe.skipIf(!canBuild)(`html2apk build (mode ${mode.kind})`, () => {
     E2E_TIMEOUT_MS,
   );
 
-  // NOTE: this test is red until urlBuilder is implemented — it is currently a
-  // stub that throws. It also needs outbound access to example.com, which a
-  // restricted network may deny before the builder is ever reached.
+  // Needs outbound access to example.com: detectSource probes the URL before
+  // the build starts, so a restricted network fails this early.
   it(
     "builds an APK larger than 1 MB from a public URL",
     async () => {
@@ -121,10 +120,7 @@ describe.skipIf(!canBuild)(`html2apk build (mode ${mode.kind})`, () => {
         "Example",
       ]);
 
-      expect(
-        result.code,
-        `le build depuis une URL a échoué — urlBuilder est-il implémenté ?${report(result)}`,
-      ).toBe(0);
+      expect(result.code, `le build depuis une URL a échoué${report(result)}`).toBe(0);
 
       const size = statSync(output).size;
       expect(size, `APK trop petit : ${size} octets`).toBeGreaterThan(MIN_APK_BYTES);

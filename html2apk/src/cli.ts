@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { Command, InvalidArgumentError } from "commander";
 
-import { DEFAULT_APP_ID, FOLDER_BUILD_STEPS, selectBuilder } from "./builders";
+import { CAPACITOR_BUILD_STEPS, DEFAULT_APP_ID, selectBuilder } from "./builders";
 import type { BuildOptions } from "./builders";
 import {
   buildInDocker,
@@ -121,7 +121,8 @@ export function createProgram(): Command {
         });
         await ensureKeystore(signing, { logger });
 
-        progress.plan(FOLDER_BUILD_STEPS + SIGN_STEPS);
+        // Both builders run the same Capacitor pipeline, so the count is the same.
+        progress.plan(CAPACITOR_BUILD_STEPS + SIGN_STEPS);
 
         const buildOptions: BuildOptions = {
           source,
