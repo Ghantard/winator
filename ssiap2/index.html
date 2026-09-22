@@ -1,0 +1,3713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05070b">
+<title>SSIAP 2 — Simulator Pro v6.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#05070b;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  color:#d4dde8;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:600px;margin:0 auto;
+  background:radial-gradient(ellipse at top,rgba(30,60,120,.15),transparent 60%),
+    linear-gradient(180deg,#0a1018,#05070b);position:relative;overflow:hidden}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pulse-soft{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes slide-up{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes flash-alert{0%,100%{background:rgba(255,59,48,.15)}50%{background:rgba(255,59,48,.35)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(168,85,247,.4)}100%{box-shadow:0 0 0 8px rgba(168,85,247,0)}}
+@keyframes urgent-pulse{0%,100%{background:linear-gradient(90deg,rgba(255,59,48,.15),rgba(168,85,247,.1))}
+  50%{background:linear-gradient(90deg,rgba(255,59,48,.3),rgba(168,85,247,.2))}}
+@keyframes badge-scan{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.7}}
+@keyframes scan-line{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+header{display:flex;align-items:center;gap:6px;padding:8px 10px;
+  border-bottom:1px solid rgba(80,110,150,.15);
+  background:linear-gradient(180deg,rgba(15,25,40,.9),rgba(8,12,20,.9));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);flex-shrink:0;position:relative;z-index:10}
+.brand{display:flex;align-items:center;gap:5px}
+.brand-dot{width:6px;height:6px;border-radius:50%;background:#30d158;
+  box-shadow:0 0 6px rgba(48,209,88,.8);animation:pulse-soft 2s infinite}
+.brand-text{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#4a6076}
+.sitetag{font-size:9px;font-weight:700;padding:3px 7px;border-radius:4px;
+  background:rgba(80,140,220,.12);color:#7ab0ff;border:1px solid rgba(80,140,220,.2)}
+.shift{font-size:9px;font-weight:700;padding:3px 6px;border-radius:4px;letter-spacing:.5px}
+.shift.day{background:rgba(255,190,60,.12);color:#ffb020;border:1px solid rgba(255,190,60,.25)}
+.shift.night{background:rgba(120,160,220,.12);color:#7ab0ff;border:1px solid rgba(120,160,220,.25)}
+.clock{font-size:15px;font-weight:800;color:#e8f0f8;margin-left:auto;
+  font-variant-numeric:tabular-nums;letter-spacing:.5px;text-shadow:0 0 10px rgba(80,180,255,.4)}
+.score-pill{font-size:9px;color:#5a6b7d;padding:3px 7px;border-radius:4px;
+  background:rgba(80,140,220,.08);border:1px solid rgba(80,140,220,.15)}
+.score-pill b{color:#e8f0f8;font-weight:800}
+.hbtn{background:rgba(30,45,65,.6);border:1px solid rgba(80,110,150,.2);color:#8fa4b8;
+  font-size:12px;min-width:26px;height:26px;border-radius:6px;cursor:pointer;padding:0 6px;
+  display:flex;align-items:center;justify-content:center;font-family:inherit;
+  transition:.15s;position:relative}
+.hbtn:active{transform:scale(.92);background:rgba(40,60,85,.8)}
+.hbtn.mute{color:#ff453a;border-color:rgba(255,59,48,.3)}
+.hbtn.hot{border-color:rgba(255,176,32,.5);color:#ffb020;animation:pulse-soft 1.5s infinite}
+.hbtn.urgent{border-color:rgba(255,59,48,.6);color:#ff6b5e;animation:urgent-pulse 1.2s infinite}
+.hbtn .nbadge{position:absolute;top:-4px;right:-4px;background:#ff453a;color:#fff;
+  font-size:7px;font-weight:800;min-width:13px;height:13px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;padding:0 3px;
+  box-shadow:0 0 6px rgba(255,59,48,.6)}
+
+#metaRow{display:flex;align-items:center;gap:6px;padding:4px 10px;
+  background:rgba(5,8,12,.6);border-bottom:1px solid rgba(80,110,150,.08);
+  font-size:8px;color:#4a6076;flex-wrap:wrap}
+#metaRow .meta-item{display:flex;align-items:center;gap:3px}
+#metaRow b{color:#8fa4b8;font-weight:700}
+#metaRow .sep{color:#1a2634}
+
+#map{display:grid;gap:3px;padding:5px 7px;flex-shrink:0;
+  background:rgba(5,8,12,.4);border-bottom:1px solid rgba(80,110,150,.08)}
+.zm{background:linear-gradient(180deg,rgba(20,30,45,.8),rgba(12,18,28,.9));
+  border:1px solid rgba(80,110,150,.12);border-radius:5px;padding:3px 4px;
+  min-height:32px;cursor:pointer;position:relative;transition:.25s;overflow:hidden}
+.zm:active{transform:scale(.96)}
+.zm.alert{border-color:rgba(255,176,32,.5);background:linear-gradient(180deg,rgba(45,30,10,.8),rgba(25,18,8,.9))}
+.zm.fire{border-color:#ff453a;background:linear-gradient(180deg,rgba(60,15,15,.85),rgba(35,8,8,.9));
+  animation:flash-alert 1.2s infinite}
+.zm.ronde{border-color:rgba(255,176,32,.4);box-shadow:inset 0 0 12px rgba(255,176,32,.15)}
+.zm.await{border-color:#a855f7;background:linear-gradient(180deg,rgba(40,20,60,.85),rgba(20,10,30,.9));
+  animation:pulse-ring 1.2s infinite}
+.zm .zn{font-size:7.5px;font-weight:700;color:#b8c8d8;letter-spacing:.2px;line-height:1.15}
+.zm .zf{font-size:6px;color:#4a6076;margin-top:1px;letter-spacing:.3px}
+.zm .zmk{position:absolute;top:2px;right:3px;font-size:11px;filter:drop-shadow(0 0 3px currentColor)}
+.zm .zd{width:11px;height:11px;border-radius:50%;background:#3b82f6;color:#fff;
+  font-size:6.5px;font-weight:800;display:flex;align-items:center;justify-content:center;
+  position:absolute;bottom:2px;left:2px;box-shadow:0 0 6px rgba(59,130,246,.6)}
+.zm .zd.M{background:#a855f7;box-shadow:0 0 6px rgba(168,85,247,.6)}
+.zm .zbadge{position:absolute;bottom:2px;right:3px;font-size:9px;opacity:.4;
+  filter:drop-shadow(0 0 2px currentColor)}
+
+#planningStrip{display:none;padding:6px 9px;flex-shrink:0;
+  background:linear-gradient(90deg,rgba(80,140,220,.1),rgba(168,85,247,.1));
+  border-bottom:1px solid rgba(80,110,150,.15);transition:.3s}
+#planningStrip.show{display:block}
+#planningStrip.imminent{animation:urgent-pulse 1.5s infinite}
+#planningStrip .psInner{display:flex;align-items:center;gap:8px}
+#planningStrip .psIcon{font-size:20px;flex-shrink:0}
+#planningStrip .psInfo{flex:1;min-width:0}
+#planningStrip .psLabel{font-size:10px;font-weight:800;color:#e8f0f8;letter-spacing:.3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#planningStrip .psLabel .psid{color:#7ab0ff}
+#planningStrip .psLabel .pstime{color:#ffb020;font-variant-numeric:tabular-nums}
+#planningStrip .psSub{font-size:8px;color:#8fa4b8;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#planningStrip .psSub .warn{color:#ffb020;font-weight:700}
+#planningStrip .psSub .crit{color:#ff6b5e;font-weight:800}
+#planningStrip .psSub .ok{color:#4ade80;font-weight:700}
+#planningStrip .psBtn{background:rgba(30,45,65,.8);border:1px solid rgba(80,110,150,.25);
+  color:#b8c8d8;font-family:inherit;font-size:9px;font-weight:800;
+  padding:6px 9px;border-radius:5px;cursor:pointer;flex-shrink:0;letter-spacing:.3px}
+#planningStrip .psBtn:active{transform:scale(.95)}
+#planningStrip .psBtn.assign{background:linear-gradient(180deg,rgba(59,130,246,.3),rgba(59,130,246,.15));
+  border-color:rgba(59,130,246,.5);color:#7ab0ff}
+#planningStrip .psBtn.urgent{background:linear-gradient(180deg,rgba(255,59,48,.3),rgba(255,59,48,.15));
+  border-color:rgba(255,59,48,.5);color:#ff8b7e;animation:pulse-soft 1s infinite}
+
+#mcPanel{flex:1;overflow-y:auto;background:rgba(3,5,9,.5);
+  -webkit-overflow-scrolling:touch;min-height:0;position:relative}
+.mcHead{position:sticky;top:0;z-index:5;
+  background:linear-gradient(180deg,rgba(15,22,32,.95),rgba(10,15,24,.95));
+  border-bottom:1px solid rgba(80,110,150,.12);
+  padding:5px 10px;display:flex;justify-content:space-between;align-items:center;
+  font-size:8px;color:#5a6b7d;letter-spacing:1px;font-weight:800;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.mcHead b{color:#8fa4b8}
+.mcRow{display:grid;grid-template-columns:38px 22px 1fr;gap:6px;padding:6px 10px;
+  border-bottom:1px solid rgba(80,110,150,.05);font-size:9px;line-height:1.4;align-items:flex-start}
+.mcRow .mcTime{color:#3d4f61;font-weight:800;font-variant-numeric:tabular-nums;font-size:8px;padding-top:1px}
+.mcRow .mcAv{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#1e40af,#3b82f6);
+  color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-shadow:0 2px 6px rgba(59,130,246,.3)}
+.mcRow .mcAv.M,.mcRow .mcAv.S,.mcRow .mcAv.L,.mcRow .mcAv.N,.mcRow .mcAv.C,
+.mcRow .mcAv.I,.mcRow .mcAv.W,.mcRow .mcAv.E,.mcRow .mcAv.V{
+  background:linear-gradient(135deg,#7c3aed,#a855f7);box-shadow:0 2px 6px rgba(168,85,247,.3)}
+.mcRow .mcAv.PC{background:linear-gradient(135deg,#059669,#30d158);font-size:8px;
+  font-weight:800;box-shadow:0 2px 6px rgba(48,209,88,.3)}
+.mcRow .mcAv.S3{background:linear-gradient(135deg,#d97706,#ffb020);color:#0a1017;
+  font-size:8px;font-weight:800;box-shadow:0 2px 6px rgba(255,176,32,.3)}
+.mcRow .mcTxt{color:#b8c8d8;font-size:9px;line-height:1.4}
+.mcRow.crit{background:linear-gradient(90deg,rgba(255,59,48,.08),transparent)}
+.mcRow.crit .mcTxt{color:#ff6b5e;font-weight:700}
+.mcRow.warn{background:linear-gradient(90deg,rgba(255,176,32,.06),transparent)}
+.mcRow.warn .mcTxt{color:#ffb020}
+.mcRow.ok .mcTxt{color:#30d158}
+.mcRow.info .mcTxt{color:#7ab0ff}
+.mcRow.action{background:linear-gradient(90deg,rgba(168,85,247,.1),transparent);
+  border-left:3px solid #a855f7;padding-left:7px}
+.mcRow.action .mcTxt{color:#c084fc;font-weight:700}
+.mcRow.round{background:linear-gradient(90deg,rgba(255,176,32,.08),transparent);
+  border-left:3px solid #ffb020;padding-left:7px}
+.mcRow.round .mcTxt{color:#ffb020;font-weight:700}
+.mcRow.badge{background:linear-gradient(90deg,rgba(34,211,238,.08),transparent);
+  border-left:3px solid #22d3ee;padding-left:7px}
+.mcRow.badge .mcTxt{color:#22d3ee;font-weight:700}
+.mcRow.head-init{background:linear-gradient(90deg,rgba(48,209,88,.1),transparent);
+  border-left:3px solid #30d158;padding:5px 10px 5px 7px;font-size:8px;
+  color:#30d158;font-weight:800;letter-spacing:.8px;grid-column:1/-1;margin:4px 0}
+
+.mcEvBtn{background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(168,85,247,.08));
+  border:1px solid rgba(168,85,247,.5);border-radius:6px;padding:8px 10px;margin:6px 10px;
+  cursor:pointer;transition:.2s;position:relative;overflow:hidden;will-change:box-shadow}
+.mcEvBtn.pulse{animation:pulse-ring 1.5s infinite}
+.mcEvBtn::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(168,85,247,.15),transparent);
+  animation:shimmer 2s infinite}
+.mcEvBtn .mevhead{display:flex;align-items:center;gap:6px;margin-bottom:3px;position:relative;z-index:1}
+.mcEvBtn .mevi{font-size:16px;filter:drop-shadow(0 0 6px currentColor)}
+.mcEvBtn .mevt{font-size:10px;font-weight:800;color:#c084fc;letter-spacing:.3px;flex:1}
+.mcEvBtn .mevtime{font-size:8.5px;color:#7d8fa3;font-variant-numeric:tabular-nums}
+.mcEvBtn .mevb{font-size:9px;color:#b8c8d8;line-height:1.4;position:relative;z-index:1}
+
+#agents{display:flex;gap:5px;padding:6px 7px;border-top:1px solid rgba(80,110,150,.12);
+  background:linear-gradient(180deg,rgba(15,22,32,.9),rgba(8,12,20,.95));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  flex-shrink:0;padding-bottom:max(6px,env(safe-area-inset-bottom));position:relative}
+.agent{flex:1;background:linear-gradient(180deg,rgba(22,32,48,.9),rgba(14,20,30,.95));
+  border:1px solid rgba(80,110,150,.15);border-radius:8px;padding:7px 8px;
+  position:relative;cursor:pointer;min-width:0;transition:.25s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.agent:active{transform:scale(.98)}
+.agent.ronde{border-color:rgba(255,176,32,.5);box-shadow:0 0 12px rgba(255,176,32,.2),inset 0 0 8px rgba(255,176,32,.08)}
+.agent.awaiting{border-color:#a855f7;background:linear-gradient(180deg,rgba(40,20,60,.9),rgba(20,10,30,.95))}
+.agent.awaiting.pulse{animation:pulse-ring 1.5s infinite}
+.agent.scanning{border-color:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.4)}
+.agent .avrow{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.agent .av{width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,rgba(30,45,70,.9),rgba(15,25,40,.9));
+  border:1px solid rgba(100,140,200,.25);display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0}
+.agent.awaiting .av{border-color:rgba(168,85,247,.6);box-shadow:0 0 12px rgba(168,85,247,.4)}
+.agent.scanning .av{border-color:#22d3ee;animation:badge-scan 1s infinite}
+.agent .an{font-size:10px;font-weight:800;color:#e8f0f8;line-height:1.1;letter-spacing:.2px}
+.agent .at{font-size:7px;color:#a855f7;font-weight:800;margin-top:2px;letter-spacing:.4px}
+.agent .as{font-size:8px;margin-top:3px;line-height:1.25;min-height:18px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agent .as.ok{color:#30d158}.agent .as.warn{color:#ffb020}
+.agent .as.crit{color:#ff453a}.agent .as.ronde{color:#ffb020}
+.agent .as.await{color:#c084fc;font-weight:800}
+.agent .as.scan{color:#22d3ee;font-weight:800}
+.agent .eb{height:3px;background:rgba(80,110,150,.15);border-radius:2px;margin-top:5px;overflow:hidden}
+.agent .ef{height:100%;border-radius:2px;transition:width .3s ease}
+.agent .ef.ok{background:linear-gradient(90deg,#30d158,#4ade80)}
+.agent .ef.warn{background:linear-gradient(90deg,#ffb020,#fbbf24)}
+.agent .ef.crit{background:linear-gradient(90deg,#ff453a,#f87171)}
+.agent .th{font-size:6.5px;color:#4a6076;text-align:center;margin-top:5px;
+  letter-spacing:.5px;font-weight:800;border-top:1px solid rgba(80,110,150,.1);padding-top:3px}
+.agent .rprog{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,176,32,.2);overflow:hidden}
+.agent .rprog .rfill{height:100%;background:linear-gradient(90deg,#ffb020,#ff8c00);
+  transition:width .3s ease;border-radius:0 2px 2px 0}
+.agent .rpts{position:absolute;bottom:0;left:0;right:0;height:3px;display:flex;gap:1px;
+  padding:0 2px;pointer-events:none}
+.agent .rpts .rp{flex:1;background:rgba(80,110,150,.3);border-radius:1px}
+.agent .rpts .rp.ok{background:#30d158}
+.agent .rpts .rp.miss{background:#ff6b5e}
+.agent .rpts .rp.current{background:#ffb020;animation:pulse-soft 1s infinite}
+
+.bubble{position:absolute;bottom:calc(100% + 6px);left:-4px;right:-4px;
+  background:linear-gradient(135deg,rgba(30,45,65,.98),rgba(15,25,40,.98));
+  border:1px solid rgba(100,140,200,.3);border-radius:8px;padding:7px 9px;
+  font-size:9px;color:#d4dde8;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.6);
+  opacity:0;transform:translateY(8px);pointer-events:none;transition:.3s cubic-bezier(.4,0,.2,1);
+  z-index:20;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.bubble.show{opacity:1;transform:translateY(0)}
+.bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:rgba(100,140,200,.3);margin-top:-1px}
+.bubble .bs{font-size:7.5px;font-weight:800;color:#7ab0ff;margin-bottom:3px;
+  letter-spacing:.5px;display:flex;align-items:center;gap:4px}
+.bubble .bs::before{content:'';width:4px;height:4px;border-radius:50%;background:#7ab0ff;box-shadow:0 0 6px #7ab0ff}
+.bubble.major{border-color:rgba(255,59,48,.5);background:linear-gradient(135deg,rgba(60,15,15,.98),rgba(35,8,8,.98))}
+.bubble.major .bs{color:#ff6b5e}
+.bubble.major .bs::before{background:#ff453a;box-shadow:0 0 6px #ff453a}
+.bubble.order{border-color:rgba(168,85,247,.5);background:linear-gradient(135deg,rgba(40,20,60,.98),rgba(20,10,30,.98))}
+.bubble.order .bs{color:#c084fc}
+.bubble.order .bs::before{background:#a855f7;box-shadow:0 0 6px #a855f7}
+.bubble.badge{border-color:rgba(34,211,238,.5);background:linear-gradient(135deg,rgba(10,50,60,.98),rgba(8,30,40,.98))}
+.bubble.badge .bs{color:#22d3ee}
+.bubble.badge .bs::before{background:#22d3ee;box-shadow:0 0 6px #22d3ee}
+
+.ov{position:fixed;inset:0;background:rgba(3,5,9,.9);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  z-index:100;display:none;align-items:center;justify-content:center;padding:12px}
+.ov.open{display:flex}
+.ov{z-index:50}
+#pickerScreen,#miniScreen,#materielScreen,#datScreen{z-index:60}
+#eventScreen,#mciScreen,#qcmScreen,#auditScreen{z-index:65}
+#debriefScreen{z-index:70}
+.cd{background:linear-gradient(180deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
+  border:1px solid rgba(80,110,150,.2);border-radius:14px;padding:16px 14px;
+  max-width:540px;width:100%;box-shadow:0 24px 72px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.04);
+  max-height:94vh;overflow-y:auto;animation:slide-up .35s cubic-bezier(.4,0,.2,1)}
+.cd *{animation:none !important}
+.cd h1{font-size:15px;letter-spacing:1.8px;color:#e8f0f8;margin-bottom:4px;text-align:center;font-weight:800}
+.cd h2{font-size:11px;letter-spacing:1.2px;color:#7d8fa3;margin:14px 0 7px;
+  padding-bottom:4px;border-bottom:1px solid rgba(80,110,150,.15);font-weight:800}
+.cd .sub{font-size:8.5px;color:#4a6076;letter-spacing:1.2px;margin-bottom:14px;text-align:center;font-weight:700}
+.cd p{font-size:10px;color:#8fa4b8;line-height:1.6;margin-bottom:8px;text-align:left}
+
+.btn-main{width:100%;padding:12px;border-radius:8px;border:1px solid rgba(255,59,48,.5);
+  background:linear-gradient(180deg,rgba(255,59,48,.18),rgba(255,59,48,.08));
+  color:#ff8b7e;font-family:inherit;font-size:11.5px;font-weight:800;
+  letter-spacing:1.2px;cursor:pointer;margin-top:8px}
+.btn-main:active{transform:scale(.97)}
+.btn-sec{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(80,110,150,.25);
+  background:linear-gradient(180deg,rgba(30,45,65,.6),rgba(20,30,45,.6));
+  color:#b8c8d8;font-family:inherit;font-size:10.5px;font-weight:700;
+  letter-spacing:.8px;cursor:pointer;margin-top:6px}
+.btn-sec:active{transform:scale(.97)}
+
+.siteGrid{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0}
+.siteCard{padding:11px 13px;border-radius:10px;border:1px solid rgba(80,110,150,.2);
+  background:linear-gradient(180deg,rgba(22,32,48,.8),rgba(12,18,28,.9));
+  cursor:pointer;transition:.2s;display:flex;gap:11px;align-items:center}
+.siteCard:active{transform:scale(.98)}
+.siteCard.sel{border-color:rgba(255,59,48,.6);
+  background:linear-gradient(180deg,rgba(45,20,20,.8),rgba(25,12,12,.9));
+  box-shadow:0 0 20px rgba(255,59,48,.15)}
+.siteCard .scIcon{font-size:28px;flex-shrink:0;width:38px;text-align:center}
+.siteCard .scInfo{flex:1;min-width:0}
+.siteCard .scName{font-size:12px;font-weight:800;color:#e8f0f8;margin-bottom:3px;letter-spacing:.2px}
+.siteCard .scDesc{font-size:8.5px;color:#7d8fa3;line-height:1.35}
+.siteCard.sel .scName{color:#ff8b7e}
+
+.evCtx{padding:8px 10px;background:linear-gradient(90deg,rgba(80,140,220,.08),transparent);
+  border-left:3px solid #7ab0ff;border-radius:6px;font-size:9px;color:#8fa4b8;
+  margin-bottom:10px;line-height:1.5}
+.evBlock{margin-bottom:10px}
+.evLabel{font-size:8.5px;color:#5a6b7d;font-weight:800;letter-spacing:1px;margin-bottom:5px}
+.evContent{padding:8px 10px;background:linear-gradient(180deg,rgba(15,22,32,.9),rgba(10,15,24,.9));
+  border-radius:6px;font-size:9.5px;color:#d4dde8;line-height:1.55;border:1px solid rgba(80,110,150,.15)}
+.evContent.radio{border-left:3px solid #a855f7;
+  background:linear-gradient(90deg,rgba(168,85,247,.08),rgba(15,22,32,.9))}
+.evContent.phone{border-left:3px solid #30d158;
+  background:linear-gradient(90deg,rgba(48,209,88,.08),rgba(15,22,32,.9))}
+.evContent.pcs{border-left:3px solid #22d3ee;
+  background:linear-gradient(90deg,rgba(34,211,238,.08),rgba(15,22,32,.9))}
+.evContent.presence{border-left:3px solid #ffb020;
+  background:linear-gradient(90deg,rgba(255,176,32,.08),rgba(15,22,32,.9))}
+.evContent.badge{border-left:3px solid #22d3ee;
+  background:linear-gradient(90deg,rgba(34,211,238,.08),rgba(15,22,32,.9))}
+.evTeam{display:flex;gap:6px;flex-wrap:wrap;font-size:8.5px}
+.evTeam .agentTag{padding:5px 8px;background:linear-gradient(180deg,rgba(22,32,48,.9),rgba(14,20,30,.95));
+  border:1px solid rgba(80,110,150,.18);border-radius:6px}
+.evTeam .agentTag b{color:#d4dde8}
+.evChoices{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.evChoice{width:100%;padding:11px 12px;border-radius:8px;border:1px solid rgba(80,110,150,.25);
+  background:linear-gradient(180deg,rgba(25,38,55,.7),rgba(15,22,32,.9));
+  color:#d4dde8;font-family:inherit;font-size:10px;font-weight:700;
+  text-align:left;cursor:pointer;line-height:1.4;transition:.15s;position:relative;overflow:hidden}
+.evChoice:active{transform:scale(.98)}
+.evChoice b{display:block;color:#e8f0f8;font-size:10.5px;margin-bottom:3px;font-weight:800}
+.evChoice span{font-size:8.5px;color:#8fa4b8;font-weight:500}
+
+.mciOption{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(80,110,150,.25);
+  background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
+  color:#d4dde8;font-family:inherit;font-size:9.5px;text-align:left;
+  cursor:pointer;margin-bottom:6px;line-height:1.5;transition:.15s}
+.mciOption:active{transform:scale(.98)}
+.mciOption.correct{border-color:rgba(48,209,88,.6);
+  background:linear-gradient(180deg,rgba(48,209,88,.15),rgba(48,209,88,.05));color:#4ade80}
+.mciOption.wrong{border-color:rgba(255,59,48,.6);
+  background:linear-gradient(180deg,rgba(255,59,48,.15),rgba(255,59,48,.05));color:#ff8b7e}
+
+.qcmQ{padding:11px 13px;background:linear-gradient(180deg,rgba(22,32,48,.9),rgba(12,18,28,.95));
+  border-radius:8px;border:1px solid rgba(80,110,150,.2);margin-bottom:10px;
+  font-size:11px;color:#e8f0f8;line-height:1.5;font-weight:700}
+.qcmA{width:100%;padding:9px 11px;border-radius:6px;border:1px solid rgba(80,110,150,.2);
+  background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(14,20,30,.8));
+  color:#d4dde8;font-family:inherit;font-size:10px;text-align:left;
+  cursor:pointer;margin-bottom:5px;transition:.15s}
+.qcmA:active{transform:scale(.98)}
+.qcmA.good{border-color:rgba(48,209,88,.5);
+  background:linear-gradient(180deg,rgba(48,209,88,.15),rgba(48,209,88,.05));color:#4ade80}
+.qcmA.bad{border-color:rgba(255,59,48,.5);
+  background:linear-gradient(180deg,rgba(255,59,48,.15),rgba(255,59,48,.05));color:#ff8b7e}
+
+.axisRow{display:flex;justify-content:space-between;align-items:center;padding:8px 11px;
+  background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
+  border:1px solid rgba(80,110,150,.15);border-radius:6px;margin-bottom:5px;font-size:10px}
+.axisRow .axName{color:#d4dde8;font-weight:800;letter-spacing:.2px}
+.axisRow .axScore{font-size:12px;font-weight:800;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.axisRow .axScore.good{color:#4ade80}
+.axisRow .axScore.mid{color:#ffb020}
+.axisRow .axScore.bad{color:#ff6b5e}
+.bigScore{text-align:center;padding:18px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(80,140,220,.1),rgba(168,85,247,.1));
+  border:1px solid rgba(80,140,220,.25);margin-bottom:12px}
+.bigScore .bsVal{font-size:48px;font-weight:800;color:#e8f0f8;line-height:1}
+.bigScore .bsLabel{font-size:9px;color:#5a6b7d;letter-spacing:2px;margin-top:6px;font-weight:800}
+.bigScore .bsRank{font-size:13px;font-weight:800;letter-spacing:1.2px;margin-top:10px}
+
+.roundItem{display:flex;gap:10px;align-items:center;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85));
+  border:1px solid rgba(80,110,150,.15);border-radius:8px;margin-bottom:6px;
+  border-left:3px solid #4a6076}
+.roundItem.done{border-left-color:#30d158;background:linear-gradient(180deg,rgba(48,209,88,.06),rgba(12,18,28,.85))}
+.roundItem.missed{border-left-color:#ff453a;background:linear-gradient(180deg,rgba(255,59,48,.06),rgba(12,18,28,.85))}
+.roundItem.running{border-left-color:#ffb020;background:linear-gradient(180deg,rgba(255,176,32,.08),rgba(12,18,28,.85));animation:pulse-soft 2s infinite}
+.roundItem.imminent{border-left-color:#ff6b5e;background:linear-gradient(180deg,rgba(255,59,48,.1),rgba(12,18,28,.85));
+  animation:urgent-pulse 1.5s infinite}
+.roundItem.late{border-left-color:#ffb020;background:linear-gradient(180deg,rgba(255,176,32,.1),rgba(12,18,28,.85))}
+.roundItem .riIcon{font-size:22px;flex-shrink:0;width:32px;text-align:center}
+.roundItem .riInfo{flex:1;min-width:0}
+.roundItem .riName{font-size:10.5px;font-weight:800;color:#e8f0f8;margin-bottom:2px;letter-spacing:.2px}
+.roundItem .riName .riid{color:#7ab0ff}
+.roundItem .riTime{font-size:9px;color:#ffb020;font-weight:800;font-variant-numeric:tabular-nums}
+.roundItem .riTol{font-size:7.5px;color:#5a6b7d;margin-left:5px;font-weight:500}
+.roundItem .riStatus{font-size:8.5px;color:#8fa4b8;margin-top:2px}
+.roundItem .riZones{font-size:7.5px;color:#5a6b7d;margin-top:3px;line-height:1.3}
+.roundItem .riZones .badge-pt{color:#22d3ee;font-weight:700}
+.roundItem .riZones .hidden-pt{color:#a855f7;font-weight:700}
+.roundItem .riActions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.roundItem .riActions button{background:rgba(30,45,65,.8);border:1px solid rgba(80,110,150,.25);
+  color:#b8c8d8;font-family:inherit;font-size:9px;font-weight:800;padding:5px 8px;
+  border-radius:5px;cursor:pointer;white-space:nowrap;letter-spacing:.3px;min-width:80px}
+.roundItem .riActions button:active{transform:scale(.95)}
+.roundItem .riActions button.assign{background:linear-gradient(180deg,rgba(59,130,246,.3),rgba(59,130,246,.15));
+  border-color:rgba(59,130,246,.5);color:#7ab0ff}
+.roundItem .riActions button.urgent{background:linear-gradient(180deg,rgba(255,59,48,.3),rgba(255,59,48,.15));
+  border-color:rgba(255,59,48,.5);color:#ff8b7e}
+
+.pickerAgent{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85));
+  border:1px solid rgba(80,110,150,.2);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:.15s}
+.pickerAgent:active{transform:scale(.98)}
+.pickerAgent.disabled{opacity:.35;pointer-events:none}
+.pickerAgent .paAv{width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,rgba(30,45,70,.9),rgba(15,25,40,.9));
+  border:1px solid rgba(100,140,200,.25);display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0}
+.pickerAgent .paInfo{flex:1;min-width:0}
+.pickerAgent .paName{font-size:11px;font-weight:800;color:#e8f0f8}
+.pickerAgent .paSub{font-size:8.5px;color:#8fa4b8;margin-top:2px}
+.pickerAgent .paSub.warn{color:#ffb020}
+.pickerAgent .paSub.crit{color:#ff6b5e}
+
+/* --- V6 : boutons d'ordre, registre matériel, bandeau d'alerte --- */
+.orderBtn{display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;border-radius:8px;
+  border:1px solid rgba(80,110,150,.2);background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
+  color:#d4dde8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;margin-bottom:6px;text-align:left}
+.orderBtn .oi{font-size:17px;width:22px;text-align:center;flex-shrink:0}
+.orderBtn .ol{flex:1}
+.orderBtn .ol b{display:block;color:#e8f0f8;font-size:11px;margin-bottom:2px;font-weight:800}
+.orderBtn .ol span{display:block;font-size:8.5px;color:#7d8fa3;font-weight:500}
+.orderBtn.primary{border-color:rgba(80,140,220,.4);background:linear-gradient(180deg,rgba(80,140,220,.15),rgba(80,140,220,.04))}
+.orderBtn.warning{border-color:rgba(255,176,32,.4);background:linear-gradient(180deg,rgba(255,176,32,.13),rgba(255,176,32,.03))}
+.orderBtn.danger{border-color:rgba(255,59,48,.45);background:linear-gradient(180deg,rgba(255,59,48,.15),rgba(255,59,48,.04))}
+.matHead{font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin:12px 0 6px;font-weight:800}
+.matHint{font-size:8.5px;color:#7d8fa3;line-height:1.5;padding:8px 10px;border-radius:7px;
+  background:rgba(80,140,220,.07);border:1px solid rgba(80,140,220,.18);margin-bottom:8px}
+.matRow{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;margin-bottom:6px;
+  border:1px solid rgba(80,110,150,.2);background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85))}
+.matRow.held{border-color:rgba(255,176,32,.35)}
+.matIco{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.matInfo{flex:1;min-width:0}
+.matName{font-size:10px;font-weight:800;color:#e8f0f8}
+.matSub{font-size:8px;color:#7d8fa3;font-weight:500;margin-top:1px}
+.matBtns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:112px}
+.matBtn{padding:5px 7px;border-radius:6px;border:1px solid rgba(80,140,220,.3);cursor:pointer;
+  background:rgba(80,140,220,.12);color:#7ab0ff;font-family:inherit;font-size:9px;font-weight:800}
+.matBtn.back{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.12);color:#4ade80}
+.meta-item.alert{color:#ff8b7e;font-weight:800}
+.shiftPick{display:flex;gap:8px;margin:8px 0}
+.shiftBtn{flex:1;padding:10px;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:800;font-size:10px;
+  border:1px solid rgba(80,110,150,.25);background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));color:#8fa4b8}
+.shiftBtn.sel{border-color:rgba(255,176,32,.6);color:#ffb020;background:linear-gradient(180deg,rgba(255,176,32,.16),rgba(255,176,32,.04))}
+.shiftBtn span{display:block;font-size:8px;font-weight:600;color:#7d8fa3;margin-top:3px}
+.tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:7.5px;font-weight:800;letter-spacing:.3px}
+.tag.n1{background:rgba(96,165,250,.15);color:#7ab0ff}
+.tag.n2{background:rgba(48,209,88,.15);color:#4ade80}
+.tag.n3{background:rgba(255,176,32,.15);color:#ffb020}
+.tag.stag{background:rgba(255,59,48,.15);color:#ff8b7e}
+.tag.badge{background:rgba(34,211,238,.15);color:#22d3ee}
+.tag.hidden{background:rgba(168,85,247,.15);color:#c084fc}
+
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-120%);
+  background:linear-gradient(135deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
+  border:1px solid rgba(80,110,150,.3);border-radius:10px;padding:10px 14px;
+  font-size:10px;font-weight:700;color:#d4dde8;z-index:200;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);transition:.35s cubic-bezier(.4,0,.2,1);
+  max-width:90vw;text-align:center;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.good{border-color:rgba(48,209,88,.5);background:linear-gradient(135deg,rgba(48,209,88,.2),rgba(12,18,28,.98))}
+#toast.bad{border-color:rgba(255,59,48,.5);background:linear-gradient(135deg,rgba(255,59,48,.2),rgba(12,18,28,.98))}
+#toast.info{border-color:rgba(120,180,255,.5);background:linear-gradient(135deg,rgba(80,140,220,.2),rgba(12,18,28,.98))}
+
+.achv{display:flex;gap:10px;align-items:center;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.8));
+  border:1px solid rgba(80,110,150,.15);border-radius:8px;margin-bottom:6px}
+.achv.locked{opacity:.45}
+.achv.unlocked{border-color:rgba(255,176,32,.4);
+  background:linear-gradient(180deg,rgba(255,176,32,.08),rgba(12,18,28,.8))}
+.achv .ai{font-size:24px;flex-shrink:0;width:34px;text-align:center}
+.achv .ainfo{flex:1;min-width:0}
+.achv .aname{font-size:10.5px;font-weight:800;color:#e8f0f8;margin-bottom:2px}
+.achv .adesc{font-size:8.5px;color:#7d8fa3;line-height:1.3}
+.achv .astat{font-size:9px;font-weight:800;color:#ffb020}
+
+.skillBranch{padding:10px 12px;background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85));
+  border:1px solid rgba(80,110,150,.15);border-radius:8px;margin-bottom:8px}
+.skillBranch h4{font-size:10.5px;color:#e8f0f8;letter-spacing:.5px;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.skillBranch h4 .sbl{color:#5a6b7d;font-size:8.5px;font-weight:500}
+.skillRow{display:flex;gap:7px;align-items:center;padding:6px 8px;border-radius:5px;
+  background:rgba(8,12,20,.7);margin-bottom:4px;font-size:9px}
+.skillRow.done{background:linear-gradient(90deg,rgba(48,209,88,.1),transparent);border-left:2px solid #30d158}
+.skillRow.canbuy{background:linear-gradient(90deg,rgba(59,130,246,.1),transparent);
+  border-left:2px solid #3b82f6;cursor:pointer}
+.skillRow .slv{font-size:9px;color:#5a6b7d;min-width:26px;font-weight:800}
+.skillRow.done .slv{color:#4ade80}
+.skillRow.canbuy .slv{color:#7ab0ff}
+.skillRow .sln{flex:1;color:#d4dde8;font-weight:700}
+.skillRow .sld{color:#5a6b7d;font-weight:500;font-size:8px}
+
+.shopItem{display:flex;gap:10px;align-items:center;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85));
+  border:1px solid rgba(80,110,150,.15);border-radius:8px;margin-bottom:6px;transition:.15s}
+.shopItem.buyable{cursor:pointer;border-color:rgba(59,130,246,.3)}
+.shopItem.buyable:active{transform:scale(.98)}
+.shopItem.owned{border-color:rgba(48,209,88,.4);background:linear-gradient(180deg,rgba(48,209,88,.08),rgba(12,18,28,.85))}
+.shopItem .si{font-size:22px;flex-shrink:0;width:30px;text-align:center}
+.shopItem .sinfo{flex:1;min-width:0}
+.shopItem .siname{font-size:10.5px;font-weight:800;color:#e8f0f8;margin-bottom:2px}
+.shopItem .sidesc{font-size:8.5px;color:#7d8fa3;line-height:1.3}
+.shopItem .sicost{font-size:10px;font-weight:800;color:#ffb020;min-width:50px;text-align:right}
+.shopItem.owned .sicost{color:#4ade80}
+
+#dayCycle{position:absolute;inset:0;pointer-events:none;z-index:1;transition:background .5s ease;opacity:.4}
+
+.cardTop{padding:14px;border-radius:10px;margin-bottom:12px;
+  background:linear-gradient(135deg,rgba(80,140,220,.15),rgba(168,85,247,.15));
+  border:1px solid rgba(120,180,255,.25);text-align:center;position:relative;overflow:hidden}
+.cardTop .cardEmoji{font-size:36px;position:relative;z-index:1}
+.cardTop .cardName{font-size:13px;font-weight:800;color:#e8f0f8;margin-top:6px;position:relative;z-index:1}
+.cardTop .cardTrait{font-size:9px;color:#a855f7;font-weight:800;margin-top:3px;position:relative;z-index:1}
+
+.statGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
+.statGrid .sg{padding:8px 6px;background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
+  border:1px solid rgba(80,110,150,.15);border-radius:6px;text-align:center}
+.statGrid .sg .sgv{font-size:14px;font-weight:800;color:#e8f0f8;font-variant-numeric:tabular-nums}
+.statGrid .sg .sgl{font-size:7.5px;color:#5a6b7d;font-weight:700;letter-spacing:.5px;margin-top:2px}
+.statGrid .sg.good .sgv{color:#4ade80}
+.statGrid .sg.mid .sgv{color:#ffb020}
+.statGrid .sg.bad .sgv{color:#ff6b5e}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="dayCycle"></div>
+  <header>
+    <div class="brand"><div class="brand-dot"></div><span class="brand-text">SSIAP 2</span></div>
+    <span class="sitetag" id="sitetag">—</span>
+    <span class="shift night" id="shiftBadge">🌙</span>
+    <span class="clock" id="clock">19:00</span>
+    <span class="score-pill">PTS <b id="score">0</b></span>
+    <button class="hbtn" data-act="sound" id="soundBtn">🔊</button>
+    <button class="hbtn" data-act="pause">⏸</button>
+    <button class="hbtn" data-act="speed">1×</button>
+    <button class="hbtn" data-act="open-planning" id="planningBtn">📋</button>
+    <button class="hbtn" data-act="open-actions" id="actionsBtn">⚡</button>
+  </header>
+  <div id="metaRow">
+    <span class="meta-item">🏢 <b id="metaSite">—</b></span>
+    <span class="sep">|</span>
+    <span class="meta-item">📅 <b id="metaDate">—</b></span>
+    <span class="sep">|</span>
+    <span class="meta-item" id="metaWeather">🌙</span>
+    <span class="sep">|</span>
+    <span class="meta-item">👥 <b id="metaBinome">—</b></span>
+    <span class="sep">|</span>
+    <span class="meta-item">🎖 <b id="metaS3">absent</b></span>
+    <span class="sep">|</span>
+    <span class="meta-item">🎯 <b id="metaRound">—</b></span>
+    <span class="sep">|</span>
+    <span class="meta-item" id="metaAlert">✅ Nominal</span>
+  </div>
+  <div id="map"></div>
+  <div id="planningStrip"></div>
+  <div id="mcPanel"></div>
+  <div id="agents"></div>
+</div>
+
+<div id="toast"></div>
+
+<div class="ov open" id="siteScreen">
+  <div class="cd">
+    <h1>SSIAP 2 SIMULATOR</h1>
+    <div class="sub">PRO EDITION · v5.0 — RONDES COMPLÈTES</div>
+    <div id="careerHeader"></div>
+    <div class="siteGrid" id="siteGrid"></div>
+    <div class="sub" style="margin-top:10px">TYPE DE VACATION (12 H)</div>
+    <div class="shiftPick">
+      <button class="shiftBtn" data-shift="day" id="shiftDayBtn">☀ JOUR 07:00 — 19:00
+        <span>Public, travaux, permis de feu, forte activité</span></button>
+      <button class="shiftBtn" data-shift="night" id="shiftNightBtn">🌙 NUIT 19:00 — 07:00
+        <span>Fatigue, sûreté, fermeture, mode dégradé</span></button>
+    </div>
+    <button class="btn-main" data-act="pick-site" id="pickSiteBtn" disabled>VALIDER SITE ET VACATION</button>
+    <button class="btn-sec" data-act="open-hq">🏢 QG · BOUTIQUE PCS</button>
+    <button class="btn-sec" data-act="open-tree-hub">🌳 ARBRE DE COMPÉTENCES</button>
+    <button class="btn-sec" data-act="open-achievements">🏆 SUCCÈS & DÉFIS</button>
+    <button class="btn-sec" data-act="open-replay">📜 HISTORIQUE</button>
+  </div>
+</div>
+
+<div class="ov" id="teamScreen">
+  <div class="cd">
+    <h1>ÉQUIPE DE VACATION</h1>
+    <div class="sub" id="teamSub">—</div>
+    <div id="teamContent"></div>
+    <button class="btn-sec" data-act="reroll-team">🎲 RETIRER UNE AUTRE ÉQUIPE</button>
+    <button class="btn-main" data-act="start-game">🚪 PRENDRE LE POSTE</button>
+  </div>
+</div>
+
+<div class="ov" id="planningScreen">
+  <div class="cd">
+    <h1>📋 PLANNING DES RONDES</h1>
+    <div class="sub" id="planningSub">Vacation en cours</div>
+    <div id="planningContent"></div>
+    <button class="btn-sec" data-act="close-planning">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="pickerScreen">
+  <div class="cd">
+    <h1>CHOISIR UN AGENT</h1>
+    <div class="sub" id="pickerSub">—</div>
+    <div id="pickerContent"></div>
+    <button class="btn-sec" data-act="close-picker">ANNULER</button>
+  </div>
+</div>
+
+<div class="ov" id="hqScreen">
+  <div class="cd">
+    <h1>🏢 QG — AMÉLIORATIONS PCS</h1>
+    <div class="sub">Investissez votre XP</div>
+    <div style="text-align:center;padding:14px;border-radius:10px;margin-bottom:12px;
+      background:linear-gradient(135deg,rgba(255,176,32,.15),rgba(168,85,247,.1));
+      border:1px solid rgba(255,176,32,.3)">
+      <div style="font-size:8px;color:#7d8fa3;letter-spacing:1.5px;font-weight:800">XP DISPONIBLE</div>
+      <div style="font-size:32px;font-weight:800;color:#ffb020;margin-top:4px" id="hqXP">0</div>
+    </div>
+    <div id="shopList"></div>
+    <button class="btn-sec" data-act="close-hq">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="treeHubScreen">
+  <div class="cd">
+    <h1>🌳 ARBRE DE COMPÉTENCES</h1>
+    <div class="sub">Sélectionnez un agent</div>
+    <div id="treeHubList"></div>
+    <button class="btn-sec" data-act="close-tree-hub">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="treeScreen"><div class="cd" id="treeContent"></div></div>
+
+<div class="ov" id="achvScreen">
+  <div class="cd">
+    <h1>🏆 SUCCÈS & DÉFIS</h1>
+    <div class="sub" id="achvProgress">—</div>
+    <div id="achvList"></div>
+    <button class="btn-sec" data-act="close-achv">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="eventScreen"><div class="cd" id="eventContent"></div></div>
+
+<div class="ov" id="orderScreen">
+  <div class="cd">
+    <h1>ORDRE À L'AGENT</h1>
+    <div class="sub" id="orderSub">—</div>
+    <div id="orderContent"></div>
+    <button class="btn-sec" data-act="close-order">ANNULER</button>
+  </div>
+</div>
+
+<div class="ov" id="qcmScreen">
+  <div class="cd">
+    <h1>🎓 FORMATION</h1>
+    <div class="sub" id="qcmSub">—</div>
+    <div id="qcmContent"></div>
+  </div>
+</div>
+
+<div class="ov" id="mciScreen">
+  <div class="cd">
+    <h1>📋 SAISIE MAIN COURANTE</h1>
+    <div class="sub">Rédaction réglementaire</div>
+    <div id="mciContent"></div>
+  </div>
+</div>
+
+<div class="ov" id="actionsScreen">
+  <div class="cd">
+    <h1>⚡ ACTIONS PCS</h1>
+    <div class="sub">Commandes CMSI / SDI</div>
+    <div id="actionsContent"></div>
+    <button class="btn-sec" data-act="close-actions">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="auditScreen">
+  <div class="cd">
+    <h1>🎖 AUDIT INOPINÉ SSIAP 3</h1>
+    <div class="sub" id="auditSub">—</div>
+    <div id="auditContent"></div>
+  </div>
+</div>
+
+<div class="ov" id="replayScreen">
+  <div class="cd">
+    <h1>📜 HISTORIQUE</h1>
+    <div class="sub">Vacations passées</div>
+    <div id="replayList"></div>
+    <button class="btn-sec" data-act="close-replay">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="pauseScreen">
+  <div class="cd">
+    <h1>⏸ PAUSE</h1>
+    <div class="sub">POSTE EN SUSPENS</div>
+    <div id="pauseStats"></div>
+    <button class="btn-main" data-act="resume">REPRENDRE</button>
+  </div>
+</div>
+
+<div class="ov" id="materielScreen">
+  <div class="cd">
+    <h1>📦 REGISTRE MATÉRIEL PCS</h1>
+    <div class="sub">Clés · Badges · Radios — dotation et restitution</div>
+    <div id="materielContent"></div>
+    <button class="btn-sec" data-act="close-materiel">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="miniScreen">
+  <div class="cd">
+    <h1 id="miniTitle">—</h1>
+    <div class="sub" id="miniSub">—</div>
+    <div id="miniContent"></div>
+    <button class="btn-sec" data-act="close-mini">ANNULER</button>
+  </div>
+</div>
+
+<div class="ov" id="datScreen"><div class="cd" id="datContent"></div></div>
+
+<div class="ov" id="debriefScreen"><div class="cd" id="debriefContent"></div></div>
+
+<script>
+/* ==========================================================
+   SSIAP 2 SIMULATOR PRO — v5.0
+   TOUT : rondes plus fréquentes + pointage badge + tolérance + points cachés
+   ========================================================== */
+const TICK = 250;
+const SAVE_KEY = 'ssiap2_sim_v50';
+
+const SITES = {
+  erp_m:{id:'erp_m',icon:'🛒',name:'ERP Type M',subtitle:'Centre Commercial',
+    zones:[{id:'galerie',name:'Galerie',floor:'RDC'},{id:'food',name:'Food-court',floor:'RDC'},{id:'cinema',name:'Cinéma',floor:'1er'},{id:'boutiques',name:'Boutiques',floor:'1er'},{id:'parkV',name:'Park. Visiteurs',floor:'SS1'},{id:'parkL',name:'Park. Livraison',floor:'SS1'},{id:'reserves',name:'Réserves',floor:'SS1'},{id:'local_tech',name:'Local tech.',floor:'SS1'},{id:'quai',name:'Quai livraison',floor:'RDC'}],
+    roundZones:{ssi:['galerie','food','cinema','boutiques','reserves'],technique:['local_tech','quai','reserves'],surveillance:['galerie','parkV','parkL','quai']}},
+  erp_u:{id:'erp_u',icon:'🏥',name:'ERP Type U',subtitle:'Établissement de Santé',
+    zones:[{id:'urgences',name:'Urgences',floor:'RDC'},{id:'rea',name:'Réanimation',floor:'1er'},{id:'blocs',name:'Blocs op.',floor:'1er'},{id:'pharmacie',name:'Pharmacie',floor:'RDC'},{id:'hosp',name:'Hospitalisation',floor:'2e'},{id:'imagerie',name:'Imagerie',floor:'RDC'},{id:'local_oxy',name:'Local O2',floor:'SS1'},{id:'local_tech',name:'Local tech.',floor:'SS1'},{id:'cuisine',name:'Cuisine',floor:'RDC'}],
+    roundZones:{ssi:['urgences','rea','hosp','imagerie','cuisine'],technique:['local_oxy','local_tech'],surveillance:['urgences','pharmacie','hosp','local_oxy']}},
+  erp_on:{id:'erp_on',icon:'🏨',name:'ERP Type O/N',subtitle:'Hôtel · Complexe',
+    zones:[{id:'lobby',name:'Lobby',floor:'RDC'},{id:'chambres1',name:'Chambres 1-40',floor:'1er'},{id:'chambres2',name:'Chambres 41-80',floor:'2e'},{id:'suite',name:'Suites',floor:'3e'},{id:'bar',name:'Bar',floor:'RDC'},{id:'discotheque',name:'Discothèque',floor:'SS1'},{id:'restaurant',name:'Restaurant',floor:'RDC'},{id:'spa',name:'Spa',floor:'SS1'},{id:'parking',name:'Parking',floor:'SS2'}],
+    roundZones:{ssi:['lobby','chambres1','chambres2','suite','restaurant'],technique:['spa','discotheque','parking'],surveillance:['lobby','parking','discotheque','bar']}},
+  igh:{id:'igh',icon:'🏢',name:'IGH',subtitle:'Grande Hauteur',
+    zones:[{id:'hall',name:'Hall',floor:'RDC'},{id:'pcs',name:'PCS',floor:'RDC'},{id:'etage1',name:'Étage 1',floor:'1er'},{id:'etage5',name:'Étage 5',floor:'5e'},{id:'etage10',name:'Étage 10',floor:'10e'},{id:'etage20',name:'Étage 20',floor:'20e'},{id:'gaine',name:'Gaine tech.',floor:'15e'},{id:'ss1',name:'SS1',floor:'SS1'},{id:'ss2',name:'SS2',floor:'SS2'}],
+    roundZones:{ssi:['hall','etage1','etage5','etage10','etage20'],technique:['gaine','ss1','ss2'],surveillance:['hall','ss1','ss2','etage1']}},
+  industriel:{id:'industriel',icon:'🏭',name:'Industriel',subtitle:'Logistique · Process',
+    zones:[{id:'atelier',name:'Atelier',floor:'RDC'},{id:'entrepot',name:'Entrepôt',floor:'RDC'},{id:'quai',name:'Quais',floor:'RDC'},{id:'cuve',name:'Cuves',floor:'EXT'},{id:'chimique',name:'Local chimique',floor:'SS1'},{id:'tgbt_ht',name:'TGBT HT',floor:'SS1'},{id:'bureaux',name:'Bureaux',floor:'1er'},{id:'pause',name:'Salle pause',floor:'RDC'},{id:'parc',name:'Parc véhicules',floor:'EXT'}],
+    roundZones:{ssi:['atelier','entrepot','bureaux','pause'],technique:['cuve','chimique','tgbt_ht'],surveillance:['quai','parc','entrepot','cuve']}},
+};
+
+/* Modulateur de fréquence d'événements par site et par vacation
+   (valeur basse = événements plus fréquents) */
+const SITE_MODS = {
+  erp_m:{day:0.80, night:1.15}, erp_u:{day:0.85, night:0.95},
+  erp_on:{day:1.05, night:0.80}, igh:{day:0.95, night:1.10},
+  industriel:{day:0.85, night:1.05},
+};
+for(const k in SITES){
+  SITES[k].dayMod = (SITE_MODS[k]||{day:1}).day;
+  SITES[k].nightMod = (SITE_MODS[k]||{night:1}).night;
+}
+
+const AGENT_POOL = [
+  {id:'T',name:'Thomas',avatar:'👨‍🚒',trait:'VIGILANT'},
+  {id:'M',name:'Marion',avatar:'👩‍🚒',trait:'RAPIDE'},
+  {id:'K',name:'Karim',avatar:'🧔',trait:'ROBUSTE'},
+  {id:'S',name:'Sophie',avatar:'👩‍🦰',trait:'RIGOUREUX'},
+  {id:'Y',name:'Yann',avatar:'👨‍🦱',trait:'CALME'},
+  {id:'L',name:'Léa',avatar:'👩',trait:'VIGILANT'},
+  {id:'X',name:'Maxime',avatar:'🧑',trait:'RAPIDE'},
+  {id:'N',name:'Nadia',avatar:'👩‍🦱',trait:'ROBUSTE'},
+  {id:'J',name:'Julien',avatar:'🧑‍🦱',trait:'RIGOUREUX'},
+  {id:'C',name:'Camille',avatar:'👩‍🦳',trait:'CALME'},
+  {id:'D',name:'David',avatar:'👨‍🦳',trait:'VIGILANT'},
+  {id:'I',name:'Inès',avatar:'👩‍🦰',trait:'RAPIDE'},
+];
+const STAG_POOL = [
+  {id:'W',name:'Wassim',avatar:'🧑‍🎓'},
+  {id:'E',name:'Emma',avatar:'👩‍🎓'},
+  {id:'V',name:'Victor',avatar:'🧑‍🎓'},
+];
+
+const ROUND_TYPES = {
+  ouverture: {name:'Ouverture', icon:'🌅'},
+  ssi: {name:'Ronde SSI', icon:'🔥'},
+  technique: {name:'Ronde technique', icon:'⚙'},
+  surveillance: {name:'Surveillance', icon:'👁'},
+  fermeture: {name:'Fermeture', icon:'🔒'},
+};
+
+/* ==========================================================
+   GÉNÉRATION DES RONDES — 8 rondes / vacation
+   Chaque point a : badge (scan), hidden (peut être raté)
+   ========================================================== */
+function makePoint(zoneId, isNight){
+  // Badge obligatoire pour TOUS les points
+  // Hidden : probabilité augmentée la nuit
+  return {
+    zoneId,
+    hasBadge: true,
+    hidden: isNight && Math.random() < 0.35, // 35% des points cachés la nuit
+  };
+}
+
+function generateRounds(site, shift){
+  const isDay = shift === 'day';
+  const isNight = !isDay;
+  const startT = isDay ? 7*60 : 19*60;
+  const endT = isDay ? 19*60 : 7*60+1440;
+  const R = [];
+
+  // Helper : fabrique une ronde avec tolérance et points
+  const mk = (id, timeMin, type, label, toleranceMin, pointCount) => {
+    const pool = type === 'ouverture' || type === 'fermeture'
+      ? site.zones.map(z => z.id)
+      : (site.roundZones[type] || site.zones.slice(0, 5).map(z => z.id));
+    // Mélanger pour éviter toujours la même séquence
+    const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+    const zones = shuffled.slice(0, Math.min(pointCount, shuffled.length));
+    const points = zones.map(z => makePoint(z, isNight));
+    return {
+      id, time: timeMin, type, label,
+      tolerance: toleranceMin, // minutes de tolérance avant/après
+      points,
+      status: 'pending',
+      assignedAgentId: null,
+      startedAt: null, doneAt: null,
+      pointsVisited: 0, pointsMissed: 0, incidents: 0,
+      preAlerted: false, lateNotified: false, missNotified: false,
+    };
+  };
+
+  /* 8 rondes toutes les ~1h30 (jour et nuit) */
+  if(isDay){
+    R.push(mk('R1', startT + 20, 'ouverture',     'Prise de poste',     10, 6));
+    R.push(mk('R2', startT + 110, 'ssi',          'Ronde SSI matin',    8,  5));
+    R.push(mk('R3', startT + 200, 'surveillance', 'Ronde surveillance', 8,  5));
+    R.push(mk('R4', startT + 290, 'technique',    'Ronde technique',    10, 4));
+    R.push(mk('R5', startT + 380, 'ssi',          'Ronde SSI midi',     8,  5));
+    R.push(mk('R6', startT + 470, 'surveillance', 'Ronde surveillance', 8,  5));
+    R.push(mk('R7', startT + 560, 'ssi',          'Ronde SSI après-midi',8, 5));
+    R.push(mk('R8', endT - 40,  'fermeture',      'Ronde de fermeture', 12, 6));
+  } else {
+    R.push(mk('R1', startT + 20, 'ouverture',     'Prise de poste',     10, 6));
+    R.push(mk('R2', startT + 100, 'surveillance', 'Surveillance 1',     8,  5));
+    R.push(mk('R3', startT + 190, 'ssi',          'Ronde SSI nuit',     8,  5));
+    R.push(mk('R4', startT + 280, 'technique',    'Ronde technique',    10, 4));
+    R.push(mk('R5', startT + 370, 'surveillance', 'Surveillance 2',     8,  5));
+    R.push(mk('R6', startT + 460, 'ssi',          'Ronde SSI profonde', 8,  5));
+    R.push(mk('R7', startT + 550, 'technique',    'Ronde technique 2',  10, 4));
+    R.push(mk('R8', endT - 40,  'fermeture',      'Ronde avant relève', 12, 6));
+  }
+  return R;
+}
+
+const ROUND_INCIDENTS = {
+  ssi: [
+    {label:'Extincteur obstrué', emoji:'🧯', severity:'minor', desc:'Accès encombré', action:'Dégagement retiré'},
+    {label:'Porte coupe-feu bloquée', emoji:'🚪', severity:'minor', desc:'Porte maintenue par cale', action:'Cale retirée'},
+    {label:'Éclairage de sécurité HS', emoji:'💡', severity:'minor', desc:'Bloc HS', action:'Signalé'},
+    {label:'Détecteur obstrué', emoji:'📡', severity:'major', desc:'Détecteur masqué', action:'Désobstruction urgente'},
+    {label:'Fumée suspecte', emoji:'💨', severity:'major', desc:'Fumée origine inconnue', action:'Recherche origine'},
+  ],
+  technique: [
+    {label:'Fuite d\'eau', emoji:'💧', severity:'minor', desc:'Écoulement lent', action:'Vanne fermée'},
+    {label:'Câble dénudé', emoji:'🔌', severity:'minor', desc:'Câble apparent', action:'Isolé'},
+    {label:'Bruit anormal', emoji:'🔊', severity:'minor', desc:'Grincement continu', action:'Signalé'},
+    {label:'Coupure secteur', emoji:'⚡', severity:'major', desc:'Alim. perdue', action:'Vérif groupe'},
+    {label:'Odeur de gaz', emoji:'💨', severity:'major', desc:'Forte odeur', action:'Procédure gaz'},
+  ],
+  surveillance: [
+    {label:'Porte d\'accès ouverte', emoji:'🚪', severity:'minor', desc:'Porte normalement fermée', action:'Refermée'},
+    {label:'Fenêtre ouverte', emoji:'🪟', severity:'minor', desc:'Fenêtre ouverte nuit', action:'Refermée'},
+    {label:'Objet abandonné', emoji:'📦', severity:'minor', desc:'Objet sans propriétaire', action:'Signalé'},
+    {label:'Véhicule suspect', emoji:'🚗', severity:'major', desc:'Véhicule anormal', action:'Surveillance'},
+    {label:'Traces d\'effraction', emoji:'🔓', severity:'major', desc:'Marques sur porte', action:'Signalement'},
+  ],
+  ouverture: [
+    {label:'Accès non sécurisé', emoji:'🚪', severity:'minor', desc:'Porte non verrouillée', action:'Verrouillage'},
+    {label:'Anomalie détectée', emoji:'⚠', severity:'minor', desc:'Écart constaté', action:'Tracé MC'},
+  ],
+  fermeture: [
+    {label:'Lumière oubliée', emoji:'💡', severity:'minor', desc:'Éclairage allumé', action:'Éteinte'},
+    {label:'Porte non verrouillée', emoji:'🔒', severity:'major', desc:'Accès non sécurisé', action:'Verrouillage'},
+    {label:'Présence inattendue', emoji:'👤', severity:'major', desc:'Personne sur site', action:'Contrôle'},
+  ],
+};
+
+const EVENTS = [
+  {id:'feu_poubelle',type:'feu',weight:4,sites:['all'],
+   ctx:'Odeur âcre, particules caméra',event:'DÉCLENCHEMENT SDI',
+   pcs:'Voyant feu clignotant.',radio:'« Chef, fumée sort du local ! »',
+   phone:null,presence:null,dilemma:'Levée de doute 3-5 min obligatoire.',
+   choices:[
+     {label:'Envoyer agent lever de doute',hint:'Procédure',score:3,reg:2,time:-1,consequence:'Agent envoyé.'},
+     {label:'Inhiber puis envoyer',hint:'DANGEREUX',score:-5,reg:-3,consequence:'Violation.'},
+     {label:'Appeler 18 direct',hint:'Anticipation',score:-2,reg:-1,consequence:'Prématuré.'}],
+   mci:[
+     {text:'Fumée local. RAS.',good:false},
+     {text:'Détection SDI zone [X]. Levée de doute [heure]. Cause : corbeille en combustion. Extinction extincteur CO2 + contrôle post-incendie. 18 alerté.',good:true},
+     {text:'Petit feu.',good:false}]},
+  {id:'feu_reel',type:'feu',weight:2,sites:['all'],
+   ctx:'Multi-alarmes',event:'⚠ FEU CONFIRMÉ',pcs:'3 détecteurs zone.',
+   radio:'« AU FEU ! Évacuation ! »',phone:'📞 Standard : « Plusieurs alarmes ! »',
+   presence:'SSIAP 3 : « Compte-rendu ! »',dilemma:'Évacuation + 18 + info SSIAP 3.',
+   choices:[
+     {label:'Alarme gén. + 18 + info S3',hint:'Complet',score:6,reg:3,consequence:'Évacuation.'},
+     {label:'Attendre confirmation',hint:'Retard',score:-3,reg:-2,consequence:'Danger public.'},
+     {label:'Renfort + 18 sans évac',hint:'Risqué',score:-2,reg:-1,consequence:'Non conforme.'}],
+   mci:[
+     {text:'Feu maîtrisé.',good:false},
+     {text:'Multi-détecteurs zone [X]. Feu actif confirmé. Alarme générale, évacuation, appel 18, info SSIAP 3. Bilan [X] évacués.',good:true},
+     {text:'Gros incendie.',good:false}]},
+  {id:'malaise',type:'medical',weight:3,sites:['all'],
+   ctx:'Appel standard',event:'URGENCE MÉDICALE',pcs:'Aucune alarme.',
+   radio:'« Quelqu\'un est tombé ! »',phone:'📞 Standard : « Client ne se sent pas bien. »',
+   presence:null,dilemma:'Agent SST + 15 ou juste 15 ?',
+   choices:[
+     {label:'Agent SST + appel 15',hint:'Complet',score:4,reg:3,consequence:'Double action.'},
+     {label:'Appeler 15 seulement',hint:'Insuffisant',score:-1,reg:-1,consequence:'Pas d\'agent.'},
+     {label:'Agent seul',hint:'Non conforme',score:-2,reg:-2,consequence:'Risque.'}],
+   mci:[
+     {text:'Client tombé.',good:false},
+     {text:'Malaise zone [X] [heure]. Agent SST sur place. Victime inconsciente, PLS. Appel 15, constantes. SAMU [heure].',good:true},
+     {text:'Malaise.',good:false}]},
+  {id:'at_industriel',type:'at',weight:3,sites:['industriel'],
+   ctx:'Alarme machine',event:'ACCIDENT DU TRAVAIL',pcs:'Arrêt machine.',
+   radio:'« Chute de hauteur ! »',phone:'📞 Standard : « Accident atelier ! »',
+   presence:'SSIAP 3 : « Protège la scène ! »',dilemma:'Ne pas déplacer, DAT obligatoire.',
+   choices:[
+     {label:'Protéger + 15/18 + DAT',hint:'Procédure AT',score:5,reg:3,consequence:'Victime protégée.'},
+     {label:'Déplacer victime',hint:'DANGEREUX',score:-5,reg:-3,consequence:'Aggravation.'},
+     {label:'Évacuer + direction',hint:'Passable',score:1,consequence:'Non priorisé.'}],
+   mci:[
+     {text:'Accident.',good:false},
+     {text:'AT zone [X] [heure]. Chute hauteur. Victime protégée. Appel 15+18. Direction informée. DAT ouverte.',good:true},
+     {text:'Chute.',good:false}]},
+  {id:'absence',type:'rh',weight:3,sites:['all'],
+   ctx:'Agent non arrivé',event:'ABSENCE / RETARD',pcs:'Effectif incomplet.',radio:null,
+   phone:'📞 Absent : « Bloqué, j\'arrive dans 1h. »',presence:'SSIAP 3 : « Organise-toi. »',
+   dilemma:'Rappeler, prestataire, ou ronde réduite ?',
+   choices:[
+     {label:'Rappeler agent repos',hint:'Rapide',score:3,reg:2,consequence:'Effectif complet.'},
+     {label:'Prestataire',hint:'Procédure',score:2,reg:2,consequence:'Renfort externe.'},
+     {label:'Attendre',hint:'Passif',score:-2,reg:-2,consequence:'Compromis.'}],
+   mci:[
+     {text:'Agent absent.',good:false},
+     {text:'Agent [Nom] absent [heure]. Retard signalé. Rappel agent repos / Prestataire. SSIAP 3 informé.',good:true},
+     {text:'Pas de nouvelle.',good:false}]},
+  {id:'defaut',type:'ssi',weight:3,sites:['all'],
+   ctx:'Voyant jaune CMSI',event:'DÉFAUT SYSTÈME',pcs:'Voyant jaune.',
+   radio:'« Chef, tu peux acquitter ? »',phone:'📞 Prestataire SSI.',presence:null,
+   dilemma:'Acquitter + maintenance + tracer.',
+   choices:[
+     {label:'Acquit + maintenance + surveillance',hint:'Procédure',score:4,reg:3,consequence:'Tracé.'},
+     {label:'Acquitter seul',hint:'Non conforme',score:-3,reg:-3,consequence:'Masqué.'},
+     {label:'Ne rien faire',hint:'GRAVE',score:-5,reg:-3,consequence:'Non-conformité.'}],
+   mci:[
+     {text:'Défaut.',good:false},
+     {text:'Défaut [type] CMSI [heure]. Zone [X]. Acquittement. Maintenance SSI. Surveillance renforcée. Résolu [heure].',good:true},
+     {text:'Voyant jaune.',good:false}]},
+  {id:'permis',type:'permis',weight:3,sites:['erp_m','igh','industriel'],
+   ctx:'Artisan au PCS',event:'PERMIS DE FEU',pcs:'Aucune alarme.',radio:null,
+   phone:'📞 Direction.',presence:'Permis partiel.',dilemma:'Vérifier conditions.',
+   choices:[
+     {label:'Contrôle + isolement + surveillance',hint:'Complet',score:4,reg:3,consequence:'Validé.'},
+     {label:'Signer sans contrôle',hint:'Non conforme',score:-5,reg:-3,consequence:'Danger.'},
+     {label:'Refuser',hint:'Rigide',score:-1,consequence:'Bloqué.'}],
+   mci:[
+     {text:'Permis signé.',good:false},
+     {text:'Permis de feu n°[X] [heure] par [artisan]. Vérif zones, extincteurs, SSI. Zone isolée. Surveillance /30min. Fin [heure]. Contrôle post-travaux.',good:true},
+     {text:'OK.',good:false}]},
+  {id:'conflit',type:'conflit',weight:2,sites:['all'],
+   ctx:'2 agents désaccord',event:'CONFLIT INTERNE',pcs:'Tension RH.',radio:null,
+   phone:'📞 Agent : « L\'autre refuse. »',presence:'Les deux au PCS.',
+   dilemma:'Recadrer, écouter, tracer.',
+   choices:[
+     {label:'Écoute séparée + rappel + tracer',hint:'Management',score:4,reg:1,consequence:'Apaisé.'},
+     {label:'Imposer autorité',hint:'Rigide',score:-2,consequence:'Dégradé.'},
+     {label:'Laisser',hint:'Absent',score:-3,reg:-1,consequence:'Persistant.'}],
+   mci:[
+     {text:'Souci agents.',good:false},
+     {text:'Tension entre [Nom 1] et [Nom 2] [heure]. Entretien séparé. Rappel procédures. Accord trouvé.',good:true},
+     {text:'Engueulade.',good:false}]},
+];
+
+const QCM_POOL = [
+  {q:'Que signifie SSIAP ?',a:['Service Sécurité Incendie Assistance Personne','Service Surveillance Intervention Anti-Panique','Sécurité SSI Assistance Pompiers'],correct:0},
+  {q:'Délai max levée de doute ?',a:['10 min','3 à 5 min','15 min'],correct:1},
+  {q:'En IGH, l\'évacuation se fait :',a:['Verticale escaliers','Compartimentage + transfert horizontal','Ascenseurs'],correct:1},
+  {q:'Un permis de feu est valable :',a:['Une vacation','Durée travaux avec contrôles','Une semaine'],correct:1},
+  {q:'Défaut SSI non résolu ?',a:['Acquitter oublier','Isoler + maintenance + surveillance','Attendre'],correct:1},
+  {q:'ERP Type U, patients évacués :',a:['Verticalement','Horizontalement par compartimentage','Ascenseur'],correct:1},
+  {q:'Réglementation IGH exige :',a:['1 SSIAP','2 SSIAP min permanents','Aucun'],correct:1},
+  {q:'Zone ATEX :',a:['Risque d\'explosion','Anti-feu','Technique'],correct:0},
+  {q:'Délai évac ERP ?',a:['5 min','8 min','10 min'],correct:0},
+  {q:'DAT signifie :',a:['Doc Admin Travaux','Déclaration Accident Travail','Dossier Action Tech'],correct:1},
+  {q:'Pointage badge en ronde :',a:['Optionnel','Obligatoire réglementaire','Uniquement jour'],correct:1},
+  {q:'Ronde de nuit diffère car :',a:['Plus rapide','Points moins visibles + vigilance accrue','Aucune différence'],correct:1},
+];
+const AUDIT_QUESTIONS = [
+  {q:'Délai réglementaire levée de doute ?',a:['10 min','3 à 5 min','15 min'],correct:1},
+  {q:'En IGH, feu confirmé :',a:['Évac verticale','Compartimentage + transfert horizontal','Ascenseurs'],correct:1},
+  {q:'Permis de feu signé par :',a:['Artisan seul','SSIAP 2 et artisan','Direction'],correct:1},
+  {q:'MCI contient :',a:['Qui/Quand/Où/Quoi/Conséquence/Mesures','Nom agent seul','Heure seule'],correct:0},
+  {q:'Panne CMSI totale :',a:['Fermer site','Mode dégradé + rondes manuelles','Attendre'],correct:1},
+  {q:'Effectif min SSIAP IGH :',a:['1 SSIAP 2','2 SSIAP dont 1 SSIAP 2','3 SSIAP 1'],correct:1},
+  {q:'Stagiaire en ronde :',a:['Seul','Binôme avec tuteur','Autonome'],correct:1},
+  {q:'Alarme feu ERP U : patients :',a:['Verticalement','Horizontalement par compartimentage','Jamais'],correct:1},
+  {q:'SSIAP 2 peut inhiber ?',a:['Toujours','Uniquement travaux/technique','La nuit'],correct:1},
+  {q:'Ronde surveillance :',a:['Contrôle SSI','Contrôle accès et circulations','Maintenance'],correct:1},
+  {q:'Le pointage badge sert à :',a:['Rien','Prouver le passage de l\'agent','Suivre l\'agent en direct'],correct:1},
+  {q:'Fenêtre de tolérance ronde :',a:['Aucune','± quelques minutes selon le site','±1h'],correct:1},
+];
+
+const CAREER = [
+  {lvl:1,name:'SSIAP 2 Stagiaire',xp:0,bonus:0},
+  {lvl:2,name:'SSIAP 2 Opérationnel',xp:150,bonus:5},
+  {lvl:3,name:'SSIAP 2 Confirmé',xp:400,bonus:10},
+  {lvl:4,name:'SSIAP 2 Senior',xp:800,bonus:15},
+  {lvl:5,name:'SSIAP 2 Expert',xp:1500,bonus:20},
+  {lvl:6,name:'Adjoint SSIAP 3',xp:2500,bonus:30},
+  {lvl:7,name:'SSIAP 3 en formation',xp:4000,bonus:40},
+];
+function careerLevel(xp){ let l = CAREER[0]; for(const c of CAREER) if(xp>=c.xp) l = c; return l; }
+function nextCareer(xp){ for(const c of CAREER) if(xp < c.xp) return c; return null; }
+
+const ACHIEVEMENTS = [
+  {id:'first',icon:'🎓',name:'Premier poste',desc:'Terminer une première vacation'},
+  {id:'veteran',icon:'🎖',name:'Vétéran',desc:'Terminer 10 vacations'},
+  {id:'perfect',icon:'⭐',name:'Sans faute',desc:'Note globale ≥ 90'},
+  {id:'rounds_master',icon:'🎯',name:'Rondier expert',desc:'50 rondes complétées'},
+  {id:'badge_pro',icon:'📇',name:'Badgeur pro',desc:'100 pointages réussis'},
+  {id:'night_owl',icon:'🦉',name:'Veilleur de nuit',desc:'5 vacations de nuit réussies'},
+  {id:'mci_pro',icon:'📋',name:'Rédacteur pro',desc:'20 MCI conformes'},
+  {id:'rh_boss',icon:'👥',name:'Chef RH',desc:'+50 score RH cumulé'},
+  {id:'audit_master',icon:'🎯',name:'Audit master',desc:'10 audits réussis'},
+  {id:'all_sites',icon:'🌍',name:'Polyvalent',desc:'Les 5 sites visités'},
+  {id:'qcm_lover',icon:'📚',name:'Formateur',desc:'25 QCM lancés'},
+  {id:'no_miss',icon:'🛡',name:'Zéro ronde manquée',desc:'Vacation sans ronde manquée'},
+];
+
+const SKILLS = {
+  vitesse:{name:'Vitesse',icon:'💨',cost:[8,16,24],desc:['-8% trajet','-16% trajet','-25% trajet']},
+  vigilance:{name:'Vigilance',icon:'👁',cost:[8,16,24],desc:['+8% détection points cachés','+16%','+24%']},
+  endurance:{name:'Endurance',icon:'💪',cost:[8,16,24],desc:['Fatigue -15%','-30%','-45%']},
+  sst:{name:'SST',icon:'🩹',cost:[6,12,20],desc:['Base SST','Confirmé','Chef secours']},
+  badge:{name:'Badge rapide',icon:'📇',cost:[6,12,20],desc:['Scan plus rapide','+10% réussite','Maître badge']},
+  comm:{name:'Comm.',icon:'📻',cost:[6,12,20],desc:['Clarté','Protocole','Chef comms']},
+};
+
+const SHOP = [
+  {id:'talkie',icon:'📻',name:'Talkie pro',desc:'+10% vitesse ordres',cost:15},
+  {id:'lampe',icon:'🔦',name:'Lampe LED',desc:'Points cachés -30% (nuit)',cost:15},
+  {id:'badge_reader',icon:'📇',name:'Lecteur badge pro',desc:'Pointage +15% réussite',cost:22},
+  {id:'tablette',icon:'📱',name:'Tablette MCI',desc:'+20% note MCI',cost:25},
+  {id:'camera',icon:'📷',name:'Caméra thermique',desc:'+25% détection feux',cost:35},
+  {id:'testeur',icon:'🔧',name:'Testeur SSI',desc:'Défauts -50%',cost:28},
+  {id:'cafe',icon:'☕',name:'Machine à café',desc:'Fatigue -20%',cost:22},
+];
+
+let G = null;
+let timer = null;
+let SAVE = loadSave();
+let selectedSiteId = null;
+let selectedShift = null;
+let currentTeam = null;
+let toastTimer = null;
+let _mcCache = '';
+let pickingFor = null;
+
+function defaultSave(){
+  return {
+    xp:0, vacations:0, vacationsData:[],
+    muted:false, owned:[], agents:{},
+    rhScore:0, achs:{},
+    money:0,
+    stats:{fires:0,mci_good:0,audits:0,qcms:0,roundsDone:0,roundsMissed:0,
+           badges:0,badgesFailed:0,nightVacations:0,sitesVisited:[],
+           lddOk:0, degradedHandled:0, datDone:0, keyErrors:0},
+    firstTime:true,
+  };
+}
+function loadSave(){
+  try{ const r = localStorage.getItem(SAVE_KEY); return r ? {...defaultSave(), ...JSON.parse(r)} : defaultSave(); }
+  catch(e){ return defaultSave(); }
+}
+function writeSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); }catch(e){} }
+
+function ensureAgentData(){
+  if(!SAVE.agents) SAVE.agents = {};
+  for(const a of [...AGENT_POOL, ...STAG_POOL]){
+    if(!SAVE.agents[a.id]) SAVE.agents[a.id] = { xp:0, skills:{vitesse:0,vigilance:0,endurance:0,sst:0,badge:0,comm:0} };
+  }
+  writeSave();
+}
+
+const $ = id => document.getElementById(id);
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function fmtTime(m){ m = Math.floor(m)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function clamp(v,mn,mx){ return Math.max(mn, Math.min(mx, v)); }
+
+function toast(msg, type){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (type||'');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 2600);
+}
+
+const A = {
+  ctx:null, muted:false, ambientNode:null,
+  init(){ if(this.ctx) return; try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} },
+  beep(f=800,d=0.1,v=0.07,t='sine'){
+    if(!this.ctx || this.muted) return;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = t; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(v, this.ctx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+d);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(); o.stop(this.ctx.currentTime+d);
+  },
+  badgeSuccess(){ this.beep(1400,0.05,0.08,'sine'); setTimeout(()=>this.beep(1800,0.08,0.1),70); },
+  badgeFail(){ this.beep(300,0.15,0.08,'square'); },
+  alarm(){ this.beep(880,0.12,0.09,'square'); setTimeout(()=>this.beep(880,0.12,0.09,'square'),180); },
+  ronde(){ this.beep(520,0.08,0.08); setTimeout(()=>this.beep(660,0.1,0.08),100); setTimeout(()=>this.beep(780,0.12,0.09),220); },
+  success(){ this.beep(660,0.08,0.08); setTimeout(()=>this.beep(1100,0.12,0.1),150); },
+  fail(){ this.beep(380,0.14,0.1,'triangle'); setTimeout(()=>this.beep(240,0.2,0.1,'triangle'),140); },
+  click(){ this.beep(720,0.04,0.05); },
+  startAmbient(){
+    if(!this.ctx || this.muted || this.ambientNode) return;
+    try{
+      const o1 = this.ctx.createOscillator(), o2 = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o1.type='sine'; o1.frequency.value = 58;
+      o2.type='sine'; o2.frequency.value = 61;
+      g.gain.value = 0.012;
+      o1.connect(g); o2.connect(g); g.connect(this.ctx.destination);
+      o1.start(); o2.start();
+      this.ambientNode = {o1,o2,g};
+    }catch(e){}
+  },
+  stopAmbient(){ if(this.ambientNode){ try{this.ambientNode.o1.stop();this.ambientNode.o2.stop();}catch(e){} this.ambientNode=null; } },
+};
+
+function renderSiteGrid(){
+  let h = '';
+  for(const k in SITES){
+    const s = SITES[k];
+    h += `<div class="siteCard ${selectedSiteId===k?'sel':''}" data-site="${k}">
+      <div class="scIcon">${s.icon}</div>
+      <div class="scInfo">
+        <div class="scName">${s.name} — ${s.subtitle}</div>
+        <div class="scDesc">${s.zones.length} zones · ${s.zones.map(z=>z.floor).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}</div>
+      </div>
+    </div>`;
+  }
+  $('siteGrid').innerHTML = h;
+  $('shiftDayBtn').className = 'shiftBtn' + (selectedShift === 'day' ? ' sel' : '');
+  $('shiftNightBtn').className = 'shiftBtn' + (selectedShift === 'night' ? ' sel' : '');
+  $('pickSiteBtn').disabled = !(selectedSiteId && selectedShift);
+  const lvl = careerLevel(SAVE.xp);
+  const nxt = nextCareer(SAVE.xp);
+  let ch = `<div class="statGrid">
+    <div class="sg"><div class="sgv">${SAVE.vacations}</div><div class="sgl">VACATIONS</div></div>
+    <div class="sg mid"><div class="sgv">${SAVE.xp}</div><div class="sgl">XP</div></div>
+    <div class="sg good"><div class="sgv">${lvl.lvl}</div><div class="sgl">NIVEAU</div></div>
+  </div>
+  <div style="text-align:center;font-size:9px;color:#7d8fa3;margin-bottom:8px">
+    🎖 <b style="color:#ffb020">${lvl.name}</b>${nxt ? ` · Prochain : ${nxt.xp - SAVE.xp} XP` : ''}
+  </div>`;
+  $('careerHeader').innerHTML = ch;
+}
+
+function generateTeam(){
+  const pool = [...AGENT_POOL].sort(() => Math.random() - 0.5);
+  const a1 = pool[0], a2 = pool[1];
+  const hasStag = Math.random() < 0.5;
+  const stag = hasStag ? [...STAG_POOL].sort(()=>Math.random()-0.5)[0] : null;
+  return {
+    agents: [mkAgent(a1, 'ssiap1'), mkAgent(a2, 'ssiap1')],
+    stagiaire: stag ? {...mkAgent(stag, 'stagiaire'), tutorId: a1.id} : null,
+  };
+}
+function mkAgent(a, role){
+  ensureAgentData();
+  const d = SAVE.agents[a.id];
+  const lvl = 1 + Math.floor(d.xp / 20);
+  return {
+    id: a.id, name: a.name, avatar: a.avatar, trait: a.trait || 'STAGIAIRE',
+    role, level: lvl, xp: d.xp, skills: {...d.skills},
+    fatigue: 0, state:'idle', pos:'pcs', until:0, workTime:0,
+    isRonde:false, rondeType:null, rondePlan:[], rondeIndex:0,
+    currentRoundId:null, pointResults:[], bubble:null,
+    interventions:0, rondeCount:0, currentAnomaly:null,
+    scanningPoint:null, scanning:false,
+    stress: role === 'stagiaire' ? 25 : 0,
+    noRadio:false, noBadge:false, ldd:false, tutorId:null,
+  };
+}
+
+function renderTeam(){
+  const c = $('teamContent');
+  $('teamSub').textContent = SITES[selectedSiteId].name + ' · ' + SITES[selectedSiteId].subtitle;
+  let h = `<div class="cardTop">
+    <div class="cardEmoji">🎖</div>
+    <div class="cardName">Vous — SSIAP 2</div>
+    <div class="cardTrait">Chef de poste · ${careerLevel(SAVE.xp).name}</div>
+  </div>`;
+  for(const a of currentTeam.agents){
+    const skillSum = Object.values(a.skills).reduce((s,v)=>s+v, 0);
+    h += `<div class="cardTop">
+      <div class="cardEmoji">${a.avatar}</div>
+      <div class="cardName">${a.name} <span class="tag n1">SSIAP 1</span></div>
+      <div class="cardTrait">${a.trait} · Niv.${a.level} · ${a.xp} XP · ${skillSum} comp.</div>
+    </div>`;
+  }
+  if(currentTeam.stagiaire){
+    h += `<div class="cardTop">
+      <div class="cardEmoji">${currentTeam.stagiaire.avatar}</div>
+      <div class="cardName">${currentTeam.stagiaire.name} <span class="tag stag">STAGIAIRE</span></div>
+      <div class="cardTrait" style="color:#ff8b7e">Tuteur : ${currentTeam.agents[0].name}</div>
+    </div>`;
+  }
+  c.innerHTML = h;
+}
+
+function startGame(){
+  A.init(); A.startAmbient();
+  const site = SITES[selectedSiteId];
+  const shift = selectedShift || (Math.random() < 0.5 ? 'day' : 'night');
+  const startT = shift === 'day' ? 7*60 : 19*60;
+  const endT = shift === 'day' ? 19*60 : 7*60 + 1440;
+
+  G = {
+    siteId:selectedSiteId, site, shift, startT, endT,
+    t:startT, paused:false, speed:1, score:0,
+    agents: currentTeam.agents.map(a => ({...a})),
+    stagiaire: currentTeam.stagiaire ? {...currentTeam.stagiaire} : null,
+    mc:[], events:[], solved:[], dossiers:{},
+    rounds: generateRounds(site, shift),
+    nextEventAt: startT + 120,
+    weather: pick([
+      {icon:'☀', label:'Ensoleillé', mod:0.9},
+      {icon:'⛅', label:'Nuageux', mod:1.0},
+      {icon:'🌧', label:'Pluie', mod:1.15},
+      {icon:'🌫', label:'Brouillard', mod:1.1},
+      {icon:'⛈', label:'Orage', mod:1.35},
+      {icon:'❄', label:'Neige', mod:1.2},
+    ]),
+    nextRadioAt: startT + 20,
+    nextAuditAt: startT + 240 + Math.random()*180,
+    auditOpen: false,
+    s3:{present:false, audits:0, auditsGood:0},
+    debrief:{regulation:0, time:0, rh:0, mci:0, stagiaire:0, training:0, materiel:0, count:0,
+             roundsOk:0, roundsMissed:0, roundsLate:0, roundsIncidents:0,
+             badges:0, badgesFailed:0, pointsMissed:0},
+    activeModal:null, qcmAvailable:true,
+    ld:null,
+    nextDegradedAt: startT + 90 + Math.random()*120,
+    date: randDate(),
+    firesThisVacation:0,
+    uid:1,
+  };
+  G.materiel = initMateriel(site);
+  G.deg = initDegraded();
+  G.ssi = initSSI();
+  G.rh = initRH();
+  if(G.stagiaire) G.stagiaire.tutorId = currentTeam.stagiaire.tutorId || G.agents[0].id;
+  _mcCache = '';
+
+  if(!SAVE.stats.sitesVisited.includes(selectedSiteId)) SAVE.stats.sitesVisited.push(selectedSiteId);
+  if(shift === 'night') SAVE.stats.nightVacations++;
+
+  $('sitetag').textContent = site.icon + ' ' + site.name;
+  $('shiftBadge').textContent = (shift==='day'?'☀ JOUR':'🌙 NUIT');
+  $('shiftBadge').className = 'shift ' + shift;
+  $('metaSite').textContent = site.name;
+  $('metaWeather').textContent = G.weather.icon + ' ' + G.weather.label;
+  $('metaBinome').textContent = G.agents.map(a=>a.id+' '+a.name).join(' · ') + (G.stagiaire ? ' + ' + G.stagiaire.name : '');
+  $('metaDate').textContent = G.date;
+
+  mcAdd('PC', `🔓 PRISE DE SERVICE — ${site.name}`, 'head-init');
+  mcAdd('PC', `Vacation ${shift==='day'?'JOUR 07:00-19:00':'NUIT 19:00-07:00'}`, 'info');
+  mcAdd('PC', `Équipe : ${G.agents.map(a=>a.name).join(', ')}${G.stagiaire?' + '+G.stagiaire.name:''}`, 'ok');
+  mcAdd('PC', `📋 ${G.rounds.length} rondes programmées · pointage badge obligatoire`, 'round');
+  mcAdd('PC', `📦 Registre matériel ouvert : ${G.materiel.keys.length} trousseaux, ${G.materiel.radios.length} VHF, ${G.materiel.badges.length} badges au râtelier`, 'action');
+  if(G.stagiaire) mcAdd('PC', `🎓 Stagiaire ${G.stagiaire.name} présent — binôme obligatoire avec ${G.agents.find(a=>a.id===G.stagiaire.tutorId)?.name || G.agents[0].name}`, 'info');
+  if(shift === 'night'){
+    const hiddenCount = G.rounds.reduce((sum,r) => sum + r.points.filter(p=>p.hidden).length, 0);
+    mcAdd('PC', `🌙 Mode nuit : ${hiddenCount} points cachés à détecter`, 'info');
+  }
+
+  renderAll();
+  timer = setInterval(tick, TICK);
+  updateDayCycle();
+}
+function randDate(){
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function mcAdd(agentId, txt, cls){
+  if(!G) return;
+  const a = agentId === 'PC' ? {name:'PCS', avatar:'🖥'} :
+    agentId === 'S3' ? {name:'SSIAP 3', avatar:'🎖'} :
+    G.agents.find(x=>x.id===agentId) ||
+    (G.stagiaire && G.stagiaire.id===agentId ? G.stagiaire : null) || {name:'?', avatar:'?'};
+  G.mc.push({ t:G.t, agentId, name:a.name, avatar:a.avatar, txt, cls:cls||'' });
+  if(G.mc.length > 300) G.mc.shift();
+  renderMC(true);
+}
+
+function renderMC(force){
+  if(!G) return;
+  const active = G.events.filter(e => !e.resolved);
+  let h = `<div class="mcHead"><span>📋 MAIN COURANTE</span><span>${G.mc.length} entrée(s)</span></div>`;
+  for(const ev of active){
+    h += `<div class="mcEvBtn pulse" data-ev="${ev.instId}">
+      <div class="mevhead">
+        <span class="mevi">${iconFor(ev.type)}</span>
+        <span class="mevt">${ev.event}</span>
+        <span class="mevtime" data-age="${ev.instId}">—</span>
+      </div>
+      <div class="mevb">${zoneName(ev.zoneId)} · ${(ev.dilemma||'').substring(0,60)}…</div>
+    </div>`;
+  }
+  const display = G.mc.slice(-60).reverse();
+  for(const e of display){
+    const avCls = e.agentId === 'PC' ? 'PC' : e.agentId === 'S3' ? 'S3' : e.agentId;
+    h += `<div class="mcRow ${e.cls}">
+      <span class="mcTime">${fmtTime(e.t)}</span>
+      <span class="mcAv ${avCls}">${e.avatar}</span>
+      <span class="mcTxt">${e.txt}</span>
+    </div>`;
+  }
+  if(h === _mcCache && !force){ updateAges(); return; }
+  _mcCache = h;
+  $('mcPanel').innerHTML = h;
+  updateAges();
+}
+
+function updateAges(){
+  if(!G) return;
+  for(const ev of G.events.filter(e => !e.resolved)){
+    const el = document.querySelector(`[data-age="${ev.instId}"]`);
+    if(el){
+      const age = Math.floor(G.t - ev.spawnedAt);
+      const txt = age + 'min';
+      if(el.textContent !== txt) el.textContent = txt;
+    }
+  }
+}
+
+function zoneName(id){
+  const z = G.site.zones.find(z=>z.id===id);
+  return z ? z.name : id;
+}
+
+/* ==========================================================
+   PLANNING STRIP
+   ========================================================== */
+function renderPlanningStrip(){
+  if(!G) return;
+  const strip = $('planningStrip');
+  const running = G.rounds.find(r => r.status === 'running');
+
+  if(running){
+    const a = G.agents.find(x => x.id === running.assignedAgentId);
+    const pct = Math.round(((a?.rondeIndex || 0) / running.points.length) * 100);
+    strip.className = 'show';
+    strip.innerHTML = `<div class="psInner">
+      <div class="psIcon">${ROUND_TYPES[running.type].icon}</div>
+      <div class="psInfo">
+        <div class="psLabel"><span class="psid">${running.id}</span> · <span class="pstime">EN COURS</span> · ${ROUND_TYPES[running.type].name}</div>
+        <div class="psSub"><span class="ok">▶ ${a?.name || '—'}</span> · Point ${(a?.rondeIndex||0)+1}/${running.points.length} (${pct}%)</div>
+      </div>
+      <button class="psBtn" data-act="open-planning">Détails</button>
+    </div>`;
+    return;
+  }
+
+  const next = G.rounds
+    .filter(r => r.status === 'pending' || r.status === 'assigned' || r.status === 'late')
+    .sort((a,b) => a.time - b.time)[0];
+
+  if(!next){ strip.className = ''; return; }
+
+  const delta = next.time - G.t;
+  const tol = next.tolerance || 8;
+  const isImminent = delta <= 5 && delta > -tol;
+  const isDue = delta <= 0 && delta > -tol;
+  const isLate = delta <= -tol;
+  strip.className = 'show' + ((isImminent || isDue || isLate) ? ' imminent' : '');
+
+  const agent = next.assignedAgentId ? G.agents.find(x => x.id === next.assignedAgentId) : null;
+  let sub = '';
+  let btn = '';
+  if(isLate && !agent){
+    sub = `<span class="crit">⏰ EN RETARD — assigner URGENT</span>`;
+    btn = `<button class="psBtn urgent" data-act="open-picker" data-round="${next.id}">Assigner</button>`;
+  } else if(isDue && !agent){
+    sub = `<span class="crit">⚠ À DÉMARRER — non assignée</span>`;
+    btn = `<button class="psBtn urgent" data-act="open-picker" data-round="${next.id}">Assigner</button>`;
+  } else if(isImminent && !agent){
+    sub = `<span class="warn">⚠ Non assignée — ${delta.toFixed(0)} min · tol. ±${tol}</span>`;
+    btn = `<button class="psBtn assign" data-act="open-picker" data-round="${next.id}">Assigner</button>`;
+  } else if(isLate && agent){
+    sub = `<span class="crit">⏰ Retard — ${agent.name} à envoyer</span>`;
+    btn = `<button class="psBtn" data-act="open-planning">Détails</button>`;
+  } else if(agent){
+    sub = `→ ${agent.name} · Dans ${delta.toFixed(0)} min · tol. ±${tol}`;
+    btn = `<button class="psBtn" data-act="open-planning">Détails</button>`;
+  } else {
+    sub = `<span class="warn">Non assignée · Dans ${delta.toFixed(0)} min · tol. ±${tol}</span>`;
+    btn = `<button class="psBtn assign" data-act="open-picker" data-round="${next.id}">Assigner</button>`;
+  }
+
+  strip.innerHTML = `<div class="psInner">
+    <div class="psIcon">${ROUND_TYPES[next.type].icon}</div>
+    <div class="psInfo">
+      <div class="psLabel"><span class="psid">${next.id}</span> · <span class="pstime">${fmtTime(next.time)}</span> · ${ROUND_TYPES[next.type].name}</div>
+      <div class="psSub">${sub}</div>
+    </div>
+    ${btn}
+  </div>`;
+}
+
+function renderPlanning(){
+  if(!G) return;
+  $('planningSub').textContent = `${G.site.name} · ${G.shift === 'day' ? 'JOUR' : 'NUIT'} · ${fmtTime(G.t)}`;
+  const rounds = G.rounds.slice().sort((a,b) => a.time - b.time);
+  let h = `<div style="font-size:8.5px;color:#5a6b7d;line-height:1.5;margin-bottom:10px;padding:8px;background:rgba(80,140,220,.06);border-radius:6px">
+    📌 <b style="color:#d4dde8">Réglementation :</b> ronde avec <b style="color:#22d3ee">pointage badge</b> obligatoire.<br>
+    Tolérance : <b style="color:#ffb020">± minutes</b> indiquées par ronde.<br>
+    ${G.shift==='night' ? '<b style="color:#c084fc">🌙 Points cachés</b> — l\'agent peut en rater.' : ''}
+  </div>`;
+
+  for(const r of rounds){
+    const agent = r.assignedAgentId ? G.agents.find(x => x.id === r.assignedAgentId) : null;
+    const delta = r.time - G.t;
+    const tol = r.tolerance || 8;
+
+    let cls = 'roundItem';
+    let statusTxt = '';
+    let actions = '';
+
+    if(r.status === 'done'){
+      cls += ' done';
+      statusTxt = `<span style="color:#4ade80">✅ Effectuée à ${fmtTime(r.doneAt)} — ${agent?.name || '?'}${r.incidents > 0 ? ` · ${r.incidents} inc.` : ''}${r.pointsMissed > 0 ? ` · ${r.pointsMissed} pt manqué` : ''}</span>`;
+    } else if(r.status === 'missed'){
+      cls += ' missed';
+      statusTxt = `<span style="color:#ff6b5e">❌ Manquée — non-conformité</span>`;
+    } else if(r.status === 'running'){
+      cls += ' running';
+      const pct = Math.round(((agent?.rondeIndex || 0) / r.points.length) * 100);
+      statusTxt = `<span style="color:#ffb020">▶ En cours — ${agent?.name} · ${pct}%</span>`;
+    } else if(delta < -tol){
+      cls += ' late';
+      statusTxt = agent
+        ? `<span style="color:#ff6b5e">⏰ EN RETARD — ${agent.name} doit y aller</span>`
+        : `<span style="color:#ff6b5e">⏰ EN RETARD — non assignée</span>`;
+      if(!agent) actions = `<button class="urgent" data-act="open-picker" data-round="${r.id}">Assigner</button>`;
+    } else if(delta <= 0){
+      cls += ' imminent';
+      statusTxt = agent
+        ? `<span style="color:#ffb020">⏰ DÉMARRAGE — ${agent.name}</span>`
+        : `<span style="color:#ff6b5e">⚠ DÉMARRAGE — non assignée</span>`;
+      if(!agent) actions = `<button class="urgent" data-act="open-picker" data-round="${r.id}">Assigner</button>`;
+    } else if(delta <= 5){
+      cls += ' imminent';
+      statusTxt = agent
+        ? `<span style="color:#ffb020">⏰ Dans ${delta.toFixed(0)} min — ${agent.name}</span>`
+        : `<span style="color:#ffb020">⏰ Dans ${delta.toFixed(0)} min — non assignée</span>`;
+      if(!agent) actions = `<button class="urgent" data-act="open-picker" data-round="${r.id}">Assigner</button>`;
+    } else if(delta <= 30){
+      statusTxt = agent
+        ? `<span style="color:#7ab0ff">→ ${agent.name} · Dans ${delta.toFixed(0)} min</span>`
+        : `<span style="color:#ffb020">⏳ À assigner · Dans ${delta.toFixed(0)} min</span>`;
+      if(!agent) actions = `<button class="assign" data-act="open-picker" data-round="${r.id}">Assigner</button>`;
+    } else {
+      statusTxt = agent
+        ? `<span style="color:#8fa4b8">→ ${agent.name} · ${fmtTime(r.time)}</span>`
+        : `<span style="color:#5a6b7d">Prévue à ${fmtTime(r.time)}</span>`;
+      if(!agent) actions = `<button class="assign" data-act="open-picker" data-round="${r.id}">Assigner</button>`;
+    }
+
+    if(agent && (r.status === 'pending' || r.status === 'assigned' || r.status === 'late')){
+      actions += `<button data-act="unassign-round" data-round="${r.id}">Retirer</button>`;
+    }
+
+    // Zones avec indicateurs
+    const zonesHtml = r.points.map((p, idx) => {
+      const zname = zoneName(p.zoneId);
+      const result = agent?.pointResults?.[idx];
+      let icon = '';
+      if(result === 'ok') icon = ' ✓';
+      else if(result === 'miss') icon = ' ✗';
+      else if(result === 'badge') icon = ' 📇';
+      return `<span${p.hidden ? ' class="hidden-pt"' : ''}>${zname}${p.hasBadge ? '<span class="badge-pt">📇</span>' : ''}${icon}</span>`;
+    }).join(' · ');
+
+    h += `<div class="${cls}">
+      <div class="riIcon">${ROUND_TYPES[r.type].icon}</div>
+      <div class="riInfo">
+        <div class="riName"><span class="riid">${r.id}</span> · ${r.label}</div>
+        <div class="riTime">${fmtTime(r.time)} — ${ROUND_TYPES[r.type].name}<span class="riTol">tol. ±${tol}min</span></div>
+        <div class="riStatus">${statusTxt}</div>
+        <div class="riZones">${zonesHtml}</div>
+      </div>
+      <div class="riActions">${actions}</div>
+    </div>`;
+  }
+  $('planningContent').innerHTML = h;
+}
+
+function openPicker(roundId){
+  if(!G) return;
+  pickingFor = { roundId };
+  const r = G.rounds.find(x => x.id === roundId);
+  if(!r) return;
+  $('pickerSub').textContent = `${r.id} · ${ROUND_TYPES[r.type].name} à ${fmtTime(r.time)} (tol. ±${r.tolerance}min)`;
+  let h = '';
+  for(const a of [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])]){
+    const busy = a.state !== 'idle' && a.state !== 'pause';
+    const onRound = a.isRonde || a.currentRoundId;
+    const dis = busy || onRound;
+    let sub = '';
+    if(a.role === 'stagiaire') sub = `<span class="warn">Stagiaire — doit être en binôme</span>`;
+    else if(onRound) sub = `<span class="warn">Déjà en ronde</span>`;
+    else if(busy) sub = `<span class="warn">Occupé (${a.state})</span>`;
+    else if(a.fatigue > 60) sub = `<span class="warn">Fatigué (${Math.round(a.fatigue)}%)</span>`;
+    else sub = `<span style="color:#4ade80">Disponible</span> · Fat.${Math.round(a.fatigue)}% · Badge niv.${a.skills.badge || 0}`;
+    h += `<div class="pickerAgent ${dis?'disabled':''}" data-pick-agent="${a.id}">
+      <div class="paAv">${a.avatar}</div>
+      <div class="paInfo">
+        <div class="paName">${a.name} <span class="tag n1">${a.role === 'stagiaire' ? 'STAG' : 'SSIAP 1'}</span></div>
+        <div class="paSub">${sub}</div>
+      </div>
+    </div>`;
+  }
+  $('pickerContent').innerHTML = h;
+  $('pickerScreen').classList.add('open');
+}
+
+function assignRound(roundId, agentId){
+  const r = G.rounds.find(x => x.id === roundId);
+  let a = G.agents.find(x => x.id === agentId);
+  if(!r) return;
+  if(!a && G.stagiaire && G.stagiaire.id === agentId){
+    const tut = tutorOf(G.stagiaire);
+    const tutFree = tut && !tut.isRonde && (tut.state === 'idle' || tut.state === 'pause');
+    if(!tutFree){
+      mcAdd('PC', `⚠ ${G.stagiaire.name} seul en ronde refusé — le binôme avec un titulaire est obligatoire`, 'warn');
+      toast('Binôme obligatoire : tuteur indisponible', 'bad');
+      G.debrief.stagiaire -= 1;
+      return;
+    }
+    r.wantBinome = true;
+    a = tut;
+    agentId = tut.id;
+  }
+  if(!a) return;
+  r.assignedAgentId = agentId;
+  mcAdd('PC', `📌 ${r.id} (${ROUND_TYPES[r.type].name}) → ${a.name}`, 'round');
+  toast(`${r.id} → ${a.name}`, 'info');
+  renderPlanningStrip();
+  if($('planningScreen').classList.contains('open')) renderPlanning();
+  A.click();
+  $('pickerScreen').classList.remove('open');
+  pickingFor = null;
+}
+
+function unassignRound(roundId){
+  const r = G.rounds.find(x => x.id === roundId);
+  if(!r) return;
+  const old = G.agents.find(x => x.id === r.assignedAgentId);
+  r.assignedAgentId = null;
+  if(old) mcAdd('PC', `❌ ${r.id} retirée à ${old.name}`, 'warn');
+  renderPlanningStrip();
+  if($('planningScreen').classList.contains('open')) renderPlanning();
+}
+
+function startRoundForAgent(agent, round){
+  agent.isRonde = true;
+  agent.rondeType = round.type;
+  agent.rondeIndex = 0;
+  agent.pointResults = [];
+  agent.currentRoundId = round.id;
+  agent.state = 'moving';
+  agent.targetId = round.points[0].zoneId;
+  agent.until = G.t + 3 + Math.random()*2;
+  agent.workTime = 2 + Math.random()*2;
+  round.status = 'running';
+  round.startedAt = G.t;
+  checkDotation(agent, round);
+  if(round.wantBinome && G.stagiaire && G.stagiaire.state === 'idle') attachBinome(round, agent);
+
+  const late = (G.t - round.time) > round.tolerance;
+  if(late){
+    G.debrief.roundsLate = (G.debrief.roundsLate || 0) + 1;
+    mcAdd('PC', `⚠ ${round.id} démarrée EN RETARD (tol. ±${round.tolerance}min)`, 'warn');
+  }
+
+  mcAdd('PC', `▶ ${round.id} (${ROUND_TYPES[round.type].name}) — ${agent.name} en route`, 'round');
+  radioSay(agent, `${round.id} en cours, ${round.points.length} points à contrôler.`, 'order');
+  A.ronde();
+  toast(`${round.id} démarrée`, 'info');
+  renderPlanningStrip();
+}
+
+/* ==========================================================
+   POINT DE RONDE — avec pointage badge + points cachés
+   ========================================================== */
+function handleRoundCheckpoint(agent){
+  const round = G.rounds.find(r => r.id === agent.currentRoundId);
+  if(!round){ agent.isRonde = false; agent.state = 'idle'; return; }
+
+  const point = round.points[agent.rondeIndex];
+  if(!point){ nextRoundPoint(agent); return; }
+
+  // 1. Vérifier si le point est caché (agent peut le rater)
+  if(point.hidden){
+    let missChance = 0.35; // 35% de base la nuit
+    if(agent.skills.vigilance) missChance -= agent.skills.vigilance * 0.08;
+    if(agent.trait === 'VIGILANT') missChance -= 0.08;
+    if(SAVE.owned.includes('lampe')) missChance -= 0.1;
+    missChance = Math.max(0.05, Math.min(0.5, missChance));
+
+    if(Math.random() < missChance){
+      // L'agent rate le point
+      agent.pointResults.push('miss');
+      round.pointsMissed = (round.pointsMissed || 0) + 1;
+      G.debrief.pointsMissed = (G.debrief.pointsMissed || 0) + 1;
+      G.debrief.regulation -= 1;
+      mcAdd(agent.id, `👁 Point de contrôle raté en ${zoneName(point.zoneId)} — zone mal éclairée`, 'warn');
+      radioSay(agent, `Zone sombre, je n'ai pas pu contrôler complètement ${zoneName(point.zoneId)}.`, 'radio');
+      toast(`Point raté : ${zoneName(point.zoneId)}`, 'bad');
+      // Passer au point suivant
+      agent.rondeIndex++;
+      setTimeout(() => nextRoundPoint(agent), 400);
+      return;
+    }
+  }
+
+  // 1bis. Contrôle du trousseau (registre matériel du PCS)
+  if(!point._keyChecked && !keyCovers(agent, point.zoneId)){
+    point._keyChecked = true;
+    G.materiel.wrongKeys++;
+    SAVE.stats.keyErrors = (SAVE.stats.keyErrors || 0) + 1;
+    G.debrief.materiel -= 2;
+    G.debrief.time -= 1;
+    round.pointsMissed = (round.pointsMissed || 0) + 1;
+    agent.pointResults.push('miss');
+    const k = agentKey(agent);
+    mcAdd(agent.id, `🔑 ${zoneName(point.zoneId)} — porte verrouillée, trousseau ${k ? k.id : 'ABSENT'} non adapté (perte 6 min)`, 'warn');
+    radioSay(agent, `Chef, mon trousseau n'ouvre pas ${zoneName(point.zoneId)}, je suis bloqué devant la porte.`, 'radio');
+    toast('Erreur de remise de clé', 'bad');
+    agent.state = 'working';
+    agent.until = G.t + 6;
+    agent.workTime = 6;
+    agent.rondeIndex++;
+    return;
+  }
+
+  // 2. Pointage badge obligatoire
+  const badgeSkill = agent.skills.badge || 0;
+  let badgeSuccess = 0.85 + badgeSkill * 0.05;
+  if(agent.noBadge) badgeSuccess = 0.25;
+  if(SAVE.owned.includes('badge_reader')) badgeSuccess += 0.1;
+  badgeSuccess = Math.min(0.98, badgeSuccess);
+
+  agent.scanning = true;
+  agent.scanningPoint = point.zoneId;
+  agent.state = 'working';
+  agent.until = G.t + 1.5 + Math.random() * 1;
+  agent.workTime = 1.5;
+  A.beep(1000, 0.05, 0.06, 'square');
+
+  // Stocker l'info pour le prochain tick
+  agent._pendingBadge = { success: Math.random() < badgeSuccess };
+
+  // Afficher le statut scan
+  mcAdd(agent.id, `📇 Pointage badge — ${zoneName(point.zoneId)}...`, 'badge');
+}
+
+function completeBadgeScan(agent){
+  const round = G.rounds.find(r => r.id === agent.currentRoundId);
+  if(!round){ agent.scanning = false; agent.state = 'idle'; return; }
+  const point = round.points[agent.rondeIndex];
+  if(!point){ agent.scanning = false; return; }
+
+  const success = agent._pendingBadge?.success !== false;
+  agent._pendingBadge = null;
+  agent.scanning = false;
+  agent.scanningPoint = null;
+
+  if(success){
+    // Badge OK
+    agent.pointResults.push('ok');
+    round.pointsVisited = (round.pointsVisited || 0) + 1;
+    SAVE.stats.badges++;
+    G.debrief.badges = (G.debrief.badges || 0) + 1;
+    A.badgeSuccess();
+    mcAdd(agent.id, `✅ Badge scanné — ${zoneName(point.zoneId)} (${round.pointsVisited}/${round.points.length})`, 'badge');
+    radioSay(agent, `${zoneName(point.zoneId)} OK, point ${round.pointsVisited} validé.`, 'badge');
+
+    // Chance d'incident pendant ce point
+    let incidentChance = 0.28;
+    if(agent.skills.vigilance) incidentChance += agent.skills.vigilance * 0.05;
+    if(agent.trait === 'VIGILANT') incidentChance += 0.05;
+    incidentChance = Math.min(0.55, incidentChance);
+
+    if(Math.random() < incidentChance){
+      // Créer incident
+      const pool = ROUND_INCIDENTS[round.type] || ROUND_INCIDENTS.ssi;
+      const incident = pick(pool);
+      round.incidents = (round.incidents || 0) + 1;
+      G.debrief.roundsIncidents = (G.debrief.roundsIncidents || 0) + 1;
+
+      const zoneEl = document.querySelector(`[data-zone="${point.zoneId}"]`);
+      if(zoneEl){
+        if(incident.severity === 'major') zoneEl.classList.add('await');
+        else zoneEl.classList.add('alert');
+      }
+
+      const dId = createDossier(`${incident.emoji} ${incident.label}`, point.zoneId, agent.name);
+      addStep(dId, `Détection pendant ${round.id}`, 'info');
+      addStep(dId, `Zone : ${zoneName(point.zoneId)}`, 'info');
+      addStep(dId, incident.desc, incident.severity === 'major' ? 'crit' : 'warn');
+
+      const ev = {
+        id: G.uid++, kind: 'anomalie',
+        severity: incident.severity === 'major' ? 3 : 2,
+        zone: point.zoneId, zoneId: point.zoneId,
+        agentId: agent.id, agentName: agent.name,
+        emoji: incident.emoji,
+        title: incident.label,
+        desc: incident.desc + ' — ' + incident.action,
+        dilemma: `${agent.name} a détecté une anomalie. Doit-il traiter, noter, revenir au PC, ou appeler les secours ?`,
+        awaitingOrders: true,
+        orders: incident.severity === 'major'
+          ? ['traiter','notre','retour','appel']
+          : ['traiter','notre','retour'],
+        created: G.t, spawnedAt: G.t, dossierId: dId, resolved: false,
+        roundId: round.id, roundPointIdx: agent.rondeIndex,
+      };
+      G.events.push(ev);
+
+      agent.state = 'awaiting';
+      agent.currentAnomaly = ev;
+
+      mcAdd(agent.id, `${incident.emoji} ${incident.label} en ${zoneName(point.zoneId)} — ⏸ DEMANDE D'ORDRES`, 'crit');
+      radioSay(agent, `Chef, j'ai trouvé : ${incident.label} en ${zoneName(point.zoneId)}. Je fais quoi ?`,
+        incident.severity === 'major' ? 'major' : 'order');
+      if(incident.severity === 'major') A.alarm();
+      toast(`⚠ ${incident.label}`, incident.severity === 'major' ? 'bad' : 'info');
+      renderMC(true);
+      return;
+    }
+
+    // Pas d'incident → point suivant
+    agent.rondeIndex++;
+    nextRoundPoint(agent);
+  } else {
+    // Badge échoué
+    agent.pointResults.push('badge');
+    SAVE.stats.badgesFailed++;
+    G.debrief.badgesFailed = (G.debrief.badgesFailed || 0) + 1;
+    G.score -= 3;
+    A.badgeFail();
+    mcAdd(agent.id, `⚠ Badge ÉCHEC — ${zoneName(point.zoneId)} (à re-scanner)`, 'warn');
+    radioSay(agent, `Problème de badge en ${zoneName(point.zoneId)}. Je réessaie.`, 'order');
+    toast(`Badge échoué`, 'bad');
+    // L'agent retente (reste sur le même point)
+    agent.state = 'moving';
+    agent.targetId = point.zoneId;
+    agent.until = G.t + 2;
+    agent.workTime = 1.5;
+    // Le point n'est PAS validé
+  }
+}
+
+function nextRoundPoint(agent){
+  const round = G.rounds.find(r => r.id === agent.currentRoundId);
+  if(!round){ agent.isRonde = false; agent.state = 'idle'; return; }
+
+  if(agent.rondeIndex >= round.points.length){
+    // Fin de ronde
+    agent.isRonde = false;
+    agent.rondeType = null;
+    agent.currentRoundId = null;
+    agent.rondeCount = (agent.rondeCount || 0) + 1;
+    agent.state = 'moving';
+    agent.targetId = 'pcs';
+    agent.until = G.t + 3;
+    agent.workTime = 0.5;
+
+    round.status = 'done';
+    round.doneAt = G.t;
+
+    // Calcul du score
+    const basePts = 12 + round.points.length * 2 + (round.incidents || 0) * 4;
+    const missPenalty = (round.pointsMissed || 0) * 3;
+    const latePenalty = (G.t - round.time > round.tolerance) ? 5 : 0;
+    const totalPts = Math.max(0, basePts - missPenalty - latePenalty);
+
+    G.score += totalPts;
+    G.debrief.time += 2;
+    G.debrief.roundsOk = (G.debrief.roundsOk || 0) + 1;
+    G.debrief.regulation += 2;
+    SAVE.stats.roundsDone = (SAVE.stats.roundsDone || 0) + 1;
+
+    const tags = [];
+    if(round.incidents > 0) tags.push(`${round.incidents} anomalie(s)`);
+    if(round.pointsMissed > 0) tags.push(`${round.pointsMissed} point(s) raté(s)`);
+    if(latePenalty > 0) tags.push(`EN RETARD (-${latePenalty})`);
+    if(!tags.length) tags.push('RAS');
+
+    mcAdd('PC', `✅ ${round.id} terminée — ${tags.join(', ')} · +${totalPts} pts`, 'round');
+    radioSay(agent, `${round.id} terminée, retour au PC.`, 'radio');
+    A.success();
+    toast(`${round.id} terminée`, 'good');
+    renderPlanningStrip();
+    if($('planningScreen').classList.contains('open')) renderPlanning();
+    return;
+  }
+  // Point suivant
+  const nextPoint = round.points[agent.rondeIndex];
+  agent.state = 'moving';
+  agent.targetId = nextPoint.zoneId;
+  agent.until = G.t + 2 + Math.random() * 2;
+  agent.workTime = 1.5;
+}
+
+function checkRoundTiming(){
+  for(const r of G.rounds){
+    if(r.status === 'done' || r.status === 'missed') continue;
+    const delta = r.time - G.t;
+    const tol = r.tolerance || 8;
+
+    // Pré-alerte 5 min avant
+    if(delta <= 5 && delta > 0 && !r.preAlerted){
+      r.preAlerted = true;
+      A.beep(880, 0.1, 0.07);
+      if(r.assignedAgentId){
+        const a = G.agents.find(x => x.id === r.assignedAgentId);
+        mcAdd('PC', `⏰ ${r.id} dans 5 min — ${a ? a.name : '?'}`, 'warn');
+      } else {
+        mcAdd('PC', `⏰ ${r.id} dans 5 min — NON ASSIGNÉE`, 'crit');
+        toast(`${r.id} à assigner !`, 'bad');
+      }
+    }
+
+    // Trigger au moment prévu
+    if(delta <= 0 && delta > -tol && r.status !== 'running'){
+      if(r.assignedAgentId){
+        const a = G.agents.find(x => x.id === r.assignedAgentId);
+        if(a && a.state === 'idle' && !a.isRonde){
+          startRoundForAgent(a, r);
+        } else if(a){
+          // Agent indispo → essayer réassignation
+          mcAdd('PC', `⚠ ${r.id} — ${a.name} indisponible`, 'warn');
+          const other = G.agents.find(x => x.id !== a.id && x.state === 'idle' && !x.isRonde);
+          if(other){
+            r.assignedAgentId = other.id;
+            startRoundForAgent(other, r);
+            mcAdd('PC', `🔄 ${r.id} réassignée à ${other.name}`, 'info');
+          }
+        }
+      } else if(!r.lateNotified){
+        r.lateNotified = true;
+        mcAdd('PC', `⚠ ${r.id} non assignée — URGENT`, 'crit');
+      }
+    }
+
+    // Trop tard → manquée
+    if(delta < -tol && r.status !== 'running' && r.status !== 'done' && r.status !== 'missed'){
+      r.status = 'missed';
+      G.score -= 12;
+      G.debrief.regulation -= 3;
+      G.debrief.roundsMissed = (G.debrief.roundsMissed || 0) + 1;
+      SAVE.stats.roundsMissed = (SAVE.stats.roundsMissed || 0) + 1;
+      mcAdd('PC', `❌ ${r.id} MANQUÉE (tolérance ±${tol}min dépassée) — non-conformité`, 'crit');
+      A.fail();
+      toast(`${r.id} manquée !`, 'bad');
+    }
+  }
+}
+
+/* ==========================================================
+   DOSSIERS / RADIO
+   ========================================================== */
+let dossierCounter = 1;
+function createDossier(title, zone, agent){
+  const id = 'INC-' + String(dossierCounter++).padStart(3,'0');
+  G.dossiers[id] = { id, title, zone, agent, created: G.t, closedAt: null, steps: [], status:'open' };
+  return id;
+}
+function addStep(dId, txt, type){
+  const d = G.dossiers[dId]; if(!d) return;
+  d.steps.push({ t:G.t, txt, type: type||'info' });
+}
+function closeDossier(dId, status, txt){
+  const d = G.dossiers[dId]; if(!d) return;
+  d.status = status; d.closedAt = G.t;
+  if(txt) addStep(dId, txt, status === 'ok' ? 'ok' : 'crit');
+}
+
+function radioSay(agent, text, type){
+  if(!agent) return;
+  if(agent.noRadio){
+    mcAdd('PC', `📻 ${agent.name} non doté de radio — message terrain non reçu au PCS`, 'warn');
+    return;
+  }
+  if(G && G.deg && G.deg.radio && !G.deg.radio.backup){
+    agent.bubble = { text:'…grésillements… inaudible …', type:'radio', until:G.t + 4 };
+    mcAdd(agent.id, `[RADIO] ⚠ Message brouillé (relais VHF HS)`, 'warn');
+    return;
+  }
+  agent.bubble = { text, type: type||'radio', until: G.t + 5 };
+  mcAdd(agent.id, `[RADIO] ${text}`, 'info');
+}
+
+function tickRadio(){
+  const idle = [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])].filter(a=>a.state==='idle' || a.state==='pause');
+  if(!idle.length) return;
+  const a = pick(idle);
+  const phrases = ['RAS de mon côté.','Je surveille.','Tout nominal.','Rien à signaler.','Secteur calme.'];
+  radioSay(a, pick(phrases));
+}
+
+/* ==========================================================
+   RENDER
+   ========================================================== */
+function renderMap(){
+  const zs = G.site.zones;
+  const cols = zs.length <= 6 ? 3 : zs.length <= 9 ? 3 : 4;
+  $('map').style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  let h = '';
+  for(const z of zs){
+    const agentsHere = [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])].filter(a =>
+      (a.state==='moving' ? a.targetId : a.pos) === z.id);
+    let cls = '';
+    const ev = G.events.find(e => !e.resolved && e.zoneId === z.id);
+    if(ev){
+      if(ev.type === 'feu') cls = 'fire';
+      else if(ev.awaitingOrders) cls = 'await';
+      else cls = 'alert';
+    }
+    if(agentsHere.some(a=>a.isRonde)) cls += ' ronde';
+    let mk = ev ? `<span class="zmk">${ev.type==='feu'?'🔥':ev.awaitingOrders?'⏸':'⚠'}</span>` : '';
+    let dots = agentsHere.map(a => `<span class="zd ${a.id}">${a.id}</span>`).join('');
+    // Badge indicator si un agent est en train de scanner ici
+    let badge = '';
+    const scanningHere = agentsHere.some(a => a.scanning && a.scanningPoint === z.id);
+    if(scanningHere) badge = `<span class="zbadge" style="color:#22d3ee">📇</span>`;
+    h += `<div class="zm ${cls}" data-zone="${z.id}">
+      ${mk}${dots}${badge}
+      <div class="zn">${z.name}</div>
+      <div class="zf">${z.floor}</div>
+    </div>`;
+  }
+  $('map').innerHTML = h;
+}
+
+function renderAgents(){
+  const all = [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])];
+  let h = '';
+  for(const a of all){
+    let st, cls;
+    const round = a.currentRoundId ? G.rounds.find(r => r.id === a.currentRoundId) : null;
+    if(a.state === 'awaiting'){ st = '⏸ Attente ordres'; cls = 'await'; }
+    else if(a.scanning){ st = `📇 Badge — ${zoneName(a.scanningPoint)}`; cls = 'scan'; }
+    else if(a.state === 'moving'){
+      if(a.isRonde && round){ st = `${ROUND_TYPES[round.type].icon} → ${zoneName(a.targetId)}`; cls = 'ronde'; }
+      else { st = `🚶 → ${zoneName(a.targetId)}`; cls = 'ronde'; }
+    }
+    else if(a.state === 'working'){ st = `⏳ En action`; cls = 'warn'; }
+    else if(a.state === 'qcm'){ st = '🎓 Formation'; cls = 'ronde'; }
+    else if(a.state === 'pause'){ st = '☕ Pause'; cls = 'ok'; }
+    else { st = `🟢 ${zoneName(a.pos)}`; cls = 'ok'; }
+    if(a.role === 'stagiaire') st += ` · 😰${Math.round(a.stress||0)}%`;
+    if(a.state === 'binome') st = `🎓 Binôme — ${zoneName(a.pos)}`;
+    if(G.materiel){
+      const kit = [agentRadio(a)?'📻':'', agentBadge(a)?'📇':'', agentKey(a)?agentKey(a).icon:''].filter(Boolean).join('');
+      st += kit ? ' · ' + kit : ' · ⛔ sans dotation';
+    }
+    const ef = a.fatigue < 30 ? 'ok' : a.fatigue < 60 ? 'warn' : 'crit';
+    const eW = 100 - a.fatigue;
+    const isAw = a.state === 'awaiting';
+    const isScan = a.scanning;
+    const bubble = a.bubble && G.t < a.bubble.until ? a.bubble : null;
+    const bubbleCls = bubble && bubble.type === 'major' ? 'major'
+                    : bubble && bubble.type === 'order' ? 'order'
+                    : bubble && bubble.type === 'badge' ? 'badge' : '';
+    const bubbleHtml = `<div class="bubble ${bubbleCls} ${bubble?'show':''}">
+      <div class="bs">📻 ${a.name}</div>
+      <div>${bubble?a.bubble.text:''}</div>
+    </div>`;
+
+    // Barre de progression ronde
+    let rptsHtml = '';
+    if(round && a.isRonde){
+      rptsHtml = `<div class="rpts">${round.points.map((p, idx) => {
+        const r = a.pointResults[idx];
+        let c = 'rp';
+        if(r === 'ok') c += ' ok';
+        else if(r === 'miss') c += ' miss';
+        else if(r === 'badge') c += ' miss';
+        else if(idx === a.rondeIndex) c += ' current';
+        return `<div class="${c}"></div>`;
+      }).join('')}</div>`;
+    }
+
+    h += `<div class="agent ${a.isRonde?'ronde':''} ${isAw?'awaiting pulse':''} ${isScan?'scanning':''}" data-agent="${a.id}">
+      ${bubbleHtml}
+      <div class="avrow">
+        <div class="av">${a.avatar}</div>
+        <div style="flex:1;min-width:0">
+          <div class="an">${a.name}</div>
+          <div class="at">${a.trait}${a.role==='stagiaire'?' · STAG':''}</div>
+        </div>
+        <span style="font-size:7.5px;color:#5a6b7d;font-weight:800">${Math.round(100-a.fatigue)}%</span>
+      </div>
+      <div class="as ${cls}">${st}</div>
+      <div class="eb"><div class="ef ${ef}" style="width:${eW}%"></div></div>
+      <div class="th">TAP → ORDRE</div>
+      ${rptsHtml}
+    </div>`;
+  }
+  $('agents').innerHTML = h;
+}
+
+function renderAll(){
+  if(!G) return;
+  $('clock').textContent = fmtTime(G.t);
+  $('score').textContent = G.score;
+  $('metaS3').textContent = G.s3.present ? 'PRÉSENT' : 'absent';
+  const nextR = G.rounds.filter(r => r.status === 'pending' || r.status === 'assigned' || r.status === 'late')
+    .sort((a,b) => a.time - b.time)[0];
+  $('metaRound').textContent = nextR ? `${nextR.id} ${fmtTime(nextR.time)}` : '—';
+  renderMap();
+  renderAgents();
+  renderPlanningStrip();
+  updateAges();
+}
+
+function updateDayCycle(){
+  if(!G) return;
+  const el = $('dayCycle');
+  const prog = (G.t - G.startT) / (G.endT - G.startT);
+  let color;
+  if(G.shift === 'day'){
+    if(prog < 0.08) color = 'linear-gradient(180deg,rgba(255,140,60,.15),transparent)';
+    else if(prog < 0.85) color = 'linear-gradient(180deg,rgba(255,220,120,.08),transparent)';
+    else color = 'linear-gradient(180deg,rgba(255,100,60,.15),transparent)';
+  } else {
+    if(prog < 0.08) color = 'linear-gradient(180deg,rgba(120,80,180,.12),transparent)';
+    else if(prog < 0.85) color = 'linear-gradient(180deg,rgba(60,80,140,.08),transparent)';
+    else color = 'linear-gradient(180deg,rgba(120,80,180,.12),transparent)';
+  }
+  el.style.background = color;
+}
+
+/* ==========================================================
+   TICK
+   ========================================================== */
+function tick(){
+  if(!G || G.paused) return;
+  if($('mciScreen').classList.contains('open')) return;
+  if($('eventScreen').classList.contains('open')) return;
+  if($('qcmScreen').classList.contains('open')) return;
+  if($('auditScreen').classList.contains('open')) return;
+  if($('debriefScreen').classList.contains('open')) return;
+  if($('datScreen').classList.contains('open')) return;
+
+  G.t += 0.3 * (G.speed || 1);
+  if(G.t >= G.endT){ endVacation(); return; }
+
+  for(const a of [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])]){
+    if(a.state === 'awaiting') continue;
+
+    // Gestion spéciale scan de badge
+    if(a.scanning && a.state === 'working' && G.t >= a.until){
+      completeBadgeScan(a);
+      continue;
+    }
+
+    if(a.state === 'moving' && G.t >= a.until){
+      a.state = 'working'; a.pos = a.targetId; a.until = G.t + a.workTime;
+    } else if(a.state === 'working' && G.t >= a.until){
+      if(a.isRonde && a.currentRoundId){
+        handleRoundCheckpoint(a);
+      } else {
+        a.state = 'idle';
+      }
+    }
+
+    if(a.state === 'idle' || a.state === 'pause'){
+      let bonus = SAVE.owned.includes('cafe') ? 1.3 : 1;
+      if(a.skills && a.skills.endurance) bonus *= (1 + a.skills.endurance * 0.15);
+      a.fatigue = Math.max(0, a.fatigue - 0.5 * bonus);
+    } else if(a.state !== 'awaiting' && !a.scanning){
+      a.fatigue = Math.min(100, a.fatigue + 0.25);
+    }
+  }
+
+  if(G.t >= G.nextRadioAt){ G.nextRadioAt = G.t + 25 + Math.random()*20; tickRadio(); }
+  if(!G.auditOpen && G.t >= G.nextAuditAt && Math.random() < 0.15) openAudit();
+
+  checkRoundTiming();
+  tickV6();
+
+  if(G.t >= G.nextEventAt){
+    trySpawnEvent();
+    const siteMod = G.shift === 'night' ? G.site.nightMod : G.site.dayMod;
+    const base = (35 + Math.random()*45) * G.weather.mod * siteMod;
+    G.nextEventAt = G.t + base / (G.speed||1);
+  }
+
+  if(Math.floor(G.t) % 3 === 0) updateDayCycle();
+  renderAll();
+}
+
+function trySpawnEvent(){
+  const activeCount = G.events.filter(e=>!e.resolved).length;
+  if(activeCount >= 2) return;
+  const valid = EVENTS.filter(e => e.sites.includes('all') || e.sites.includes(G.siteId));
+  const pool = [];
+  for(const e of valid){ for(let i=0;i<e.weight;i++) pool.push(e); }
+  if(!pool.length) return;
+  spawnEvent(pick(pool).id);
+}
+
+function spawnEvent(evId){
+  const ev = EVENTS.find(e => e.id === evId);
+  if(!ev) return;
+  const z = pick(G.site.zones);
+  const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId: z.id, spawnedAt: G.t, resolved:false, awaitingOrders:false};
+  G.events.push(instance);
+  if(ev.type === 'feu'){ A.alarm(); G.firesThisVacation++; SAVE.stats.fires++; }
+  else A.beep(880,0.1,0.07);
+  mcAdd('PC', `⚠ ${ev.event} — ${zoneName(z.id)}`, ev.type==='feu'?'crit':'warn');
+  renderMC(true);
+}
+
+/* ==========================================================
+   EVENT MODAL
+   ========================================================== */
+function openEventModal(instance){
+  if(!G || G.paused) return;
+  G.activeModal = instance;
+  renderEventModal(instance);
+  $('eventScreen').classList.add('open');
+}
+
+function renderEventModal(ev){
+  const ctx = `${G.site.icon} ${G.site.name} — ${fmtTime(G.t)} — ${G.shift==='day'?'JOUR':'NUIT'} — ${G.weather.icon} ${G.weather.label}`;
+  let h = `<h1>${iconFor(ev.type)} ÉVÉNEMENT</h1><div class="sub">${(ev.type||'anomalie').toUpperCase()}</div>`;
+  h += `<div class="evBlock"><div class="evLabel">CONTEXTUALISATION</div>
+    <div class="evCtx">${ctx}<br>${ev.ctx||''}</div></div>`;
+  h += `<div class="evBlock"><div class="evLabel">ÉVÉNEMENT</div>
+    <div class="evContent">${ev.event||ev.title}</div></div>`;
+  h += `<div class="evBlock"><div class="evLabel">SITUATION PCS & TERRAIN</div>
+    <div class="evContent pcs">${ev.pcs||ev.desc}<br><b style="color:#7d8fa3">Zone :</b> ${zoneName(ev.zoneId || ev.zone)}</div></div>`;
+  h += `<h2>RÉSEAU D'INTERACTIONS</h2>`;
+  if(ev.radio) h += `<div class="evBlock"><div class="evLabel">📻 RADIO</div>
+    <div class="evContent radio">${ev.radio}</div></div>`;
+  if(ev.phone) h += `<div class="evBlock"><div class="evLabel">📞 TÉLÉPHONE</div>
+    <div class="evContent phone">${ev.phone}</div></div>`;
+  if(ev.presence) h += `<div class="evBlock"><div class="evLabel">👤 PRÉSENCE PCS</div>
+    <div class="evContent presence">${ev.presence}</div></div>`;
+  h += `<h2>ÉTAT DE L'ÉQUIPE</h2><div class="evTeam">`;
+  for(const a of G.agents){
+    h += `<div class="agentTag"><b>${a.avatar} ${a.name}</b><br>Niv.${a.level} · Fat.${Math.round(a.fatigue)}%</div>`;
+  }
+  if(G.stagiaire) h += `<div class="agentTag"><b>${G.stagiaire.avatar} ${G.stagiaire.name}</b><br>Stagiaire · Tuteur : ${G.agents[0].name}</div>`;
+  h += `</div>`;
+  h += `<h2>DILEMME</h2><div class="evContent">${ev.dilemma||'Quelle décision prendre ?'}</div>`;
+  h += `<h2>CHOIX DE DÉCISION</h2><div class="evChoices">`;
+  for(let i=0;i<ev.choices.length;i++){
+    const c = ev.choices[i];
+    h += `<button class="evChoice" data-choice="${i}">
+      <b>${String.fromCharCode(65+i)} — ${c.label}</b>
+      <span>${c.hint}</span></button>`;
+  }
+  h += `</div>`;
+  $('eventContent').innerHTML = h;
+}
+function iconFor(t){
+  return {feu:'🔥',medical:'🚑',at:'🩹',rh:'👥',ssi:'⚙',permis:'📝',stagiaire:'🎓',conflit:'💬',anomalie:'⚠'}[t] || '⚠';
+}
+
+function resolveChoice(idx){
+  const ev = G.activeModal;
+  if(!ev) return;
+  const c = ev.choices[idx];
+  if(!c) return;
+  A.click();
+  G.score += c.score || 0;
+  G.debrief.count++;
+  G.debrief.regulation += c.reg || 0;
+  G.debrief.time += c.time || 0;
+  if(ev.type === 'rh') G.debrief.rh += c.score > 0 ? 2 : -1;
+  if(ev.type === 'conflit') G.debrief.rh += c.score > 0 ? 1 : -1;
+
+  mcAdd('PC', `Décision : ${c.label} — ${c.consequence}`, 'action');
+
+  if(ev.type === 'feu' && /lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
+    startLDD(ev);
+  }
+  if(ev.type === 'feu' && c.score > 0){ G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true; }
+  if(ev.type === 'at' && !G.rh.datOpen){
+    G.rh.datOpen = true;
+    mcAdd('PC', `🩹 Dossier d'accident du travail à constituer — voir ACTIONS PCS`, 'warn');
+    toast('DAT à saisir', 'bad');
+  }
+  if(ev.type === 'rh' && !G.rh.reinforced && !G.rh.incoming){
+    mcAdd('PC', `👥 Effectif incomplet — possibilité de rappel d'astreinte depuis les ACTIONS PCS`, 'info');
+  }
+
+  const idle = G.agents.find(a => a.state === 'idle');
+  if(idle && ['feu','medical','at','ssi','permis','stagiaire','conflit'].includes(ev.type) && c.score > 0){
+    const speedBonus = idle.skills && idle.skills.vitesse ? (1 - idle.skills.vitesse*0.08) : 1;
+    idle.state = 'moving';
+    idle.targetId = ev.zoneId;
+    idle.until = G.t + (3 + Math.random()*2) * speedBonus;
+    idle.workTime = 2 + Math.random()*2;
+    mcAdd(idle.id, `→ En route vers ${zoneName(ev.zoneId)}`, 'info');
+  }
+
+  $('eventScreen').classList.remove('open');
+  G.activeModal = null;
+
+  if(ev.mci){
+    setTimeout(() => openMCI(ev), 350);
+  } else {
+    ev.resolved = true;
+    G.solved.push(ev);
+    renderMC(true);
+  }
+  toast(`Choix validé · ${c.score>0?'+':''}${c.score} pts`, c.score>0?'good':c.score<0?'bad':'info');
+}
+
+function resolveAnomaly(evId, order){
+  const ev = G.events.find(x => x.id === evId);
+  if(!ev || !ev.awaitingOrders) return;
+  const a = G.agents.find(x => x.id === ev.agentId);
+  if(!a) return;
+  const round = G.rounds.find(r => r.id === ev.roundId);
+
+  let scorePts = 0;
+  let nextAction = 'continue';
+  switch(order){
+    case 'traiter':
+      scorePts = ev.severity === 3 ? 12 : 6;
+      mcAdd(a.id, `✔ ${a.name} traite « ${ev.title} »`, 'ok');
+      radioSay(a, `Anomalie traitée, je continue.`, 'radio');
+      break;
+    case 'notre':
+      scorePts = ev.severity === 3 ? 6 : 3;
+      mcAdd(a.id, `📝 ${a.name} consigne « ${ev.title} »`, 'info');
+      radioSay(a, `Consigné, je poursuis.`, 'radio');
+      break;
+    case 'retour':
+      scorePts = 3;
+      nextAction = 'return';
+      mcAdd(a.id, `↩ ${a.name} revient au PC`, 'info');
+      radioSay(a, `Reçu, je remonte au PC.`, 'order');
+      break;
+    case 'appel':
+      scorePts = ev.severity === 3 ? 10 : 5;
+      mcAdd(a.id, `📞 Appel secours depuis la ronde`, 'ok');
+      radioSay(a, `Je reste en surveillance jusqu'à leur arrivée.`, 'order');
+      break;
+  }
+
+  G.score += scorePts;
+  ev.resolved = true;
+  a.state = 'idle';
+  a.currentAnomaly = null;
+  if(ev.dossierId) closeDossier(ev.dossierId, 'ok', 'Dossier clôturé');
+
+  const zoneEl = document.querySelector(`[data-zone="${ev.zone}"]`);
+  if(zoneEl) zoneEl.classList.remove('await', 'alert');
+
+  if(nextAction === 'return' && round){
+    a.isRonde = false;
+    a.currentRoundId = null;
+    a.rondeType = null;
+    a.state = 'moving';
+    a.targetId = 'pcs';
+    a.until = G.t + 3;
+    a.workTime = 0.5;
+    round.status = 'done';
+    round.doneAt = G.t;
+    G.debrief.roundsOk++;
+    mcAdd('PC', `✅ ${round.id} terminée (retour direct)`, 'round');
+  } else if(round){
+    a.state = 'moving';
+    a.rondeIndex = (a.rondeIndex || 0) + 1;
+    nextRoundPoint(a);
+  }
+
+  A.success();
+  toast(`Ordre transmis (+${scorePts} pts)`, 'good');
+  renderMC(true);
+  renderPlanningStrip();
+  if($('planningScreen').classList.contains('open')) renderPlanning();
+}
+
+/* ==========================================================
+   MCI
+   ========================================================== */
+function openMCI(ev){
+  G.activeModal = ev;
+  const options = ev.mci.map((m,i)=>({...m, idx:i})).sort(() => Math.random()-0.5);
+  let h = `<p style="font-size:9.5px;color:#8fa4b8;margin-bottom:10px">Choisissez la <b style="color:#e8f0f8">rédaction réglementaire correcte</b>.</p>`;
+  h += `<div style="font-size:8.5px;color:#5a6b7d;margin-bottom:10px;padding:6px 8px;background:rgba(80,140,220,.08);border-radius:5px">📌 <b style="color:#d4dde8">Qui · Quand · Où · Quoi · Conséquence · Mesures prises</b></div>`;
+  for(const o of options){
+    h += `<button class="mciOption" data-mci="${o.idx}">${o.text}</button>`;
+  }
+  $('mciContent').innerHTML = h;
+  $('mciScreen').classList.add('open');
+}
+function resolveMCI(idx){
+  const ev = G.activeModal;
+  if(!ev) return;
+  const chosen = ev.mci[idx];
+  document.querySelectorAll('.mciOption').forEach(b => {
+    const i = +b.dataset.mci;
+    if(ev.mci[i].good) b.classList.add('correct');
+    else if(i === idx) b.classList.add('wrong');
+    b.disabled = true;
+  });
+  let bonus = 0;
+  if(chosen.good){
+    bonus = SAVE.owned.includes('tablette') ? 8 : 6;
+    G.score += bonus;
+    G.debrief.mci += 2;
+    SAVE.stats.mci_good++;
+    mcAdd('PC', `✔ MCI conforme (+${bonus} pts)`, 'ok');
+    A.success();
+    toast('✔ MCI conforme', 'good');
+  } else {
+    G.score -= 3;
+    G.debrief.mci -= 1;
+    mcAdd('PC', '❌ MCI non conforme.', 'crit');
+    A.fail();
+    toast('❌ MCI non conforme', 'bad');
+  }
+  ev.resolved = true;
+  G.solved.push(ev);
+  renderMC(true);
+  setTimeout(() => {
+    $('mciScreen').classList.remove('open');
+    G.activeModal = null;
+  }, 1400);
+}
+
+/* ==========================================================
+   ORDER MENU
+   ========================================================== */
+let orderAgent = null;
+function openOrderMenu(agentId){
+  const a = [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])].find(x => x.id === agentId);
+  if(!a) return;
+  orderAgent = a;
+
+  // Si awaiting → directement l'anomalie
+  if(a.state === 'awaiting' && a.currentAnomaly){
+    renderAnomalyOrders(a.currentAnomaly);
+    $('orderScreen').classList.add('open');
+    return;
+  }
+
+  $('orderSub').textContent = `${a.avatar} ${a.name} — ${a.trait} — Fat.${Math.round(a.fatigue)}%`;
+  let h = '';
+  const isAvail = a.state === 'idle';
+  const onRound = a.isRonde || a.currentRoundId;
+
+  h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin-bottom:6px;font-weight:800">🎯 RONDES</div>`;
+  h += orderBtn('ronde-ssi', isAvail && !onRound, '🔥', 'Ronde SSI', 'Sécurité incendie');
+  h += orderBtn('ronde-tech', isAvail && !onRound, '⚙', 'Ronde technique', 'Locaux techniques');
+  h += orderBtn('ronde-surv', isAvail && !onRound, '👁', 'Ronde surveillance', 'Accès et circulations');
+  h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin:12px 0 6px;font-weight:800">🎓 FORMATION</div>`;
+  h += orderBtn('qcm', isAvail && !onRound && a.role !== 'stagiaire', '🎓', 'Lancer QCM', '+XP ciblé');
+  h += orderBtn('exercice', isAvail && !onRound && a.role !== 'stagiaire', '📊', 'Exercice CMSI', 'Manipulation SSI');
+  h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin:12px 0 6px;font-weight:800">☕ REPOS</div>`;
+  h += orderBtn('pause', isAvail && !onRound, '☕', 'Pause 15 min', 'Récupération');
+  h += orderBtn('pcs', isAvail && !onRound, '🏠', 'Rejoindre PCS', 'Retour au poste');
+
+  $('orderContent').innerHTML = h;
+  $('orderScreen').classList.add('open');
+}
+function orderBtn(id, enabled, icon, label, hint){
+  return `<button class="orderBtn" data-order="${id}"
+    style="display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;border-radius:8px;
+    border:1px solid rgba(80,110,150,.2);background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
+    color:#d4dde8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;margin-bottom:6px;
+    text-align:left;${enabled?'':'opacity:.35;pointer-events:none'}">
+    <div style="font-size:17px;width:22px;text-align:center;flex-shrink:0">${icon}</div>
+    <div style="flex:1">
+      <div style="color:#e8f0f8;font-size:11px;margin-bottom:2px;font-weight:800">${label}</div>
+      <div style="font-size:8.5px;color:#7d8fa3;font-weight:500">${hint}</div>
+    </div>
+  </button>`;
+}
+
+function renderAnomalyOrders(ev){
+  $('orderSub').textContent = `Compte-rendu en attente`;
+  let h = `<div style="padding:10px 12px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.3);border-radius:8px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:800;color:#c084fc;margin-bottom:4px">${ev.emoji} ${ev.title}</div>
+    <div style="font-size:9px;color:#8fa4b8;line-height:1.4">${ev.desc}<br>Zone : ${zoneName(ev.zone)}</div>
+  </div>
+  <div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin-bottom:6px;font-weight:800">⚡ ORDRES POSSIBLES</div>`;
+  const cfg = {
+    traiter: {i:'✔', l:'Traiter sur place', h:'Règle l\'anomalie'},
+    notre: {i:'📝', l:'Consigner au rapport', h:'Noter et poursuivre'},
+    retour: {i:'↩', l:'Retour au PC', h:'Compte-rendu direct'},
+    appel: {i:'📞', l:'Appeler les secours', h:'Intervention externe'},
+  };
+  for(const oid of ev.orders){
+    const c = cfg[oid];
+    if(!c) continue;
+    h += `<button class="orderBtn" data-resolve-anomaly="${ev.id}" data-order="${oid}"
+      style="display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;border-radius:8px;
+      border:1px solid rgba(168,85,247,.4);background:linear-gradient(180deg,rgba(168,85,247,.15),rgba(168,85,247,.05));
+      color:#d4dde8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;margin-bottom:6px;text-align:left">
+      <div style="font-size:17px;width:22px;text-align:center;flex-shrink:0">${c.i}</div>
+      <div style="flex:1">
+        <div style="color:#e8f0f8;font-size:11px;margin-bottom:2px;font-weight:800">${c.l}</div>
+        <div style="font-size:8.5px;color:#8fa4b8;font-weight:500">${c.h}</div>
+      </div>
+    </button>`;
+  }
+}
+
+function execOrder(o){
+  const a = orderAgent;
+  if(!a || a.state !== 'idle'){ $('orderScreen').classList.remove('open'); return; }
+  $('orderScreen').classList.remove('open');
+  A.click();
+  const speedBonus = a.skills && a.skills.vitesse ? (1 - a.skills.vitesse*0.08) : 1;
+
+  if(o.startsWith('ronde')){
+    const type = o.replace('ronde-','');
+    const zones = (G.site.roundZones[type] || G.site.zones.slice(0,4).map(z=>z.id));
+    const adhocId = 'AD-' + Date.now().toString().slice(-4);
+    const points = zones.slice(0,4).map(z => ({
+      zoneId: z, hasBadge: true,
+      hidden: G.shift === 'night' && Math.random() < 0.35,
+    }));
+    const adhoc = {
+      id: adhocId, time: G.t, type, label: 'Ronde ad hoc',
+      tolerance: 8, points, status: 'running', assignedAgentId: a.id,
+      startedAt: G.t, doneAt: null, pointsVisited: 0, pointsMissed: 0, incidents: 0,
+      adhoc: true, preAlerted: true,
+    };
+    G.rounds.push(adhoc);
+    startRoundForAgent(a, adhoc);
+    toast(`Ronde ${type} lancée`, 'info');
+    return;
+  }
+  if(o === 'qcm'){ startQCM(a); return; }
+  if(o === 'exercice'){
+    a.state = 'working'; a.pos = 'pcs'; a.until = G.t + 10; a.workTime = 10;
+    G.debrief.training += 1;
+    mcAdd(a.id, `📊 Exercice CMSI`, 'action');
+    radioSay(a, 'Exercice CMSI, je manipule.', 'order');
+    return;
+  }
+  if(o === 'pause'){
+    a.state = 'pause'; a.pos = 'pcs'; a.until = G.t + 15; a.workTime = 15;
+    mcAdd(a.id, `☕ Pause 15 min`, 'info');
+    return;
+  }
+  if(o === 'pcs'){
+    a.state = 'moving'; a.targetId = 'pcs'; a.until = G.t + 3; a.workTime = 0.5;
+    mcAdd(a.id, `→ Retour PCS`, 'info');
+    return;
+  }
+}
+
+/* QCM / AUDIT */
+let qcmState = null;
+function startQCM(agent){
+  const qs = [...QCM_POOL].sort(() => Math.random()-0.5).slice(0, 3);
+  qcmState = { agent, qs, idx:0, correct:0 };
+  renderQCM();
+  $('qcmScreen').classList.add('open');
+  agent.state = 'qcm'; agent.pos = 'pcs';
+  mcAdd(agent.id, `🎓 Formation QCM (3 questions)`, 'action');
+}
+function renderQCM(){
+  const s = qcmState;
+  $('qcmSub').textContent = `${s.agent.avatar} ${s.agent.name} — Question ${s.idx+1}/${s.qs.length}`;
+  const q = s.qs[s.idx];
+  let h = `<div class="qcmQ">${q.q}</div>`;
+  for(let i=0;i<q.a.length;i++){
+    h += `<button class="qcmA" data-qcm="${i}">${String.fromCharCode(65+i)}. ${q.a[i]}</button>`;
+  }
+  $('qcmContent').innerHTML = h;
+}
+function resolveQCM(i){
+  const s = qcmState;
+  const q = s.qs[s.idx];
+  document.querySelectorAll('.qcmA').forEach((b, idx) => {
+    if(idx === q.correct) b.classList.add('good');
+    else if(idx === i) b.classList.add('bad');
+    b.disabled = true;
+  });
+  if(i === q.correct) s.correct++;
+  setTimeout(() => {
+    s.idx++;
+    if(s.idx >= s.qs.length) finishQCM();
+    else renderQCM();
+  }, 900);
+}
+function finishQCM(){
+  const s = qcmState;
+  const good = s.correct;
+  const bonus = good * 4;
+  G.score += bonus;
+  G.debrief.training += good >= 2 ? 2 : 0;
+  ensureAgentData();
+  SAVE.agents[s.agent.id].xp += good * 6;
+  s.agent.xp += good * 6;
+  s.agent.state = 'idle';
+  SAVE.stats.qcms++;
+  mcAdd(s.agent.id, `🎓 QCM : ${good}/${s.qs.length} — +${bonus} pts`, good >= 2 ? 'ok' : 'warn');
+  A.success();
+  toast(`QCM ${good}/${s.qs.length}`, good >= 2 ? 'good' : 'info');
+  $('qcmScreen').classList.remove('open');
+  qcmState = null;
+  writeSave();
+}
+
+let auditState = null;
+function openAudit(){
+  G.auditOpen = true;
+  G.s3.present = true;
+  const q = pick(AUDIT_QUESTIONS);
+  auditState = { q, answered:false };
+  let h = `<div style="padding:10px 12px;background:linear-gradient(135deg,#1a1200,#0e0a00);border:1px solid #facc15;border-radius:6px;margin-bottom:8px">
+    <div style="font-size:8.5px;color:#facc15;font-weight:700;letter-spacing:1px;margin-bottom:4px">🎖 SSIAP 3 — QUESTION D'AUDIT</div>
+    <div style="font-size:10.5px;color:#e8f0f8;line-height:1.4">${q.q}</div>
+  </div>`;
+  for(let i=0;i<q.a.length;i++){
+    h += `<button class="qcmA" data-audit="${i}">${String.fromCharCode(65+i)}. ${q.a[i]}</button>`;
+  }
+  $('auditContent').innerHTML = h;
+  $('auditSub').textContent = `${G.site.name} · ${fmtTime(G.t)}`;
+  $('auditScreen').classList.add('open');
+  A.beep(900, 0.1, 0.08);
+  mcAdd('S3', `🎖 Audit inopiné`, 'warn');
+}
+function resolveAudit(i){
+  const st = auditState;
+  if(!st || st.answered) return;
+  st.answered = true;
+  const q = st.q;
+  document.querySelectorAll('[data-audit]').forEach((b, idx) => {
+    if(idx === q.correct) b.classList.add('good');
+    else if(idx === i) b.classList.add('bad');
+    b.disabled = true;
+  });
+  G.s3.audits++;
+  if(i === q.correct){
+    G.s3.auditsGood++;
+    G.score += 8;
+    G.debrief.regulation += 2;
+    SAVE.stats.audits++;
+    mcAdd('S3', `✔ Réponse correcte.`, 'ok');
+    A.success(); toast('✔ Audit réussi', 'good');
+  } else {
+    G.score -= 4;
+    G.debrief.regulation -= 2;
+    mcAdd('S3', `❌ Réponse incorrecte.`, 'crit');
+    A.fail(); toast('❌ Audit échoué', 'bad');
+  }
+  setTimeout(() => {
+    $('auditScreen').classList.remove('open');
+    G.auditOpen = false;
+    G.nextAuditAt = G.t + 250 + Math.random()*180;
+  }, 1700);
+}
+
+/* ==========================================================
+   END VACATION
+   ========================================================== */
+function endVacation(){
+  if(!G || G.paused) return;
+  G.paused = true;
+  clearInterval(timer);
+  timer = null;
+  A.stopAmbient();
+  A.success();
+
+  for(const r of G.rounds){
+    if(r.status !== 'done' && r.status !== 'missed'){
+      r.status = 'missed';
+      G.debrief.roundsMissed++;
+    }
+  }
+
+  /* Contrôles de fin de poste : restitution du matériel et levée des inhibitions */
+  const notReturned = [...G.materiel.keys, ...G.materiel.radios, ...G.materiel.badges].filter(i => i.holder);
+  G.materiel.notReturned = notReturned.length;
+  if(notReturned.length){
+    G.debrief.materiel -= notReturned.length * 2;
+    mcAdd('PC', `⚠ Relève : ${notReturned.length} matériel(s) non restitué(s) — ${notReturned.map(i=>i.id).join(', ')}`, 'warn');
+  } else {
+    G.debrief.materiel += 3;
+    mcAdd('PC', `📦 Relève : intégralité du matériel restituée au râtelier PCS`, 'ok');
+  }
+  if(G.ssi.inhibited.length){
+    G.debrief.regulation -= G.ssi.inhibited.length * 3;
+    mcAdd('PC', `⚠ Relève : ${G.ssi.inhibited.length} zone(s) laissée(s) INHIBÉE(S) — transmission impérative à la relève`, 'crit');
+  }
+  if(G.rh.datOpen && !G.rh.datDone){
+    G.debrief.rh -= 4;
+    G.debrief.regulation -= 2;
+    mcAdd('PC', `⚠ Relève : dossier DAT non constitué`, 'crit');
+  }
+  if(G.deg.power && !G.deg.power.generator){
+    G.debrief.regulation -= 3;
+    mcAdd('PC', `⚠ Relève : site toujours en coupure secteur sans groupe`, 'crit');
+  }
+
+  const axes = {
+    regulation: clamp(Math.round(50 + G.debrief.regulation * 6 + G.debrief.roundsOk * 3 - G.debrief.roundsMissed * 6), 0, 100),
+    time: clamp(Math.round(60 + G.debrief.time * 8), 0, 100),
+    rh: clamp(Math.round(50 + G.debrief.rh * 6 + (G.stagiaire ? G.debrief.stagiaire * 4 : 8)), 0, 100),
+    mci: clamp(Math.round(50 + G.debrief.mci * 10), 0, 100),
+    materiel: clamp(Math.round(60 + G.debrief.materiel * 4 - G.materiel.wrongKeys * 6 - G.materiel.noRadioDepartures * 8 - G.materiel.pgIssues * 3), 0, 100),
+    training: clamp(Math.round(40 + G.debrief.training * 8), 0, 100),
+  };
+  const total = Math.round(Object.values(axes).reduce((s,v)=>s+v,0) / 6);
+  let rank, rcolor;
+  if(total >= 90){ rank='SSIAP 2 Émérite'; rcolor='#4ade80'; }
+  else if(total >= 75){ rank='SSIAP 2 Confirmé'; rcolor='#4ade80'; }
+  else if(total >= 60){ rank='SSIAP 2 Opérationnel'; rcolor='#ffb020'; }
+  else if(total >= 40){ rank='SSIAP 2 en difficulté'; rcolor='#ffb020'; }
+  else { rank='Insuffisant'; rcolor='#ff6b5e'; }
+
+  const lvl = careerLevel(SAVE.xp);
+  const xpGain = Math.round(total * 0.4 + G.score / 5 + lvl.bonus);
+  const prime = Math.max(0, Math.round((total - 50) * 2 + (G.shift === 'night' ? 40 : 0)));
+  SAVE.money = (SAVE.money || 0) + prime;
+  if(G.rh.datDone) SAVE.stats.datDone = (SAVE.stats.datDone || 0) + 1;
+  SAVE.stats.degradedHandled = (SAVE.stats.degradedHandled || 0) + G.deg.history.length;
+
+  SAVE.vacations++;
+  SAVE.xp += xpGain;
+  SAVE.rhScore += G.debrief.rh;
+  SAVE.vacationsData.push({
+    site:G.siteId, shift:G.shift, total, axes, score:G.score, prime,
+    date:new Date().toISOString().slice(0,10),
+    roundsDone: G.debrief.roundsOk,
+    roundsMissed: G.debrief.roundsMissed,
+    mc: G.mc.slice(-30).map(e => ({t:Math.floor(e.t),txt:e.txt,cls:e.cls})),
+  });
+  if(SAVE.vacationsData.length > 20) SAVE.vacationsData.shift();
+  checkAchievements();
+  writeSave();
+
+  const badgeRate = G.debrief.badges + G.debrief.badgesFailed > 0
+    ? Math.round(G.debrief.badges / (G.debrief.badges + G.debrief.badgesFailed) * 100) : 0;
+
+  let h = `<h1>🎖 DÉBRIEFING SSIAP 3</h1>
+    <div class="sub">Fin de vacation — ${G.site.name}</div>
+    <div class="bigScore">
+      <div class="bsVal">${total}</div>
+      <div class="bsLabel">NOTE GLOBALE / 100</div>
+      <div class="bsRank" style="color:${rcolor}">${rank}</div>
+    </div>`;
+
+  h += `<h2>📋 REGISTRE DES RONDES</h2>
+    <div class="evContent" style="font-size:9px;line-height:1.6">
+      ${G.rounds.map(r => {
+        const agent = r.assignedAgentId ? G.agents.find(x => x.id === r.assignedAgentId) : null;
+        let icon = '○', color = '#5a6b7d';
+        if(r.status === 'done'){ icon = '✓'; color = '#4ade80'; }
+        else if(r.status === 'missed'){ icon = '✗'; color = '#ff6b5e'; }
+        const tags = [];
+        if(r.incidents > 0) tags.push(`${r.incidents} inc.`);
+        if(r.pointsMissed > 0) tags.push(`${r.pointsMissed} pt raté`);
+        if(r.status === 'done' && (r.doneAt - r.time) > r.tolerance) tags.push('EN RETARD');
+        return `<div style="color:${color}">${icon} <b>${r.id}</b> ${fmtTime(r.time)} — ${ROUND_TYPES[r.type].name}${agent ? ' · ' + agent.name : ''}${tags.length ? ' · ' + tags.join(', ') : ''}</div>`;
+      }).join('')}
+    </div>`;
+
+  h += `<h2>📇 POINTAGES BADGE</h2>
+    <div class="evContent">
+      Réussis : <b style="color:#4ade80">${G.debrief.badges || 0}</b> ·
+      Échecs : <b style="color:#ff6b5e">${G.debrief.badgesFailed || 0}</b> ·
+      Taux : <b style="color:#22d3ee">${badgeRate}%</b><br>
+      ${G.shift === 'night' ? `🌙 Points cachés ratés : <b style="color:#c084fc">${G.debrief.pointsMissed || 0}</b>` : ''}
+    </div>`;
+
+  h += `<h2>ÉVALUATION PAR AXE</h2>`;
+  h += axis('Réglementation', axes.regulation);
+  h += axis('Réactivité', axes.time);
+  h += axis('Management / RH', axes.rh);
+  h += axis('Qualité MCI', axes.mci);
+  h += axis('Gestion du matériel', axes.materiel);
+  h += axis('Formation', axes.training);
+
+  h += `<h2>📦 REGISTRE MATÉRIEL</h2>
+    <div class="evContent" style="font-size:9px;line-height:1.6">
+      Mouvements tracés : <b>${G.materiel.log.length}</b><br>
+      Erreurs de trousseau : <b style="color:${G.materiel.wrongKeys?'#ff6b5e':'#4ade80'}">${G.materiel.wrongKeys}</b> ·
+      Départs sans radio : <b style="color:${G.materiel.noRadioDepartures?'#ff6b5e':'#4ade80'}">${G.materiel.noRadioDepartures}</b><br>
+      Remises du passe général : <b style="color:${G.materiel.pgIssues?'#ffb020':'#4ade80'}">${G.materiel.pgIssues}</b> ·
+      Non restitués à la relève : <b style="color:${G.materiel.notReturned?'#ff6b5e':'#4ade80'}">${G.materiel.notReturned}</b>
+    </div>`;
+
+  h += `<h2>🔧 MODES DÉGRADÉS & SSI</h2>
+    <div class="evContent" style="font-size:9px;line-height:1.6">
+      ${G.deg.history.length ? G.deg.history.map(x => `${fmtTime(x.t)} — ${x.k}`).join('<br>') : 'Aucun incident d\'infrastructure.'}<br>
+      Zones inhibées non levées : <b style="color:${G.ssi.inhibited.length?'#ff6b5e':'#4ade80'}">${G.ssi.inhibited.length}</b> ·
+      Désenfumages commandés : <b>${G.ssi.desenf.length}</b>${G.ssi.compart ? ' · Compartimentage IGH engagé' : ''}<br>
+      DAT : <b style="color:${G.rh.datDone?'#4ade80':(G.rh.datOpen?'#ff6b5e':'#7d8fa3')}">${G.rh.datDone ? 'complétée ('+G.rh.datScore+'/'+DAT_STEPS.length+')' : (G.rh.datOpen ? 'NON CONSTITUÉE' : 'sans objet')}</b> ·
+      Renfort RH : <b>${G.rh.reinforced ? 'intégré' : (G.rh.incoming ? 'en route' : 'non sollicité')}</b>
+    </div>`;
+
+  h += `<h2>BILAN</h2>
+    <div class="evContent">
+      Score brut : <b>${G.score} pts</b><br>
+      XP gagné : <b style="color:#ffb020">+${xpGain} XP</b>${lvl.bonus?' (bonus +'+lvl.bonus+')':''}<br>
+      Prime de vacation : <b style="color:#4ade80">+${prime} €</b> · Cagnotte : <b>${SAVE.money} €</b><br>
+      Vacation n°${SAVE.vacations} · XP total : <b>${SAVE.xp}</b><br>
+      Rondes : <b style="color:#4ade80">${G.debrief.roundsOk}</b> effectuées ·
+      <b style="color:#ff6b5e">${G.debrief.roundsMissed}</b> manquées<br>
+      Rondes en retard : <b style="color:#ffb020">${G.debrief.roundsLate || 0}</b><br>
+      Anomalies trouvées : <b>${G.debrief.roundsIncidents || 0}</b><br>
+      Audits SSIAP 3 : <b>${G.s3.auditsGood}/${G.s3.audits}</b><br>
+      Score RH cumulé : <b>${SAVE.rhScore > 0 ? '+' : ''}${SAVE.rhScore}</b><br>
+      Palier : <b style="color:#ffb020">${careerLevel(SAVE.xp).name}</b>
+    </div>`;
+
+  h += `<h2>MAIN COURANTE FINALE</h2>
+    <div class="evContent" style="max-height:150px;overflow-y:auto;font-size:8px;line-height:1.45">
+      ${G.mc.slice(-25).map(e => `<div>${fmtTime(e.t)} ${e.avatar} — ${e.txt}</div>`).join('')}
+    </div>`;
+
+  h += `<button class="btn-main" data-act="new-vacation">NOUVELLE VACATION</button>
+    <button class="btn-sec" data-act="back-to-site">CHANGER DE SITE</button>
+    <button class="btn-sec" data-act="open-hq">🏢 BOUTIQUE</button>
+    <button class="btn-sec" data-act="open-tree-hub">🌳 COMPÉTENCES</button>
+    <button class="btn-sec" data-act="open-achievements">🏆 SUCCÈS</button>`;
+  $('debriefContent').innerHTML = h;
+  $('debriefScreen').classList.add('open');
+}
+function axis(name, val){
+  const cls = val >= 75 ? 'good' : val >= 50 ? 'mid' : 'bad';
+  return `<div class="axisRow"><span class="axName">${name}</span><span class="axScore ${cls}">${val}/100</span></div>`;
+}
+
+function checkAchievements(){
+  const chk = (id, cond) => {
+    if(SAVE.achs[id]) return false;
+    if(cond){ SAVE.achs[id] = true; toast('🏆 Succès débloqué !', 'good'); return true; }
+    return false;
+  };
+  chk('first', SAVE.vacations >= 1);
+  chk('veteran', SAVE.vacations >= 10);
+  chk('rounds_master', (SAVE.stats.roundsDone || 0) >= 50);
+  chk('badge_pro', (SAVE.stats.badges || 0) >= 100);
+  chk('night_owl', (SAVE.stats.nightVacations || 0) >= 5);
+  chk('mci_pro', SAVE.stats.mci_good >= 20);
+  chk('rh_boss', SAVE.rhScore >= 50);
+  chk('audit_master', SAVE.stats.audits >= 10);
+  chk('all_sites', SAVE.stats.sitesVisited.length >= 5);
+  chk('qcm_lover', SAVE.stats.qcms >= 25);
+  if(G && (G.debrief.roundsMissed || 0) === 0 && G.rounds.length > 0) chk('no_miss', true);
+}
+
+function renderAchievements(){
+  const unlocked = ACHIEVEMENTS.filter(a => SAVE.achs[a.id]).length;
+  $('achvProgress').textContent = `${unlocked} / ${ACHIEVEMENTS.length} débloqués`;
+  let h = '';
+  for(const a of ACHIEVEMENTS){
+    const isU = SAVE.achs[a.id];
+    h += `<div class="achv ${isU?'unlocked':'locked'}">
+      <div class="ai">${a.icon}</div>
+      <div class="ainfo">
+        <div class="aname">${a.name}</div>
+        <div class="adesc">${a.desc}</div>
+      </div>
+      ${isU ? '<div class="astat">✓</div>' : ''}
+    </div>`;
+  }
+  $('achvList').innerHTML = h;
+}
+
+function renderShop(){
+  $('hqXP').textContent = SAVE.xp;
+  let h = '';
+  for(const item of SHOP){
+    const owned = SAVE.owned.includes(item.id);
+    const canBuy = !owned && SAVE.xp >= item.cost;
+    h += `<div class="shopItem ${owned?'owned':''} ${canBuy?'buyable':''}" data-shop="${item.id}">
+      <div class="si">${item.icon}</div>
+      <div class="sinfo">
+        <div class="siname">${item.name}</div>
+        <div class="sidesc">${item.desc}</div>
+      </div>
+      <div class="sicost">${owned ? '✓' : item.cost+' XP'}</div>
+    </div>`;
+  }
+  $('shopList').innerHTML = h;
+}
+function buyShop(id){
+  const item = SHOP.find(x => x.id === id);
+  if(!item || SAVE.owned.includes(id)) return;
+  if(SAVE.xp < item.cost){ toast('XP insuffisant', 'bad'); return; }
+  SAVE.xp -= item.cost;
+  SAVE.owned.push(id);
+  writeSave(); renderShop();
+  A.success(); toast(`${item.name} acheté`, 'good');
+}
+function renderTreeHub(){
+  let h = '';
+  for(const a of [...AGENT_POOL, ...STAG_POOL]){
+    ensureAgentData();
+    const d = SAVE.agents[a.id];
+    const totalSkills = Object.values(d.skills).reduce((s,v)=>s+v,0);
+    h += `<button class="btn-sec" style="text-align:left" data-tree="${a.id}">
+      <b>${a.avatar} ${a.name}</b> — ${d.xp} XP · ${totalSkills} pts investis
+    </button>`;
+  }
+  $('treeHubList').innerHTML = h;
+}
+function openTree(agentId){
+  ensureAgentData();
+  const ag = [...AGENT_POOL, ...STAG_POOL].find(x => x.id === agentId);
+  const d = SAVE.agents[agentId];
+  if(!ag) return;
+  let h = `<div class="cardTop">
+    <div class="cardEmoji">${ag.avatar}</div>
+    <div class="cardName">${ag.name}</div>
+    <div class="cardTrait">${ag.trait||'STAGIAIRE'} — <b style="color:#ffb020">${d.xp} XP dispo</b></div>
+  </div>`;
+  for(const sk in SKILLS){
+    const skill = SKILLS[sk];
+    const cur = d.skills[sk];
+    h += `<div class="skillBranch">
+      <h4>${skill.icon} ${skill.name} <span class="sbl">Niv. ${cur}/3</span></h4>`;
+    for(let i=0;i<3;i++){
+      const unlocked = i < cur;
+      const next = i === cur;
+      const cost = skill.cost[i];
+      const canBuy = next && d.xp >= cost;
+      h += `<div class="skillRow ${unlocked?'done':''} ${canBuy?'canbuy':''}" ${canBuy?`data-buy="${agentId}:${sk}:${i}"`:''}>
+        <span class="slv">${unlocked?'✓':canBuy?'🛒':''} ${i+1}</span>
+        <span class="sln">${skill.desc[i]}</span>
+        <span class="sld">${unlocked?'Acquis':cost+' XP'}</span>
+      </div>`;
+    }
+    h += `</div>`;
+  }
+  h += `<button class="btn-sec" data-act="close-tree">FERMER</button>`;
+  $('treeContent').innerHTML = h;
+  $('treeScreen').classList.add('open');
+}
+function buySkill(agentId, sk, idx){
+  ensureAgentData();
+  const d = SAVE.agents[agentId];
+  if(d.skills[sk] !== idx) return;
+  const cost = SKILLS[sk].cost[idx];
+  if(d.xp < cost){ toast('XP insuffisant', 'bad'); return; }
+  d.xp -= cost;
+  d.skills[sk]++;
+  writeSave(); openTree(agentId);
+  A.success(); toast(`+1 ${SKILLS[sk].name}`, 'good');
+}
+function renderReplay(){
+  const list = SAVE.vacationsData.slice().reverse();
+  if(!list.length){
+    $('replayList').innerHTML = `<div style="text-align:center;color:#5a6b7d;padding:20px">Aucune vacation.</div>`;
+    return;
+  }
+  let h = '';
+  for(const v of list){
+    h += `<div style="padding:8px 10px;background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85));border:1px solid rgba(80,110,150,.15);border-radius:6px;margin-bottom:5px">
+      <div style="display:flex;justify-content:space-between;font-size:8.5px;color:#7d8fa3;margin-bottom:3px">
+        <span><b style="color:#d4dde8">${SITES[v.site]?.icon||''} ${SITES[v.site]?.name||v.site}</b></span>
+        <span>${v.date} · Score ${v.score}</span>
+      </div>
+      <div style="font-size:9.5px;font-weight:800;color:${v.total>=75?'#4ade80':v.total>=50?'#ffb020':'#ff6b5e'}">
+        Note : ${v.total}/100
+      </div>
+      <div style="font-size:7.5px;color:#5a6b7d;margin-top:3px;line-height:1.4">
+        Rondes : <b style="color:#4ade80">${v.roundsDone||0}</b> OK · <b style="color:#ff6b5e">${v.roundsMissed||0}</b> manquées
+      </div>
+    </div>`;
+  }
+  $('replayList').innerHTML = h;
+}
+
+function renderActions(){
+  const inhib = G.ssi.inhibited.length;
+  let h = `<div class="matHead">⚙ EXPLOITATION SSI / CMSI</div>`;
+  h += `<button class="orderBtn primary" data-pcs="bps"><div class="oi">🔇</div>
+    <div class="ol"><b>BPS — arrêt signal sonore</b><span>Traiter l'alarme sans la masquer</span></div></button>`;
+  h += `<button class="orderBtn primary" data-pcs="acquit"><div class="oi">🟡</div>
+    <div class="ol"><b>Acquitter les voyants</b><span>Prise en compte des dérangements</span></div></button>`;
+  h += `<button class="orderBtn primary" data-pcs="rearm"><div class="oi">♻</div>
+    <div class="ol"><b>Réarmement SDI / CMSI</b><span>Interdit tant que la levée de doute est en cours</span></div></button>`;
+  h += `<button class="orderBtn warning" data-pcs="inhib"><div class="oi">🚫</div>
+    <div class="ol"><b>Inhiber une zone de détection</b><span>Travaux / maintenance — à lever avant la relève</span></div></button>`;
+  h += `<button class="orderBtn ${inhib?'danger':''}" data-pcs="desinhib"><div class="oi">✅</div>
+    <div class="ol"><b>Lever une inhibition</b><span>${inhib ? inhib + ' zone(s) inhibée(s)' : 'Aucune zone inhibée'}</span></div></button>`;
+  h += `<button class="orderBtn warning" data-pcs="desenf"><div class="oi">🌬</div>
+    <div class="ol"><b>Désenfumage manuel</b><span>Volets / exutoires — contrôle de position</span></div></button>`;
+  h += `<button class="orderBtn warning" data-pcs="compart"><div class="oi">🧱</div>
+    <div class="ol"><b>Compartimentage</b><span>IGH — transfert horizontal</span></div></button>`;
+  h += `<button class="orderBtn danger" data-pcs="alarme_gen"><div class="oi">🚨</div>
+    <div class="ol"><b>Alarme générale</b><span>Évacuation du public</span></div></button>`;
+
+  h += `<div class="matHead">🔧 MODES DÉGRADÉS</div>`;
+  h += `<button class="orderBtn ${G.deg.power?'danger':''}" data-pcs="groupe"><div class="oi">⚡</div>
+    <div class="ol"><b>Bascule groupe électrogène</b><span>${G.deg.power ? (G.deg.power.generator ? 'Groupe en service' : '⚠ COUPURE SECTEUR EN COURS') : 'Alimentation secteur nominale'}</span></div></button>`;
+  h += `<button class="orderBtn ${G.deg.radio?'danger':''}" data-pcs="radio_secours"><div class="oi">📞</div>
+    <div class="ol"><b>Liaison de secours (radio HS)</b><span>${G.deg.radio ? (G.deg.radio.backup ? 'Agent de liaison en place' : '⚠ RELAIS VHF HORS SERVICE') : 'Liaison VHF nominale'}</span></div></button>`;
+  h += `<button class="orderBtn ${G.deg.detect && !G.deg.detect.covered?'danger':''}" data-pcs="surv_renf"><div class="oi">📡</div>
+    <div class="ol"><b>Surveillance compensatoire</b><span>${G.deg.detect ? (G.deg.detect.covered ? 'Mesures en place · ' + zoneName(G.deg.detect.zoneId) : '⚠ DÉTECTION HS · ' + zoneName(G.deg.detect.zoneId)) : 'Détection nominale'}</span></div></button>`;
+
+  h += `<div class="matHead">📦 MATÉRIEL & RONDES</div>`;
+  h += `<button class="orderBtn primary" data-act="open-materiel"><div class="oi">📦</div>
+    <div class="ol"><b>Registre matériel PCS</b><span>Clés, badges, radios — dotation / restitution</span></div></button>`;
+  h += `<button class="orderBtn primary" data-act="open-planning"><div class="oi">📋</div>
+    <div class="ol"><b>Planning des rondes</b><span>Consulter / assigner</span></div></button>`;
+
+  h += `<div class="matHead">👥 GESTION RH & LIAISONS</div>`;
+  h += `<button class="orderBtn ${G.rh.datOpen && !G.rh.datDone ? 'danger':''}" data-pcs="dat"><div class="oi">🩹</div>
+    <div class="ol"><b>Dossier accident du travail</b><span>${G.rh.datDone ? 'DAT complétée' : (G.rh.datOpen ? '⚠ DAT À SAISIR' : 'Aucun AT en cours')}</span></div></button>`;
+  h += `<button class="orderBtn" data-pcs="renfort"><div class="oi">👥</div>
+    <div class="ol"><b>Rappel / remplacement</b><span>${G.rh.incoming ? 'Renfort attendu à ' + fmtTime(G.rh.incoming.at) : 'Astreinte, prestataire ou arbitrage'}</span></div></button>`;
+  h += `<button class="orderBtn" data-pcs="test_radio"><div class="oi">📻</div>
+    <div class="ol"><b>Test radio général</b><span>Vérifier la liaison des agents</span></div></button>`;
+  h += `<button class="orderBtn" data-pcs="appel_s3"><div class="oi">🎖</div>
+    <div class="ol"><b>Appeler le SSIAP 3</b><span>Arbitrage du chef de service</span></div></button>`;
+  $('actionsContent').innerHTML = h;
+}
+function execPcsAction(k){
+  $('actionsScreen').classList.remove('open');
+  A.click();
+  switch(k){
+    case 'bps': execBPS(); break;
+    case 'acquit':
+      mcAdd('PC','🟡 Acquittement des voyants de dérangement CMSI — traitement et traçabilité maintenus','info');
+      toast('Acquittement OK','info'); break;
+    case 'rearm': execRearm(); break;
+    case 'inhib': execInhib(); break;
+    case 'desinhib': execDesinhib(); break;
+    case 'desenf': execDesenf(); break;
+    case 'compart': execCompart(); break;
+    case 'alarme_gen':
+      A.alarm(); G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
+      mcAdd('PC','🚨 ALARME GÉNÉRALE — évacuation du public, agents aux points de rassemblement','crit');
+      G.score += 2; toast('🚨 Alarme générale','bad'); break;
+    case 'groupe': execGenerator(); break;
+    case 'radio_secours': execRadioBackup(); break;
+    case 'surv_renf': execSurveillanceRenforcee(); break;
+    case 'dat': openDAT(); break;
+    case 'renfort': execRenfort(); break;
+    case 'test_radio':
+      if(G.deg.radio && !G.deg.radio.backup){
+        mcAdd('PC','📻 Test radio : aucun agent joignable — relais VHF hors service','warn');
+        toast('Relais VHF HS','bad');
+      } else {
+        for(const a of G.agents){
+          if(a.noRadio) mcAdd('PC', `📻 ${a.name} non doté — aucune réponse`, 'warn');
+          else radioSay(a, 'Test radio reçu 5 sur 5.', 'radio');
+        }
+        mcAdd('PC','📻 Test radio général effectué','ok');
+      }
+      break;
+    case 'appel_s3': G.s3.present = true; mcAdd('S3','Conseil pris en compte, trace-le en main courante.','info'); break;
+  }
+  renderAll();
+}
+
+function togglePause(){
+  if(!G) return;
+  G.paused = !G.paused;
+  if(G.paused){
+    const badgeRate = (G.debrief.badges + G.debrief.badgesFailed > 0)
+      ? Math.round(G.debrief.badges / (G.debrief.badges + G.debrief.badgesFailed) * 100) : 0;
+    let h = `<div class="statGrid">
+      <div class="sg mid"><div class="sgv">${G.score}</div><div class="sgl">PTS</div></div>
+      <div class="sg good"><div class="sgv">${G.debrief.roundsOk || 0}/${G.rounds.length}</div><div class="sgl">RONDES</div></div>
+      <div class="sg"><div class="sgv">${badgeRate}%</div><div class="sgl">BADGE</div></div>
+    </div>
+    <div style="font-size:9.5px;color:#7d8fa3;text-align:center">Poste en cours</div>`;
+    $('pauseStats').innerHTML = h;
+    $('pauseScreen').classList.add('open');
+  } else {
+    $('pauseScreen').classList.remove('open');
+  }
+}
+
+
+/* ==========================================================
+   ============ MOTEUR V6 — EXTENSIONS SSIAP 2 ==============
+   Registre matériel PCS · Modes dégradés · Exploitation SSI
+   RH de crise (renfort / DAT) · Binôme stagiaire · Chrono LDD
+   ========================================================== */
+
+/* ---------- Écran générique (mini-modale à choix) ---------- */
+let miniHandler = null;
+function openMini(title, sub, options, handler){
+  miniHandler = handler;
+  $('miniTitle').textContent = title;
+  $('miniSub').textContent = sub || '';
+  $('miniContent').innerHTML = options.map((o,i) =>
+    `<button class="orderBtn ${o.cls||''}" data-mini="${i}" ${o.disabled?'style="opacity:.35;pointer-events:none"':''}>
+      <div class="oi">${o.icon||'•'}</div>
+      <div class="ol"><b>${o.label}</b><span>${o.hint||''}</span></div>
+    </button>`).join('');
+  $('miniScreen').classList.add('open');
+}
+function closeMini(){ $('miniScreen').classList.remove('open'); miniHandler = null; }
+function resolveMini(i){
+  const h = miniHandler;
+  closeMini();
+  if(h) h(i);
+}
+
+/* ==========================================================
+   1. REGISTRE MATÉRIEL PCS (clés / badges / radios)
+   ========================================================== */
+function buildKeySets(site){
+  const rz = site.roundZones || {};
+  const uniq = a => [...new Set(a)];
+  const all = site.zones.map(z => z.id);
+  return [
+    {id:'TR-A', icon:'🔑', name:'Trousseau A', desc:'Circulations & locaux recevant du public',
+     zones: uniq([...(rz.ssi||[]), 'pcs']), holder:null},
+    {id:'TR-B', icon:'🗝', name:'Trousseau B', desc:'Locaux techniques & gaines',
+     zones: uniq([...(rz.technique||[]), 'pcs']), holder:null},
+    {id:'TR-C', icon:'🔐', name:'Trousseau C', desc:'Accès, extérieurs & parkings',
+     zones: uniq([...(rz.surveillance||[]), 'pcs']), holder:null},
+    {id:'PG', icon:'🧿', name:'Passe général', desc:'Ouvre tout — remise exceptionnelle et tracée',
+     zones: uniq([...all, 'pcs']), holder:null, master:true},
+  ];
+}
+function initMateriel(site){
+  return {
+    keys: buildKeySets(site),
+    radios: [
+      {id:'VHF-1', icon:'📻', name:'VHF 1', desc:'Canal 1 — sécurité incendie', holder:null, battery:100},
+      {id:'VHF-2', icon:'📻', name:'VHF 2', desc:'Canal 1 — sécurité incendie', holder:null, battery:92},
+      {id:'VHF-3', icon:'📻', name:'VHF 3 (secours)', desc:'Batterie faible', holder:null, battery:45},
+    ],
+    badges: [
+      {id:'BA-1', icon:'📇', name:'Badge lecteur 1', desc:'Pointage des points de ronde', holder:null},
+      {id:'BA-2', icon:'📇', name:'Badge lecteur 2', desc:'Pointage des points de ronde', holder:null},
+      {id:'BA-3', icon:'📇', name:'Badge lecteur 3', desc:'Pointage des points de ronde', holder:null},
+    ],
+    log: [], pgIssues: 0, wrongKeys: 0, noRadioDepartures: 0, notReturned: 0,
+  };
+}
+function matKinds(){ return ['keys','radios','badges']; }
+function matFind(kind, id){ return G.materiel[kind].find(x => x.id === id); }
+function matHolderItem(kind, agentId){ return G.materiel[kind].find(x => x.holder === agentId); }
+function matLog(txt){ G.materiel.log.push({t:G.t, txt}); }
+
+function issueItem(kind, itemId, agentId){
+  const it = matFind(kind, itemId);
+  const ag = allStaff().find(a => a.id === agentId);
+  if(!it || !ag) return;
+  if(it.holder){ toast('Déjà en dotation', 'bad'); return; }
+  const prev = matHolderItem(kind, agentId);
+  if(prev) prev.holder = null;
+  it.holder = agentId;
+  matLog(`Remise ${it.id} → ${ag.name}`);
+  mcAdd('PC', `📦 Registre matériel : ${it.icon} ${it.id} remis à ${ag.name}`, 'action');
+  if(it.master){
+    G.materiel.pgIssues++;
+    G.debrief.materiel -= 1;
+    mcAdd('PC', `⚠ Remise du passe général — usage à justifier au SSIAP 3`, 'warn');
+  } else {
+    G.debrief.materiel += 1;
+  }
+  A.click();
+  renderMateriel();
+}
+function returnItem(kind, itemId){
+  const it = matFind(kind, itemId);
+  if(!it || !it.holder) return;
+  const ag = allStaff().find(a => a.id === it.holder);
+  if(ag && (ag.isRonde || ag.state === 'moving')){
+    toast(`${ag.name} est en ronde avec ${it.id}`, 'bad');
+    return;
+  }
+  matLog(`Restitution ${it.id}${ag ? ' par ' + ag.name : ''}`);
+  mcAdd('PC', `📥 Registre matériel : ${it.icon} ${it.id} restitué${ag ? ' par ' + ag.name : ''}`, 'ok');
+  it.holder = null;
+  G.debrief.materiel += 1;
+  A.click();
+  renderMateriel();
+}
+function allStaff(){ return [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])]; }
+function agentKey(agent){ return matHolderItem('keys', agent.id); }
+function agentRadio(agent){ return matHolderItem('radios', agent.id); }
+function agentBadge(agent){ return matHolderItem('badges', agent.id); }
+function keyCovers(agent, zoneId){
+  const k = agentKey(agent);
+  return !!(k && k.zones.includes(zoneId));
+}
+
+function renderMateriel(){
+  if(!G) return;
+  const staff = allStaff();
+  const line = (kind, it) => {
+    const h = it.holder ? staff.find(a => a.id === it.holder) : null;
+    const extra = kind === 'keys'
+      ? `${it.zones.filter(z=>z!=='pcs').length} zones ouvrables`
+      : (kind === 'radios' ? `Batterie ${it.battery}%` : it.desc);
+    return `<div class="matRow ${h?'held':''}">
+      <div class="matIco">${it.icon}</div>
+      <div class="matInfo">
+        <div class="matName">${it.id} — ${it.name}${it.master?' <span class="tag stag">PG</span>':''}</div>
+        <div class="matSub">${it.desc}${kind==='keys'?' · '+extra:''}</div>
+        <div class="matSub">${h ? '👤 En dotation : <b style="color:#ffb020">'+h.name+'</b>' : '<span style="color:#4ade80">Au râtelier PCS</span>'}</div>
+      </div>
+      <div class="matBtns">
+        ${h ? `<button class="matBtn back" data-mat="ret:${kind}:${it.id}">RESTITUER</button>`
+            : staff.map(a => `<button class="matBtn" data-mat="iss:${kind}:${it.id}:${a.id}">${a.avatar}</button>`).join('')}
+      </div>
+    </div>`;
+  };
+  let h = `<div class="matHint">Tout départ en ronde impose radio VHF + badge de pointage + trousseau couvrant les zones contrôlées. Une erreur de remise de clé = porte non ouverte et perte de temps terrain.</div>`;
+  h += `<div class="matHead">🔑 TROUSSEAUX</div>` + G.materiel.keys.map(i => line('keys', i)).join('');
+  h += `<div class="matHead">📻 RADIOS VHF</div>` + G.materiel.radios.map(i => line('radios', i)).join('');
+  h += `<div class="matHead">📇 BADGES DE POINTAGE</div>` + G.materiel.badges.map(i => line('badges', i)).join('');
+  h += `<div class="matHead">📒 REGISTRE D'EMPRUNT</div><div class="evContent" style="font-size:8.5px;line-height:1.5;max-height:120px;overflow:auto">`;
+  h += (G.materiel.log.length ? G.materiel.log.slice(-14).map(l => `${fmtTime(l.t)} — ${l.txt}`).join('<br>') : 'Aucun mouvement enregistré.');
+  h += `</div>`;
+  $('materielContent').innerHTML = h;
+}
+function openMateriel(){ if(!G) return; renderMateriel(); $('materielScreen').classList.add('open'); }
+
+/* Contrôle de dotation au départ d'une ronde */
+function checkDotation(agent, round){
+  const radio = agentRadio(agent), badge = agentBadge(agent), key = agentKey(agent);
+  if(!radio){
+    G.materiel.noRadioDepartures++;
+    G.debrief.materiel -= 3;
+    G.debrief.regulation -= 1;
+    mcAdd('PC', `⚠ ${agent.name} part en ronde SANS RADIO — liaison PCS impossible`, 'warn');
+    toast(`${agent.name} sans radio !`, 'bad');
+    agent.noRadio = true;
+  } else { agent.noRadio = false; }
+  if(!badge){
+    G.debrief.materiel -= 2;
+    mcAdd('PC', `⚠ ${agent.name} n'a pas de badge de pointage — points non traçables`, 'warn');
+    agent.noBadge = true;
+  } else { agent.noBadge = false; }
+  const uncovered = round.points.filter(p => !key || !key.zones.includes(p.zoneId));
+  if(uncovered.length){
+    mcAdd('PC', `🔑 Trousseau ${key ? key.id : 'ABSENT'} : ${uncovered.length} point(s) de ${round.id} non ouvrable(s)`, 'warn');
+  }
+}
+
+/* ==========================================================
+   2. MODES DÉGRADÉS & INCIDENTS INFRASTRUCTURE
+   ========================================================== */
+function initDegraded(){
+  return { power:null, radio:null, detect:null, history:[] };
+}
+function degradedActive(){
+  return !!(G.deg.power || G.deg.radio || G.deg.detect);
+}
+function triggerDegraded(kind){
+  if(kind === 'power' && !G.deg.power){
+    G.deg.power = { since:G.t, deadline:G.t + 3, generator:false, failed:false };
+    A.alarm();
+    mcAdd('PC', `⚡ COUPURE SECTEUR — bascule sur groupe électrogène à confirmer (3 min)`, 'crit');
+    toast('⚡ Coupure secteur !', 'bad');
+    G.deg.history.push({t:G.t, k:'Coupure secteur'});
+  }
+  if(kind === 'radio' && !G.deg.radio){
+    G.deg.radio = { since:G.t, until:G.t + 25 + Math.random()*20, backup:false };
+    mcAdd('PC', `📻 PANNE RADIO VHF — relais HS, liaison agents dégradée`, 'crit');
+    toast('📻 Panne radio VHF', 'bad');
+    G.deg.history.push({t:G.t, k:'Panne radio VHF'});
+  }
+  if(kind === 'detect' && !G.deg.detect){
+    const z = pick(G.site.zones.filter(x => x.id !== 'pcs'));
+    G.deg.detect = { zoneId:z.id, since:G.t, until:G.t + 60 + Math.random()*60,
+                     covered:false, lastPenalty:G.t, maintenance:false };
+    mcAdd('PC', `📡 PANNE DE DÉTECTION — zone ${z.name} non surveillée par le SDI`, 'crit');
+    toast('📡 Détection HS : ' + z.name, 'bad');
+    G.deg.history.push({t:G.t, k:'Panne détection ' + z.name});
+  }
+  renderMC(true);
+}
+function tickDegraded(){
+  const d = G.deg;
+  if(d.power){
+    if(!d.power.generator && !d.power.failed && G.t > d.power.deadline){
+      d.power.failed = true;
+      G.score -= 6;
+      G.debrief.regulation -= 3;
+      G.debrief.time -= 2;
+      mcAdd('PC', `⚡ Groupe électrogène non basculé dans les délais — site en éclairage de sécurité seul`, 'crit');
+      toast('Groupe non basculé !', 'bad');
+    }
+    if(d.power.generator && G.t > d.power.since + 45){
+      mcAdd('PC', `⚡ Retour du secteur — groupe électrogène à l'arrêt, essais consignés`, 'ok');
+      d.power = null;
+    }
+  }
+  if(d.radio){
+    if(G.t > d.radio.until){
+      mcAdd('PC', `📻 Relais VHF rétabli — test radio général à effectuer`, 'ok');
+      toast('Radio rétablie', 'good');
+      d.radio = null;
+    }
+  }
+  if(d.detect){
+    if(G.t > d.detect.until){
+      mcAdd('PC', `📡 Détection rétablie zone ${zoneName(d.detect.zoneId)} — essais SDI conformes`, 'ok');
+      d.detect = null;
+    } else if(!d.detect.covered && G.t - d.detect.lastPenalty > 20){
+      d.detect.lastPenalty = G.t;
+      G.debrief.regulation -= 2;
+      G.score -= 3;
+      mcAdd('PC', `⚠ Zone ${zoneName(d.detect.zoneId)} toujours sans surveillance compensatoire`, 'warn');
+    }
+  }
+  if(G.t >= G.nextDegradedAt){
+    const kinds = ['power','radio','detect'].filter(k => !G.deg[k]);
+    if(kinds.length && Math.random() < 0.55) triggerDegraded(pick(kinds));
+    G.nextDegradedAt = G.t + 140 + Math.random()*160;
+  }
+}
+function execGenerator(){
+  if(!G.deg.power){ toast('Aucune coupure en cours', 'info'); return; }
+  if(G.deg.power.generator){ toast('Groupe déjà en service', 'info'); return; }
+  const late = G.t > G.deg.power.deadline;
+  G.deg.power.generator = true;
+  if(late){
+    mcAdd('PC', `⚡ Bascule groupe électrogène ${fmtTime(G.t)} — HORS DÉLAI`, 'warn');
+    G.score += 1;
+  } else {
+    mcAdd('PC', `⚡ Bascule groupe électrogène ${fmtTime(G.t)} — alimentation de remplacement OK, CMSI sous tension`, 'ok');
+    G.score += 6;
+    G.debrief.regulation += 3;
+    G.debrief.time += 2;
+    toast('Groupe électrogène en service', 'good');
+  }
+}
+function execRadioBackup(){
+  if(!G.deg.radio){ toast('Liaison VHF nominale', 'info'); return; }
+  if(G.deg.radio.backup){ toast('Liaison de secours déjà active', 'info'); return; }
+  const relay = G.agents.find(a => a.state === 'idle') || G.agents.find(a => a.state === 'pause');
+  G.deg.radio.backup = true;
+  if(relay){
+    relay.state = 'working'; relay.pos = 'pcs'; relay.until = G.t + 12; relay.workTime = 12;
+    mcAdd('PC', `📞 Mode dégradé radio : liaison téléphonique PCS + agent de liaison (${relay.name})`, 'action');
+    G.score += 4;
+    G.debrief.regulation += 2;
+    G.debrief.materiel += 2;
+    toast('Liaison de secours activée', 'good');
+  } else {
+    mcAdd('PC', `📞 Mode dégradé radio : liaison téléphonique PCS seule — aucun agent disponible pour la liaison`, 'warn');
+    G.score += 2;
+    G.debrief.regulation += 1;
+    toast('Liaison téléphonique seule', 'info');
+  }
+}
+function execSurveillanceRenforcee(){
+  if(!G.deg.detect){ toast('Aucune zone en défaut de détection', 'info'); return; }
+  if(G.deg.detect.covered){ toast('Surveillance compensatoire déjà en place', 'info'); return; }
+  const a = G.agents.find(x => x.state === 'idle') || G.agents.find(x => x.state === 'pause');
+  if(!a){
+    mcAdd('PC', `⚠ Surveillance compensatoire impossible — aucun agent disponible, renfort à demander`, 'warn');
+    toast('Aucun agent disponible', 'bad');
+    return;
+  }
+  const zid = G.deg.detect.zoneId;
+  G.deg.detect.covered = true;
+  const adhoc = {
+    id:'SC-' + (G.uid++), time:G.t, type:'surveillance', label:'Surveillance compensatoire',
+    tolerance:10, points:[{zoneId:zid, hasBadge:true, hidden:false},{zoneId:zid, hasBadge:true, hidden:false}],
+    status:'running', assignedAgentId:a.id, startedAt:G.t, doneAt:null,
+    pointsVisited:0, pointsMissed:0, incidents:0, adhoc:true, preAlerted:true,
+  };
+  G.rounds.push(adhoc);
+  startRoundForAgent(a, adhoc);
+  mcAdd('PC', `📡 Surveillance compensatoire zone ${zoneName(zid)} — rondes rapprochées, maintenance SSI avisée`, 'ok');
+  G.score += 5;
+  G.debrief.regulation += 3;
+  toast('Mesures compensatoires engagées', 'good');
+}
+
+/* ==========================================================
+   3. EXPLOITATION SSI / CMSI
+   ========================================================== */
+function initSSI(){
+  return { alarmActive:false, buzzer:false, inhibited:[], desenf:[], compart:false, rearmNeeded:false };
+}
+function execBPS(){
+  if(!G.ssi.buzzer && !G.ssi.alarmActive){ toast('Aucun signal sonore', 'info'); return; }
+  G.ssi.buzzer = false;
+  mcAdd('PC', `🔇 Arrêt du signal sonore (BPS) — traitement de l'alarme en cours`, 'info');
+  G.score += 1;
+  toast('Signal sonore arrêté', 'info');
+}
+function execRearm(){
+  if(G.ld){ 
+    mcAdd('PC', `⚠ Réarmement refusé — levée de doute en cours`, 'warn');
+    G.debrief.regulation -= 2;
+    toast('Levée de doute en cours !', 'bad');
+    return;
+  }
+  if(!G.ssi.alarmActive && !G.ssi.rearmNeeded){ toast('Rien à réarmer', 'info'); return; }
+  G.ssi.alarmActive = false;
+  G.ssi.buzzer = false;
+  G.ssi.rearmNeeded = false;
+  mcAdd('PC', `♻ Réarmement CMSI/SDI ${fmtTime(G.t)} — détecteur réarmé après contrôle sur site`, 'ok');
+  G.score += 3;
+  G.debrief.regulation += 2;
+  toast('CMSI réarmé', 'good');
+}
+function execInhib(){
+  const zones = G.site.zones.filter(z => !G.ssi.inhibited.includes(z.id));
+  if(!zones.length){ toast('Toutes les zones sont inhibées', 'bad'); return; }
+  openMini('🚫 INHIBITION DE ZONE', 'Uniquement pour travaux / maintenance — à lever avant la relève',
+    zones.map(z => ({icon:'🚫', label:z.name, hint:z.floor, cls:'warning'})),
+    i => {
+      const z = zones[i];
+      G.ssi.inhibited.push(z.id);
+      mcAdd('PC', `🚫 Inhibition zone ${z.name} ${fmtTime(G.t)} — travaux, surveillance humaine maintenue`, 'warn');
+      G.score += 2;
+      G.debrief.regulation += 1;
+      toast('Zone inhibée : ' + z.name, 'info');
+    });
+}
+function execDesinhib(){
+  if(!G.ssi.inhibited.length){ toast('Aucune zone inhibée', 'info'); return; }
+  const zones = G.ssi.inhibited.map(id => G.site.zones.find(z => z.id === id)).filter(Boolean);
+  openMini('✅ LEVÉE D\'INHIBITION', 'Remise en service de la détection',
+    zones.map(z => ({icon:'✅', label:z.name, hint:'Remettre la ZD en service', cls:'primary'})),
+    i => {
+      const z = zones[i];
+      G.ssi.inhibited = G.ssi.inhibited.filter(id => id !== z.id);
+      mcAdd('PC', `✅ Levée d'inhibition zone ${z.name} ${fmtTime(G.t)} — détection en service, essais OK`, 'ok');
+      G.score += 3;
+      G.debrief.regulation += 2;
+      toast('Détection rétablie : ' + z.name, 'good');
+    });
+}
+function execDesenf(){
+  const zones = G.site.zones;
+  openMini('🌬 DÉSENFUMAGE MANUEL', 'Commande manuelle des volets / exutoires depuis le CMSI',
+    zones.map(z => ({icon:'🌬', label:z.name, hint:z.floor, cls:'warning'})),
+    i => {
+      const z = zones[i];
+      G.ssi.desenf.push(z.id);
+      const justified = G.ssi.alarmActive || (G.ld && G.ld.zoneId === z.id) ||
+        G.events.some(e => !e.resolved && e.type === 'feu' && e.zoneId === z.id);
+      if(justified){
+        mcAdd('PC', `🌬 Désenfumage manuel zone ${z.name} ${fmtTime(G.t)} — commande CMSI, contrôle de position des volets`, 'action');
+        G.score += 5;
+        G.debrief.regulation += 3;
+        toast('Désenfumage engagé', 'good');
+      } else {
+        mcAdd('PC', `⚠ Désenfumage zone ${z.name} sans sinistre déclaré — manœuvre injustifiée`, 'warn');
+        G.score -= 3;
+        G.debrief.regulation -= 2;
+        toast('Manœuvre injustifiée', 'bad');
+      }
+    });
+}
+function execCompart(){
+  if(G.siteId !== 'igh'){
+    mcAdd('PC', `⚠ Compartimentage automatique non applicable sur ce site`, 'warn');
+    G.debrief.regulation -= 1;
+    toast('Procédure réservée aux IGH', 'bad');
+    return;
+  }
+  G.ssi.compart = true;
+  mcAdd('PC', `🧱 Compartimentage IGH ${fmtTime(G.t)} — isolement du compartiment sinistré, transfert horizontal des occupants`, 'crit');
+  G.score += 6;
+  G.debrief.regulation += 3;
+  toast('Compartimentage IGH engagé', 'good');
+}
+
+/* ==========================================================
+   4. CHRONO LEVÉE DE DOUTE (3 à 5 min)
+   ========================================================== */
+function startLDD(ev){
+  const agent = G.agents.find(a => a.state === 'idle') || G.agents[0];
+  if(!agent) return;
+  G.ssi.alarmActive = true;
+  G.ssi.buzzer = true;
+  G.ssi.rearmNeeded = true;
+  G.ld = { zoneId: ev.zoneId, evId: ev.instId, agentId: agent.id, start:G.t, deadline:G.t + 5, done:false };
+  agent.state = 'moving';
+  agent.targetId = ev.zoneId;
+  const speed = agent.skills && agent.skills.vitesse ? (1 - agent.skills.vitesse*0.08) : 1;
+  agent.until = G.t + (2.5 + Math.random()*2) * speed;
+  agent.workTime = 1 + Math.random();
+  agent.ldd = true;
+  mcAdd('PC', `⏱ Levée de doute engagée — ${agent.name} vers ${zoneName(ev.zoneId)} (délai 3 à 5 min)`, 'crit');
+  radioSay(agent, `Reçu, je pars en levée de doute sur ${zoneName(ev.zoneId)}.`, 'order');
+}
+function tickLDD(){
+  if(!G.ld) return;
+  const a = G.agents.find(x => x.id === G.ld.agentId);
+  const elapsed = G.t - G.ld.start;
+  if(a && a.ldd && a.pos === G.ld.zoneId && !G.ld.done){
+    G.ld.done = true;
+    a.ldd = false;
+    const onTime = elapsed <= 5;
+    if(onTime){
+      G.score += 5;
+      G.debrief.time += 2;
+      G.debrief.regulation += 2;
+      mcAdd(a.id, `⏱ Levée de doute effectuée en ${elapsed.toFixed(1)} min — compte-rendu au PCS`, 'ok');
+      radioSay(a, `Levée de doute terminée, je te fais le point.`, 'radio');
+      toast(`Levée de doute : ${elapsed.toFixed(1)} min`, 'good');
+    }
+    G.ld = null;
+    return;
+  }
+  if(!G.ld.done && G.t > G.ld.deadline){
+    G.score -= 6;
+    G.debrief.time -= 3;
+    G.debrief.regulation -= 2;
+    mcAdd('PC', `⏱ DÉLAI DE LEVÉE DE DOUTE DÉPASSÉ (> 5 min) — alerte des secours obligatoire`, 'crit');
+    toast('Délai levée de doute dépassé !', 'bad');
+    if(a) a.ldd = false;
+    G.ld = null;
+  }
+}
+
+/* ==========================================================
+   5. RH DE CRISE — renfort & DAT
+   ========================================================== */
+function initRH(){ return { incoming:null, reinforced:false, datOpen:false, datDone:false, datStep:0, datScore:0 }; }
+function execRenfort(){
+  if(G.rh.incoming){ toast('Renfort déjà en route', 'info'); return; }
+  if(G.rh.reinforced){ toast('Renfort déjà intégré', 'info'); return; }
+  openMini('👥 RENFORT / REMPLACEMENT', 'Remplacement au pied levé — qui appelez-vous ?', [
+    {icon:'📞', label:'Agent d\'astreinte', hint:'Titulaire formé au site · 45 min', cls:'primary'},
+    {icon:'🏢', label:'Société prestataire', hint:'Agent extérieur non formé · 30 min', cls:''},
+    {icon:'🎖', label:'Arbitrage SSIAP 3', hint:'Le chef de service tranche · délai variable', cls:'warning'},
+  ], i => {
+    if(i === 0){
+      G.rh.incoming = { at:G.t + 45, kind:'astreinte' };
+      mcAdd('PC', `📞 Appel agent d'astreinte ${fmtTime(G.t)} — arrivée annoncée sous 45 min`, 'action');
+      G.debrief.rh += 3; G.score += 4;
+    } else if(i === 1){
+      G.rh.incoming = { at:G.t + 30, kind:'presta' };
+      mcAdd('PC', `📞 Appel société prestataire ${fmtTime(G.t)} — agent extérieur sous 30 min, accueil et consignes à prévoir`, 'action');
+      G.debrief.rh += 2; G.score += 2;
+    } else {
+      G.s3.present = true;
+      G.rh.incoming = { at:G.t + 60, kind:'astreinte' };
+      mcAdd('S3', `Je valide le rappel d'un titulaire. Trace-le en main courante.`, 'info');
+      G.debrief.rh += 1; G.score += 1;
+    }
+    toast('Renfort demandé', 'good');
+  });
+}
+function tickRH(){
+  if(G.rh.incoming && G.t >= G.rh.incoming.at){
+    const kind = G.rh.incoming.kind;
+    G.rh.incoming = null;
+    G.rh.reinforced = true;
+    const used = new Set(allStaff().map(a => a.id));
+    const cand = AGENT_POOL.filter(a => !used.has(a.id));
+    if(cand.length){
+      const base = pick(cand);
+      const na = mkAgent(base, 'ssiap1');
+      if(kind === 'presta'){ na.trait = 'EXTÉRIEUR'; na.level = 1; }
+      G.agents.push(na);
+      mcAdd('PC', `👥 Arrivée du renfort ${na.name} (${kind === 'astreinte' ? 'astreinte' : 'prestataire'}) ${fmtTime(G.t)} — accueil, consignes et dotation matériel`, 'ok');
+      toast(`Renfort arrivé : ${na.name}`, 'good');
+      G.debrief.rh += 2;
+    }
+  }
+}
+
+const DAT_STEPS = [
+  {q:'Victime au sol, machine encore sous tension. Première action ?',
+   a:['Protéger : consigner la machine et baliser la zone','Déplacer la victime hors de la zone','Prévenir la direction avant toute action'], correct:0},
+  {q:'Bilan transmis. Que fait-on de la zone de l\'accident ?',
+   a:['On remet en production, la victime est évacuée','On préserve les lieux en l\'état pour l\'enquête','On nettoie avant l\'arrivée de l\'inspection'], correct:1},
+  {q:'Traçabilité de l\'accident du travail :',
+   a:['Un mot sur la main courante suffit','Déclaration d\'accident du travail (DAT) + registre + information employeur sous 24h','Rien, c\'est le rôle du médecin'], correct:1},
+  {q:'Témoins de l\'accident :',
+   a:['On les renvoie à leur poste','On recueille leur identité et leur témoignage écrit','On leur demande de ne rien dire'], correct:1},
+];
+function openDAT(){
+  if(!G.rh.datOpen){
+    toast('Aucun accident du travail déclaré', 'info');
+    return;
+  }
+  if(G.rh.datDone){ toast('DAT déjà complétée', 'info'); return; }
+  renderDAT();
+  $('datScreen').classList.add('open');
+}
+function renderDAT(){
+  const s = DAT_STEPS[G.rh.datStep];
+  let h = `<h1>🩹 PROCÉDURE ACCIDENT DU TRAVAIL</h1>
+    <div class="sub">Étape ${G.rh.datStep+1}/${DAT_STEPS.length} — dossier DAT</div>
+    <div class="evBlock"><div class="evLabel">QUESTION</div><div class="evContent">${s.q}</div></div>
+    <div class="evChoices">`;
+  s.a.forEach((txt, i) => {
+    h += `<button class="evChoice" data-dat="${i}"><b>${String.fromCharCode(65+i)} — ${txt}</b></button>`;
+  });
+  h += `</div>`;
+  $('datContent').innerHTML = h;
+}
+function resolveDAT(i){
+  const s = DAT_STEPS[G.rh.datStep];
+  const ok = i === s.correct;
+  if(ok){ G.rh.datScore++; A.badgeSuccess(); toast('Conforme', 'good'); }
+  else { A.beep(200,0.2,0.08); toast('Non conforme', 'bad'); }
+  G.rh.datStep++;
+  if(G.rh.datStep >= DAT_STEPS.length){
+    G.rh.datDone = true;
+    $('datScreen').classList.remove('open');
+    const sc = G.rh.datScore;
+    G.score += sc * 3;
+    G.debrief.rh += sc;
+    G.debrief.regulation += sc >= 3 ? 3 : 0;
+    mcAdd('PC', `🩹 Dossier DAT complété ${fmtTime(G.t)} — ${sc}/${DAT_STEPS.length} étapes conformes. Employeur informé, témoignages recueillis.`, sc >= 3 ? 'ok' : 'warn');
+  } else {
+    renderDAT();
+  }
+}
+
+/* ==========================================================
+   6. BINÔME STAGIAIRE
+   ========================================================== */
+function tutorOf(stag){
+  return G.agents.find(a => a.id === stag.tutorId) || G.agents[0];
+}
+function attachBinome(round, tutor){
+  const st = G.stagiaire;
+  if(!st) return;
+  round.binome = st.id;
+  st.state = 'binome';
+  st.pos = tutor.pos;
+  st.currentRoundId = round.id;
+  st.stress = Math.min(100, (st.stress || 20) + 5);
+  mcAdd('PC', `🎓 ${st.name} (stagiaire) en binôme avec ${tutor.name} sur ${round.id}`, 'ok');
+  G.debrief.stagiaire += 1;
+  G.debrief.training += 1;
+}
+function tickBinome(){
+  const st = G.stagiaire;
+  if(!st) return;
+  if(st.state === 'binome'){
+    const r = G.rounds.find(x => x.id === st.currentRoundId);
+    const tut = r ? G.agents.find(a => a.id === r.assignedAgentId) : null;
+    if(!r || !tut || r.status === 'done' || r.status === 'missed' || !tut.isRonde){
+      st.state = 'idle';
+      st.currentRoundId = null;
+      st.pos = 'pcs';
+      st.xp += 2;
+      st.stress = Math.max(0, (st.stress || 0) - 10);
+      return;
+    }
+    st.pos = tut.pos;
+    st.fatigue = Math.min(100, st.fatigue + 0.2);
+    st.stress = clamp((st.stress || 20) + (degradedActive() ? 0.15 : -0.05), 0, 100);
+  } else if(st.state === 'idle'){
+    st.stress = Math.max(0, (st.stress || 20) - 0.3);
+  }
+}
+
+/* ==========================================================
+   7. TICK V6 — branché depuis tick()
+   ========================================================== */
+function tickV6(){
+  if(!G) return;
+  tickDegraded();
+  tickLDD();
+  tickRH();
+  tickBinome();
+  updateAlertStrip();
+}
+function updateAlertStrip(){
+  const el = $('metaAlert');
+  if(!el) return;
+  const bits = [];
+  if(G.ld){
+    const left = Math.max(0, G.ld.deadline - G.t);
+    bits.push(`⏱ LDD ${left.toFixed(1)}min`);
+  }
+  if(G.deg.power) bits.push(G.deg.power.generator ? '⚡ Groupe' : '⚡ COUPURE');
+  if(G.deg.radio) bits.push(G.deg.radio.backup ? '📻 Secours' : '📻 HS');
+  if(G.deg.detect) bits.push(G.deg.detect.covered ? '📡 Compensé' : '📡 HS');
+  if(G.ssi.inhibited.length) bits.push('🚫 ' + G.ssi.inhibited.length + ' inhib.');
+  if(G.rh.incoming) bits.push('👥 renfort ' + fmtTime(G.rh.incoming.at));
+  if(G.rh.datOpen && !G.rh.datDone) bits.push('🩹 DAT à saisir');
+  el.textContent = bits.length ? bits.join(' · ') : '✅ Nominal';
+  el.className = 'meta-item' + (bits.length && bits[0] !== '✅ Nominal' ? ' alert' : '');
+}
+
+/* ==========================================================
+   8. SAUVEGARDE — migration des compteurs V6
+   ========================================================== */
+function migrateSaveV6(){
+  const d = defaultSave();
+  SAVE.stats = {...d.stats, ...(SAVE.stats || {})};
+  if(typeof SAVE.money !== 'number') SAVE.money = 0;
+  writeSave();
+}
+
+function handleTap(e){
+  const t = e.target;
+
+  const site = t.closest('[data-site]');
+  if(site){ selectedSiteId = site.dataset.site; A.click(); renderSiteGrid(); return; }
+  const shiftBtn = t.closest('[data-shift]');
+  if(shiftBtn){ selectedShift = shiftBtn.dataset.shift; A.click(); renderSiteGrid(); return; }
+  const miniBtn = t.closest('[data-mini]');
+  if(miniBtn){ resolveMini(+miniBtn.dataset.mini); return; }
+  const datBtn = t.closest('[data-dat]');
+  if(datBtn){ resolveDAT(+datBtn.dataset.dat); return; }
+  const matBtn = t.closest('[data-mat]');
+  if(matBtn){
+    const p = matBtn.dataset.mat.split(':');
+    if(p[0] === 'iss') issueItem(p[1], p[2], p[3]); else returnItem(p[1], p[2]);
+    return;
+  }
+  const shop = t.closest('[data-shop]');
+  if(shop){ buyShop(shop.dataset.shop); return; }
+  const treeBtn = t.closest('[data-tree]');
+  if(treeBtn){ openTree(treeBtn.dataset.tree); return; }
+  const buy = t.closest('[data-buy]');
+  if(buy){ const [id, sk, idx] = buy.dataset.buy.split(':'); buySkill(id, sk, +idx); return; }
+  const zone = t.closest('[data-zone]');
+  if(zone && G){ const z = G.site.zones.find(x=>x.id===zone.dataset.zone); if(z){ mcAdd('PC',`📷 Caméra ${z.name}`,'info'); toast(`📷 ${z.name}`, 'info'); } return; }
+  const ag = t.closest('[data-agent]');
+  if(ag && G){ openOrderMenu(ag.dataset.agent); return; }
+  const mcEv = t.closest('[data-ev]');
+  if(mcEv && G){ const ev = G.events.find(x => x.instId === mcEv.dataset.ev && !x.resolved); if(ev) openEventModal(ev); return; }
+  const choice = t.closest('[data-choice]');
+  if(choice){ resolveChoice(+choice.dataset.choice); return; }
+  const mciBtn = t.closest('[data-mci]');
+  if(mciBtn){ resolveMCI(+mciBtn.dataset.mci); return; }
+  const qcmBtn = t.closest('[data-qcm]');
+  if(qcmBtn){ resolveQCM(+qcmBtn.dataset.qcm); return; }
+  const auditBtn = t.closest('[data-audit]');
+  if(auditBtn){ resolveAudit(+auditBtn.dataset.audit); return; }
+  const anomalyBtn = t.closest('[data-resolve-anomaly]');
+  if(anomalyBtn){
+    resolveAnomaly(+anomalyBtn.dataset.resolveAnomaly, anomalyBtn.dataset.order);
+    $('orderScreen').classList.remove('open');
+    return;
+  }
+  const pickAgent = t.closest('[data-pick-agent]');
+  if(pickAgent && pickingFor){
+    assignRound(pickingFor.roundId, pickAgent.dataset.pickAgent);
+    return;
+  }
+  const ordBtn = t.closest('[data-order]');
+  if(ordBtn){ execOrder(ordBtn.dataset.order); return; }
+  /* Les commandes PCS (CMSI, modes dégradés, RH) ne portent que data-pcs :
+     elles doivent être traitées avant la recherche d'un [data-act]. */
+  const pcsBtn = t.closest('[data-pcs]');
+  if(pcsBtn && G){ execPcsAction(pcsBtn.dataset.pcs); return; }
+  const btn = t.closest('[data-act]');
+  if(!btn || btn.disabled) return;
+  const act = btn.dataset.act;
+
+  if(act === 'pick-site'){ currentTeam = generateTeam(); renderTeam(); $('siteScreen').classList.remove('open'); $('teamScreen').classList.add('open'); A.click(); return; }
+  if(act === 'reroll-team'){ currentTeam = generateTeam(); renderTeam(); A.click(); return; }
+  if(act === 'start-game'){ $('teamScreen').classList.remove('open'); startGame(); return; }
+  if(act === 'close-order'){ $('orderScreen').classList.remove('open'); return; }
+  if(act === 'close-actions'){ $('actionsScreen').classList.remove('open'); return; }
+  if(act === 'open-materiel'){ $('actionsScreen').classList.remove('open'); openMateriel(); return; }
+  if(act === 'close-materiel'){ $('materielScreen').classList.remove('open'); return; }
+  if(act === 'close-mini'){ closeMini(); return; }
+  if(act === 'close-hq'){ $('hqScreen').classList.remove('open'); return; }
+  if(act === 'close-tree-hub'){ $('treeHubScreen').classList.remove('open'); return; }
+  if(act === 'close-tree'){ $('treeScreen').classList.remove('open'); return; }
+  if(act === 'close-replay'){ $('replayScreen').classList.remove('open'); return; }
+  if(act === 'close-achv'){ $('achvScreen').classList.remove('open'); return; }
+  if(act === 'close-planning'){ $('planningScreen').classList.remove('open'); return; }
+  if(act === 'close-picker'){ $('pickerScreen').classList.remove('open'); pickingFor = null; return; }
+  if(act === 'open-planning'){ if(!G) return; renderPlanning(); $('planningScreen').classList.add('open'); return; }
+  if(act === 'open-picker'){ openPicker(btn.dataset.round); return; }
+  if(act === 'unassign-round'){ unassignRound(btn.dataset.round); return; }
+  if(act === 'pause'){ togglePause(); return; }
+  if(act === 'resume'){ togglePause(); return; }
+  if(act === 'speed'){ if(!G) return; G.speed = G.speed === 1 ? 2 : 1; btn.textContent = G.speed + '×'; return; }
+  if(act === 'sound'){
+    SAVE.muted = !SAVE.muted; A.muted = SAVE.muted; writeSave();
+    btn.textContent = SAVE.muted ? '🔇' : '🔊';
+    if(SAVE.muted) A.stopAmbient(); else A.startAmbient();
+    return;
+  }
+  if(act === 'open-actions'){ if(!G) return; renderActions(); $('actionsScreen').classList.add('open'); return; }
+  if(act === 'open-hq'){ renderShop(); $('hqScreen').classList.add('open'); return; }
+  if(act === 'open-tree-hub'){ renderTreeHub(); $('treeHubScreen').classList.add('open'); return; }
+  if(act === 'open-replay'){ renderReplay(); $('replayScreen').classList.add('open'); return; }
+  if(act === 'open-achievements'){ renderAchievements(); $('achvScreen').classList.add('open'); return; }
+  if(act === 'new-vacation'){ $('debriefScreen').classList.remove('open'); currentTeam = generateTeam(); renderTeam(); $('teamScreen').classList.add('open'); return; }
+  if(act === 'back-to-site'){ $('debriefScreen').classList.remove('open'); selectedSiteId = null; selectedShift = null; renderSiteGrid(); $('siteScreen').classList.add('open'); return; }
+}
+document.addEventListener('click', handleTap);
+
+ensureAgentData();
+migrateSaveV6();
+A.muted = SAVE.muted;
+$('soundBtn').textContent = SAVE.muted ? '🔇' : '🔊';
+renderSiteGrid();
+
+document.addEventListener('touchmove', e => {
+  if(!e.target.closest('#mcPanel, .cd')) e.preventDefault();
+}, {passive:false});
+</script>
+</body>
+</html>
