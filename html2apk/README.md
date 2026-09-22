@@ -113,8 +113,9 @@ installer localement.
 
 ## État
 
-Vérifié sur de vrais APK, en CI (job « Build réel (toolchain locale) ») : le build Gradle
-complet, la signature par `apksigner`, et les deux modes de source. Chaque run publie les APK
+Vérifié sur de vrais APK, en CI, dans les deux environnements et pour les deux types de
+source : le build Gradle complet, la signature par `apksigner`, le build dans Docker (image
+construite depuis ce dépôt), le mode dossier et le mode URL. Chaque run publie les APK
 produits en artifacts — environ 4 Mo pour le dossier de démonstration comme pour
 `https://example.com`.
 
@@ -122,5 +123,6 @@ Vérifié par des tests unitaires (153) : la détection de source, la générati
 Capacitor et de sa configuration, l'enchaînement des commandes, la résolution et la génération
 de keystore, la construction des arguments Docker, et toute la couche d'affichage.
 
-En cours de validation : le build dans Docker. L'image se construit, mais le build à
-l'intérieur est encore en cours de mise au point en CI.
+Les APK sont signés avec une keystore de debug : installables sur un téléphone, pas
+publiables sur le Play Store. Pour une publication, passez votre propre keystore avec
+`--keystore`, `--key-alias` et `--keystore-password`.
