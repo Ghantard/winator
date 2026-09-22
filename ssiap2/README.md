@@ -109,6 +109,38 @@ robot, l'une traitant les anomalies, l'autre les consignant systématiquement :
 la seconde finit avec 4 à 9 anomalies non traitées, 1 à 3 zones à risque,
 plusieurs propagations et un score d'exploitation trois à six fois inférieur.
 
+## Le sinistre majeur et la commission de sécurité
+
+Un feu qui atteint le stade généralisé, ou qui se propage à une autre zone,
+devient un **sinistre majeur** : la vacation ne peut plus être bonne, et la
+commission de sécurité est saisie.
+
+Chaque décision qui affaiblit une zone est horodatée dans un registre des
+causes, invisible en jeu : anomalie signalée mais laissée en l'état,
+inhibition posée, permis de feu accordé sans contrôle, alarme laissée sans
+décision, ronde non effectuée. Au débriefing, la commission relit ce registre
+et reconstitue la chronologie du sinistre, ligne par ligne :
+
+```
+20:14  Anomalie « Porte coupe-feu calée » signalée en Réserves.
+       Ordre du PCS : consigner sans retirer la cale. Restée en l'état.
+21:44  Détection de Réserves inhibée par le PCS.
+01:04  Départ de feu en Réserves.
+01:04  Aucun report au CMSI : la détection de la zone était hors service.
+01:23  Sinistre découvert 19 min après son départ (par Karim, en ronde).
+01:53  Propagation au Cinéma par un compartimentage percé.
+```
+
+Le verdict distingue trois cas, parce qu'un simulateur ne doit pas punir la
+malchance : **aléa** (aucune faute retenue, note plafonnée à 75),
+**manquements contributifs** (60), **enchaînement de décisions** (45, mention
+« Défaillance grave »). Les manquements sont pondérés : une ronde non faite
+pèse moins qu'une inhibition oubliée ou qu'une porte coupe-feu laissée calée.
+
+Vérifié par simulation : la vacation négligente termine systématiquement avec
+13 ou 14 causes tracées et la note plafonnée à 45, la vacation soignée avec
+trois causes mineures et 55 à 60.
+
 ## Conduite de la vacation
 
 - **Chaque anomalie a ses propres ordres.** Plus de « traiter sur place »

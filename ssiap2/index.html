@@ -346,6 +346,20 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .bigScore .bsVal{font-size:48px;font-weight:800;color:#e8f0f8;line-height:1}
 .bigScore .bsLabel{font-size:9px;color:#5a6b7d;letter-spacing:2px;margin-top:6px;font-weight:800}
 .bigScore .bsRank{font-size:13px;font-weight:800;letter-spacing:1.2px;margin-top:10px}
+.bigScore .bsCap{font-size:10px;color:#ff8b7e;margin-top:6px;font-weight:700}
+.commission{border:1px solid rgba(255,59,48,.5);border-radius:11px;padding:13px 12px;margin:12px 0;
+  background:linear-gradient(180deg,rgba(60,18,18,.6),rgba(14,20,30,.9))}
+.comHead{font-size:12.5px;font-weight:800;letter-spacing:1.2px;color:#ff8b7e}
+.comSub{font-size:10.5px;color:#b8c8d8;margin:4px 0 10px;font-weight:700}
+.comChrono{border-left:2px solid rgba(255,59,48,.35);padding-left:10px}
+.comLine{display:flex;gap:9px;margin-bottom:7px;font-size:10.5px;line-height:1.5;color:#8fa4b8}
+.comLine .comT{color:#7d8fa3;font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0}
+.comLine.blame{color:#e8d0d0}
+.comLine.blame .comT{color:#ff8b7e}
+.comVerdict{margin-top:11px;padding:10px;border-radius:8px;font-size:11px;line-height:1.6}
+.comVerdict.bad{background:rgba(255,59,48,.12);color:#ff8b7e;border:1px solid rgba(255,59,48,.3)}
+.comVerdict.ok{background:rgba(48,209,88,.1);color:#4ade80;border:1px solid rgba(48,209,88,.3)}
+.comVerdict.mid{background:rgba(255,176,32,.1);color:#ffb020;border:1px solid rgba(255,176,32,.3)}
 
 .roundItem{display:flex;gap:10px;align-items:center;padding:10px 12px;
   background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85));
@@ -1567,6 +1581,8 @@ function startGame(){
   };
   G.materiel = initMateriel(site);
   G.zones = initZones(site);
+  G.ledger = [];
+  G.sinistres = [];
   G.deg = initDegraded();
   G.ssi = initSSI();
   G.rh = initRH();
@@ -2255,6 +2271,9 @@ function checkRoundTiming(){
       G.score -= 12;
       G.debrief.roundsMissed = (G.debrief.roundsMissed || 0) + 1;
       mcAdd('PC', `❌ ${r.id} MANQUÉE (tolérance ±${tol}min dépassée) — non-conformité`, 'crit');
+      for(const zid of [...new Set(r.points.map(p => p.zoneId))]){
+        logCause(zid, `${r.id} (${ROUND_TYPES[r.type].name}) non effectuée : ${zoneName(zid)} n'a pas été contrôlée.`, 1);
+      }
       A.fail();
       toast(`${r.id} manquée !`, 'bad');
     }
@@ -2463,6 +2482,7 @@ function tick(){
      de lire la situation. Le délai ne court donc que quand l'écran est fermé,
      c'est-à-dire quand l'alarme est vraiment laissée de côté. */
   if($('eventScreen').classList.contains('open')) return;
+  if($('miniScreen').classList.contains('open')) return;
   if($('qcmScreen').classList.contains('open')) return;
   if($('auditScreen').classList.contains('open')) return;
   if($('debriefScreen').classList.contains('open')) return;
@@ -2658,6 +2678,7 @@ function resolveChoice(idx){
       /* Un permis signé sans contrôle laisse un point chaud non surveillé. */
       if(c.score <= 0) z.encombrement = Math.min(3, z.encombrement + 1);
       mcAdd('PC', `🔧 Travaux par point chaud en ${zoneName(ev.zoneId)} jusqu'à ${fmtTime(z.travauxUntil)}${c.score <= 0 ? ' — sans contrôle préalable' : ' — zone contrôlée et surveillée'}`, c.score <= 0 ? 'warn' : 'info');
+      if(c.score <= 0) logCause(ev.zoneId, `Permis de feu accordé en ${zoneName(ev.zoneId)} sans contrôle préalable des moyens de secours.`);
     }
   }
   if(ev.type === 'at' && !G.rh.datOpen){
@@ -3268,9 +3289,16 @@ function endVacation(){
     ['Propagations de sinistre', `${G.k.propagations || 0}`],
   ];
 
-  const total = Math.round(Object.values(axes).reduce((s,v)=>s+v,0) / 6);
+  let total = Math.round(Object.values(axes).reduce((s,v)=>s+v,0) / 6);
+  /* Un sinistre majeur plafonne la vacation ; la commission dira s'il
+     s'agit d'un aléa ou d'un enchaînement de décisions. */
+  const cap = commissionCap();
+  if(cap !== null) total = Math.min(total, cap);
   let rank, rcolor;
-  if(total >= 90){ rank='SSIAP 2 Émérite'; rcolor='#4ade80'; }
+  if(G.sinistres.length && cap === 45){ rank='Défaillance grave'; rcolor='#ff6b5e'; }
+  else if(G.sinistres.length && cap === 60){ rank='Sinistre avec manquements'; rcolor='#ffb020'; }
+  else if(G.sinistres.length){ rank='Vacation marquée par un sinistre'; rcolor='#ffb020'; }
+  else if(total >= 90){ rank='SSIAP 2 Émérite'; rcolor='#4ade80'; }
   else if(total >= 75){ rank='SSIAP 2 Confirmé'; rcolor='#4ade80'; }
   else if(total >= 60){ rank='SSIAP 2 Opérationnel'; rcolor='#ffb020'; }
   else if(total >= 40){ rank='SSIAP 2 en difficulté'; rcolor='#ffb020'; }
@@ -3305,7 +3333,9 @@ function endVacation(){
       <div class="bsVal">${total}</div>
       <div class="bsLabel">NOTE GLOBALE / 100</div>
       <div class="bsRank" style="color:${rcolor}">${rank}</div>
+      ${cap !== null ? `<div class="bsCap">Note plafonnée à ${cap} — sinistre majeur pendant la vacation</div>` : ''}
     </div>`;
+  h += renderCommission();
 
   h += `<h2>📋 REGISTRE DES RONDES</h2>
     <div class="evContent" style="font-size:10px;line-height:1.7">
@@ -4114,6 +4144,7 @@ function execInhib(){
       const z = zones[i];
       G.ssi.inhibited.push(z.id);
       G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
+      logCause(z.id, `Détection de ${z.name} inhibée par le PCS.`);
       mcAdd('PC', `🚫 Inhibition zone ${z.name} ${fmtTime(G.t)} — travaux, surveillance humaine maintenue`, 'warn');
       G.score += 2;
       toast('Zone inhibée : ' + z.name, 'info');
@@ -4128,6 +4159,7 @@ function execDesinhib(){
       const z = zones[i];
       G.ssi.inhibited = G.ssi.inhibited.filter(id => id !== z.id);
       G.k.inhibLifted = (G.k.inhibLifted || 0) + 1;
+      logCause(z.id, `Détection de ${z.name} remise en service.`, false);
       mcAdd('PC', `✅ Levée d'inhibition zone ${z.name} ${fmtTime(G.t)} — détection en service, essais OK`, 'ok');
       G.score += 3;
       toast('Détection rétablie : ' + z.name, 'good');
@@ -4449,6 +4481,7 @@ function applyZoneEffect(ev, act){
     zoneAddDefect(ev.zone, ev.title);
     if(/extincteur|issue|obstru/i.test(ev.title)) z.encombrement = Math.min(3, z.encombrement + 1);
     if(/coupe-feu/i.test(ev.title)) z.compartimentage = 0;
+    logCause(ev.zone, `Anomalie « ${ev.title} » signalée en ${zoneName(ev.zone)}. Ordre du PCS : ${act.l.toLowerCase()}. L'anomalie est restée en l'état.`);
   }
 }
 
@@ -4481,6 +4514,9 @@ function revealFire(zoneId, how){
     ev.deadline = G.t + 12;
     ev.event = '🔥 FEU DÉCOUVERT — ' + how;
   }
+  for(const s of G.sinistres){ if(s.zoneId === zoneId && !s.revealedAt){ s.revealedAt = G.t; s.revealedHow = how; } }
+  z.feu.revealedAt = G.t;
+  z.feu.revealedHow = how;
   A.alarm();
   mcAdd('PC', `🔥 FEU DÉCOUVERT en ${zoneName(zoneId)} (${how}) — aucune détection n'avait alerté le PCS`, 'crit');
   toast('🔥 Feu découvert !', 'bad');
@@ -4518,10 +4554,12 @@ function propagateFire(from){
   const voisines = G.site.zones.filter(x => x.id !== from);
   const cible = z.compartimentage === 0 && voisines.length ? pick(voisines) : null;
   if(cible){
-    G.zones[cible.id].feu = { stage:2, since:G.t, detected: zoneDetection(cible.id) === 'service', controlled:false, lastGrow:G.t };
+    G.zones[cible.id].feu = { stage:2, since:G.t, detected: zoneDetection(cible.id) === 'service', controlled:false, lastGrow:G.t, cascade:true };
     mcAdd('PC', `🔥🔥 PROPAGATION de ${zoneName(from)} vers ${cible.name} — compartimentage percé`, 'crit');
+    declareSinistre(from, `propagation au ${cible.name} par un compartimentage percé`);
   } else {
     mcAdd('PC', `🔥🔥 Sinistre généralisé en ${zoneName(from)} — intervention des sapeurs-pompiers`, 'crit');
+    declareSinistre(from, 'sinistre généralisé, hors de portée des moyens du site');
   }
   A.alarm();
   toast('🔥 Propagation !', 'bad');
@@ -4618,6 +4656,109 @@ function zoneWeightedPick(kind){
   let r = Math.random() * total;
   for(const x of list){ r -= x.w; if(r <= 0) return x.id; }
   return list[0].id;
+}
+
+
+/* ==========================================================
+   ====== REGISTRE DES CAUSES ET COMMISSION DE SÉCURITÉ =====
+   Chaque décision qui affaiblit une zone est horodatée. Si un
+   sinistre majeur survient, la commission relit ce registre et
+   distingue l'aléa de l'enchaînement de décisions.
+   ========================================================== */
+function logCause(zoneId, txt, poids){
+  if(!G) return;
+  /* poids : 2 = manquement grave (anomalie laissée, inhibition, permis sans
+     contrôle, alarme sans décision) · 1 = manquement contributif (ronde non
+     faite) · 0 = simple repère de chronologie. */
+  const p = poids === undefined ? 2 : (poids === false ? 0 : poids);
+  G.ledger.push({ t:G.t, zoneId, txt, poids:p, blame: p > 0 });
+}
+
+/* Un sinistre majeur : feu généralisé ou propagé à une autre zone */
+function declareSinistre(zoneId, motif){
+  if(G.sinistres.some(s => s.zoneId === zoneId)) return;
+  const z = G.zones[zoneId];
+  /* Un feu né d'une propagation appartient au sinistre d'origine : on ne
+     saisit pas la commission deux fois pour la même cascade. */
+  if(z && z.feu && z.feu.cascade) return;
+  const s = {
+    zoneId, motif, at:G.t,
+    detectionAt: z && z.feu ? z.feu.since : G.t,
+    revealedAt: z && z.feu ? z.feu.revealedAt : null,
+    revealedHow: z && z.feu ? z.feu.revealedHow : null,
+    inhibee: zoneDetection(zoneId) !== 'service',
+    causes: G.ledger.filter(l => l.zoneId === zoneId && l.blame),
+  };
+  G.sinistres.push(s);
+  G.k.sinistres = (G.k.sinistres || 0) + 1;
+  A.alarm();
+  mcAdd('PC', `⛔ SINISTRE MAJEUR — ${zoneName(zoneId)} : ${motif}`, 'crit');
+  mcAdd('S3', `Le sinistre est hors de notre capacité d'intervention. La commission de sécurité sera saisie.`, 'crit');
+  openMini('⛔ SINISTRE MAJEUR', `${zoneName(zoneId)} — ${motif}`, [
+    {icon:'📋', label:'Prendre acte', hint:'La chronologie sera examinée à la relève', cls:'danger'},
+  ], () => {});
+  renderMC(true);
+}
+
+/* Reconstitution : ce qui a conduit au sinistre, dans l'ordre */
+function buildCommission(s){
+  const lignes = [];
+  for(const c of s.causes) lignes.push({ t:c.t, txt:c.txt, blame:true, poids:c.poids === undefined ? 2 : c.poids });
+
+  const z = G.zones[s.zoneId];
+  if(z && z.feu || s.detectionAt){
+    lignes.push({ t:s.detectionAt, txt:`Départ de feu en ${zoneName(s.zoneId)}.`, blame:false, poids:0 });
+  }
+  if(s.inhibee){
+    lignes.push({ t:s.detectionAt, txt:`Aucun report au CMSI : la détection de la zone était hors service.`, blame:true, poids:2 });
+  }
+  if(s.revealedAt){
+    const delai = Math.round(s.revealedAt - s.detectionAt);
+    lignes.push({ t:s.revealedAt, txt:`Sinistre découvert ${delai} min après son départ (${s.revealedHow}).`,
+                  blame: delai > 10, poids: delai > 10 ? 1 : 0 });
+  }
+  lignes.push({ t:s.at, txt:`${s.motif.charAt(0).toUpperCase()}${s.motif.slice(1)}.`, blame:true, poids:0 });
+  return lignes.sort((a, b) => a.t - b.t);
+}
+
+function commissionWeight(s){
+  return buildCommission(s)
+    .filter(l => l.blame && l.t < s.at)
+    .reduce((n, l) => n + (l.poids === undefined ? 2 : l.poids), 0);
+}
+function renderCommission(){
+  if(!G.sinistres.length) return '';
+  let h = '';
+  for(const s of G.sinistres){
+    const lignes = buildCommission(s);
+    const fautes = lignes.filter(l => l.blame && l.t < s.at).length;
+    const poids = commissionWeight(s);
+    h += `<div class="commission">
+      <div class="comHead">⚖️ COMMISSION DE SÉCURITÉ</div>
+      <div class="comSub">Sinistre majeur — ${zoneName(s.zoneId)} · ${fmtTime(s.at)}</div>
+      <div class="comChrono">
+        ${lignes.map(l => `<div class="comLine ${l.blame ? 'blame' : ''}">
+          <span class="comT">${fmtTime(l.t)}</span><span class="comTxt">${l.txt}</span></div>`).join('')}
+      </div>
+      <div class="comVerdict ${poids >= 3 ? 'bad' : poids ? 'mid' : 'ok'}">
+        ${poids >= 3
+          ? `Conclusion : le sinistre n'est pas dû à un aléa. <b>${fautes} décision(s) du poste de sécurité</b> ont concouru à sa gravité.`
+          : poids
+            ? `Conclusion : le sinistre relève pour l'essentiel de l'aléa, mais <b>${fautes} manquement(s)</b> ont contribué à son déroulement.`
+            : `Conclusion : aucune faute d'exploitation retenue. Le sinistre relève de l'aléa ; la conduite du poste n'est pas mise en cause.`}
+      </div>
+    </div>`;
+  }
+  return h;
+}
+
+/* La note est plafonnée quand une décision du poste a concouru au sinistre */
+function commissionCap(){
+  if(!G.sinistres.length) return null;
+  const poids = Math.max(...G.sinistres.map(commissionWeight));
+  if(poids >= 3) return 45;   // enchaînement de décisions
+  if(poids >= 1) return 60;   // contribution partielle
+  return 75;                  // aléa
 }
 
 /* ==========================================================
@@ -4780,6 +4921,7 @@ function escalateEvent(ev){
 
   if(ev.type === 'feu'){
     G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
+    logCause(ev.zoneId, `Alarme feu en ${zoneName(ev.zoneId)} laissée ${ev.delay} min sans décision du PCS : aucun agent envoyé.`);
     mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — le sinistre se poursuit, personne n'a été envoyé`, 'crit');
     mcAdd('S3', `Aucune décision du PCS sur l'alarme ${zoneName(ev.zoneId)}. Je reprends la main — ce sera au débriefing.`, 'crit');
   } else if(ev.type === 'medical' || ev.type === 'at'){
@@ -4881,6 +5023,8 @@ function resumeShift(){
   if(typeof G.coachIdx !== 'number') G.coachIdx = COACH.length;
   G.materiel = G.materiel || initMateriel(G.site);
   G.zones = G.zones || initZones(G.site);
+  G.ledger = G.ledger || [];
+  G.sinistres = G.sinistres || [];
   G.deg = G.deg || initDegraded();
   G.ssi = G.ssi || initSSI();
   G.rh = G.rh || initRH();
