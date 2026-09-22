@@ -82,6 +82,10 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .zm .zd.M{background:#a855f7;box-shadow:0 0 6px rgba(168,85,247,.6)}
 .zm .zbadge{position:absolute;bottom:2px;right:3px;font-size:9px;opacity:.4;
   filter:drop-shadow(0 0 2px currentColor)}
+.zm .zrisk{position:absolute;top:0;left:0;right:0;height:3px;border-radius:5px 5px 0 0}
+.zm .zrisk.lo{background:rgba(255,176,32,.45)}
+.zm .zrisk.mid{background:#ffb020}
+.zm .zrisk.hi{background:#ff453a;animation:pulse-soft 1.4s infinite}
 
 #planningStrip{display:none;padding:6px 9px;flex-shrink:0;
   background:linear-gradient(90deg,rgba(80,140,220,.1),rgba(168,85,247,.1));
@@ -231,7 +235,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   z-index:100;display:none;align-items:center;justify-content:center;padding:12px}
 .ov.open{display:flex}
-#pickerScreen,#miniScreen,#materielScreen,#datScreen{z-index:110}
+#pickerScreen,#miniScreen,#materielScreen,#datScreen,#siteStateScreen{z-index:110}
 #eventScreen,#mciScreen,#qcmScreen,#auditScreen{z-index:115}
 #debriefScreen{z-index:120}
 .cd{background:linear-gradient(180deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
@@ -400,6 +404,21 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .orderBtn.warning{border-color:rgba(255,176,32,.4);background:linear-gradient(180deg,rgba(255,176,32,.13),rgba(255,176,32,.03))}
 .orderBtn.danger{border-color:rgba(255,59,48,.45);background:linear-gradient(180deg,rgba(255,59,48,.15),rgba(255,59,48,.04))}
 .matHead{font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin:12px 0 6px;font-weight:800}
+.zrow{padding:10px 11px;border-radius:9px;margin-bottom:6px;
+  border:1px solid rgba(80,110,150,.2);background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85))}
+.zrow.lo{border-color:rgba(255,176,32,.3)}
+.zrow.mid{border-color:rgba(255,176,32,.55)}
+.zrow.hi{border-color:rgba(255,59,48,.6);background:linear-gradient(180deg,rgba(60,20,20,.5),rgba(12,18,28,.85))}
+.zrHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.zrName{font-size:12px;font-weight:800;color:#e8f0f8}
+.zrFloor{font-size:9.5px;color:#5a6b7d;font-weight:600}
+.zrVal{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:#8fa4b8}
+.zrow.mid .zrVal{color:#ffb020}
+.zrow.hi .zrVal{color:#ff6b5e}
+.zrBar{height:4px;border-radius:2px;background:rgba(80,110,150,.18);margin:6px 0 5px;overflow:hidden}
+.zrBar span{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#4ade80,#ffb020,#ff453a)}
+.zrCauses{font-size:10px;color:#8fa4b8;line-height:1.5}
+.zrFire{font-size:10.5px;color:#ff8b7e;font-weight:800;margin-top:5px}
 .matHint{font-size:8.5px;color:#7d8fa3;line-height:1.5;padding:8px 10px;border-radius:7px;
   background:rgba(80,140,220,.07);border:1px solid rgba(80,140,220,.18);margin-bottom:8px}
 .matRow{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;margin-bottom:6px;
@@ -559,12 +578,12 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 /* En-tête : une seule ligne, aucun bouton repoussé hors écran */
 header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 .brand-text{display:none}
-.sitetag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:132px;flex-shrink:1}
+.sitetag{white-space:nowrap;flex-shrink:0}
 .shift,.score-pill,.clock{white-space:nowrap;flex-shrink:0}
 .clock{font-size:14px}
 @media (max-width:400px){
   .score-pill{display:none}
-  .sitetag{max-width:96px}
+  .sitetag{font-size:9px;padding:3px 4px}
   .hbtn{min-width:40px;height:40px;font-size:14px;padding:0 4px}
   header{gap:3px;padding:6px 5px}
   .sitetag{font-size:9.5px;padding:3px 5px}
@@ -700,7 +719,6 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <span class="score-pill">PTS <b id="score">0</b></span>
     <button class="hbtn" data-act="sound" id="soundBtn">🔊</button>
     <button class="hbtn" data-act="pause">⏸</button>
-    <button class="hbtn" data-act="speed">1×</button>
     <button class="hbtn" data-act="open-planning" id="planningBtn">📋</button>
     <button class="hbtn" data-act="open-actions" id="actionsBtn">⚡</button>
   </header>
@@ -877,6 +895,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <h1>⏸ PAUSE</h1>
     <div class="sub">POSTE EN SUSPENS</div>
     <div id="pauseStats"></div>
+    <button class="btn-sec" data-act="speed" id="speedBtn">⏩ VITESSE : 1×</button>
     <button class="btn-main" data-act="resume">REPRENDRE</button>
   </div>
 </div>
@@ -887,6 +906,15 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <div class="sub">Clés · Badges · Talkies — dotation et restitution</div>
     <div id="materielContent"></div>
     <button class="btn-sec" data-act="close-materiel">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="siteStateScreen">
+  <div class="cd">
+    <h1>📍 ÉTAT DU SITE</h1>
+    <div class="sub">Ce qui peut dégénérer, et pourquoi</div>
+    <div id="siteStateContent"></div>
+    <button class="btn-sec" data-act="close-sitestate">FERMER</button>
   </div>
 </div>
 
@@ -1166,7 +1194,7 @@ const ROUND_INCIDENTS = {
 };
 
 const EVENTS = [
-  {id:'feu_poubelle',type:'feu',weight:4,sites:['all'],
+  {id:'feu_poubelle',type:'feu',weight:1,sites:['all'],
    ctx:'Odeur âcre, particules caméra',event:'DÉCLENCHEMENT SDI',
    pcs:'Voyant feu clignotant.',radio:'« Chef, fumée sort du local ! »',
    phone:null,presence:null,dilemma:'Levée de doute 3-5 min obligatoire.',
@@ -1178,7 +1206,7 @@ const EVENTS = [
      {text:'Fumée local. RAS.',good:false},
      {text:'Détection SDI zone [X]. Levée de doute [heure]. Cause : corbeille en combustion. Extinction extincteur CO2 + contrôle post-incendie. 18 alerté.',good:true},
      {text:'Petit feu.',good:false}]},
-  {id:'feu_reel',type:'feu',weight:2,sites:['all'],
+  {id:'feu_reel',type:'feu',weight:1,sites:['all'],
    ctx:'Multi-alarmes',event:'⚠ FEU CONFIRMÉ',pcs:'3 détecteurs zone.',
    radio:'« AU FEU ! Évacuation ! »',phone:'📞 Standard : « Plusieurs alarmes ! »',
    presence:'SSIAP 3 : « Compte-rendu ! »',dilemma:'Évacuation + 18 + info SSIAP 3.',
@@ -1538,6 +1566,7 @@ function startGame(){
     uid:1,
   };
   G.materiel = initMateriel(site);
+  G.zones = initZones(site);
   G.deg = initDegraded();
   G.ssi = initSSI();
   G.rh = initRH();
@@ -1566,7 +1595,8 @@ function startGame(){
 }
 function applyShiftHeader(){
   if(!G) return;
-  $('sitetag').textContent = G.site.icon + ' ' + G.site.name;
+  /* Le nom du site n'apparaît plus que là : on le raccourcit au lieu de le tronquer. */
+  $('sitetag').textContent = G.site.icon + ' ' + G.site.name.replace('Type ', '');
   $('shiftBadge').textContent = (G.shift === 'day' ? '☀ JOUR' : '🌙 NUIT');
   $('shiftBadge').className = 'shift ' + G.shift;
   $('metaWeather').textContent = G.weather.icon + ' ' + G.weather.label;
@@ -1981,6 +2011,10 @@ function handleRoundCheckpoint(agent){
     }
   }
 
+  /* Un sinistre que le SDI n'a pas vu se découvre en ronde. */
+  const zf = G.zones && G.zones[point.zoneId];
+  if(zf && zf.feu && !zf.feu.detected) revealFire(point.zoneId, `découvert par ${agent.name} en ronde`);
+
   // 1bis. Contrôle du trousseau (registre matériel du PCS)
   if(!point._keyChecked && !keyCovers(agent, point.zoneId)){
     point._keyChecked = true;
@@ -2279,7 +2313,14 @@ function renderMap(){
     let badge = '';
     const scanningHere = agentsHere.some(a => a.scanning && a.scanningPoint === z.id);
     if(scanningHere) badge = `<span class="zbadge" style="color:#22d3ee">📇</span>`;
+    /* Niveau de risque de la zone : ce que le chef de poste laisse s'installer */
+    const risk = G.zones ? zoneRisk(z.id) : 0;
+    const zs = G.zones && G.zones[z.id];
+    if(zs && zs.feu && zs.feu.detected) cls += ' fire';
+    const riskBar = risk >= 25
+      ? `<span class="zrisk ${risk >= 60 ? 'hi' : risk >= 40 ? 'mid' : 'lo'}"></span>` : '';
     h += `<div class="zm ${cls}" data-zone="${z.id}">
+      ${riskBar}
       ${mk}${dots}${badge}
       <div class="zn">${z.name}</div>
       <div class="zf">${z.floor}</div>
@@ -2445,6 +2486,7 @@ function tick(){
       if(a.isRonde && a.currentRoundId){
         handleRoundCheckpoint(a);
       } else {
+        if(a.treating) finishTreatZone(a);
         a.state = 'idle';
       }
     }
@@ -2480,26 +2522,41 @@ function trySpawnEvent(){
   const activeCount = G.events.filter(e=>!e.resolved).length;
   if(activeCount >= 2) return;
   const valid = EVENTS.filter(e => e.sites.includes('all') || e.sites.includes(G.siteId));
+  if(!valid.length) return;
+
+  /* Une zone laissée à risque finit par produire son sinistre : le feu
+     n'est plus un tirage, c'est la conséquence de l'état du site. */
+  const hot = riskiestZone();
+  if(hot && hot.r >= 45 && Math.random() < hot.r / 135){
+    const feux = valid.filter(e => e.type === 'feu');
+    if(feux.length){ spawnEvent(pick(feux).id, hot.id); return; }
+  }
   const pool = [];
   for(const e of valid){ for(let i=0;i<e.weight;i++) pool.push(e); }
-  if(!pool.length) return;
   spawnEvent(pick(pool).id);
 }
 
-function spawnEvent(evId){
+function spawnEvent(evId, forcedZone){
   const ev = EVENTS.find(e => e.id === evId);
   if(!ev) return;
-  const z = pick(G.site.zones);
+  const zoneId = forcedZone || zoneWeightedPick(ev.type);
   const urgent = ['feu','medical','at'].includes(ev.type);
-  const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId: z.id, spawnedAt: G.t,
+  const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId, spawnedAt: G.t,
     resolved:false, awaitingOrders:false,
     urgent, delay: urgent ? 12 : 25,
     deadline: G.t + (urgent ? 12 : 25),
-    autoOpen: true, escalated:false};
+    autoOpen: true, escalated:false, hidden:false};
   G.events.push(instance);
-  if(ev.type === 'feu')A.alarm();
-  else A.beep(880,0.1,0.07);
-  mcAdd('PC', `⚠ ${ev.event} — ${zoneName(z.id)}`, ev.type==='feu'?'crit':'warn');
+
+  if(ev.type === 'feu'){
+    igniteZone(zoneId, instance);
+    const causes = zoneRiskCauses(zoneId);
+    if(causes.length) mcAdd('PC', `📍 ${zoneName(zoneId)} — ${causes.join(', ')}`, 'warn');
+  }
+
+  if(instance.hidden){ renderMC(true); return; }   // sinistre non détecté : aucun report
+  if(ev.type === 'feu') A.alarm(); else A.beep(880,0.1,0.07);
+  mcAdd('PC', `⚠ ${ev.event} — ${zoneName(zoneId)}`, ev.type==='feu'?'crit':'warn');
   renderMC(true);
 }
 
@@ -2584,7 +2641,25 @@ function resolveChoice(idx){
   if(ev.type === 'feu' && /lev(é|e)e? de doute|envoyer agent/i.test(c.label) && !G.ld){
     startLDD(ev);
   }
-  if(ev.type === 'feu' && c.score > 0){ G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true; }
+  if(ev.type === 'feu' && c.score > 0){
+    G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
+    /* La décision ne suffit pas : quelqu'un doit aller éteindre. */
+    const dispo = G.agents.find(a => a.state === 'idle' && !a.isRonde) ||
+                  G.agents.find(a => !a.isRonde) || G.agents[0];
+    if(dispo && dispo.pos !== ev.zoneId && !dispo.ldd){
+      divertAgent(dispo, ev.zoneId);
+    }
+  }
+  if(ev.type === 'permis'){
+    const z = G.zones[ev.zoneId];
+    if(z){
+      z.travaux = true;
+      z.travauxUntil = G.t + 90;
+      /* Un permis signé sans contrôle laisse un point chaud non surveillé. */
+      if(c.score <= 0) z.encombrement = Math.min(3, z.encombrement + 1);
+      mcAdd('PC', `🔧 Travaux par point chaud en ${zoneName(ev.zoneId)} jusqu'à ${fmtTime(z.travauxUntil)}${c.score <= 0 ? ' — sans contrôle préalable' : ' — zone contrôlée et surveillée'}`, c.score <= 0 ? 'warn' : 'info');
+    }
+  }
   if(ev.type === 'at' && !G.rh.datOpen){
     G.rh.datOpen = true;
     mcAdd('PC', `🩹 Dossier d'accident du travail à constituer — voir ACTIONS PCS`, 'warn');
@@ -2712,6 +2787,7 @@ function resolveAnomaly(evId, idx){
   }
 
   applyAnomalyEffect(act.fx, ev);
+  applyZoneEffect(ev, act);
   if(act.k !== 'danger') A.success();
   toast(`Ordre transmis${scorePts ? ` (${scorePts > 0 ? '+' : ''}${scorePts} pts)` : ''}`, act.k === 'danger' ? 'bad' : 'good');
   renderMC(true);
@@ -2817,6 +2893,11 @@ function openOrderMenu(agentId){
   h += `<div class="matHead">🎓 FORMATION</div>`;
   h += orderBtn('qcm', isAvail && !onRound && a.role !== 'stagiaire', '🎓', 'Lancer QCM', '+XP ciblé');
   h += orderBtn('exercice', isAvail && !onRound && a.role !== 'stagiaire', '📊', 'Exercice CMSI', 'Manipulation SSI');
+  const hotZone = G.zones ? riskiestZone() : null;
+  h += `<div class="matHead">📍 RISQUE</div>`;
+  h += orderBtn('traiter-zone', isAvail && !onRound && hotZone && hotZone.r >= 25, '🧹',
+    'Faire traiter une zone à risque',
+    hotZone && hotZone.r >= 25 ? `Dégagement et remise en ordre — ${zoneName(hotZone.id)} (${hotZone.r}/100)` : 'Aucune zone à traiter');
   h += `<div class="matHead">☕ REPOS</div>`;
   h += orderBtn('pause', isAvail && !onRound, '☕', 'Pause 15 min', 'Récupération');
   h += orderBtn('pcs', isAvail && !onRound, '🏠', 'Rejoindre PCS', 'Retour au poste');
@@ -2921,6 +3002,15 @@ function execOrder(o){
     G.rounds.push(adhoc);
     startRoundForAgent(a, adhoc);
     toast(`Ronde ${type} lancée`, 'info');
+    return;
+  }
+  if(o === 'traiter-zone'){
+    const zs = G.site.zones.map(z => ({z, r:zoneRisk(z.id)}))
+      .filter(x => x.r >= 25).sort((x, y) => y.r - x.r).slice(0, 4);
+    if(!zs.length){ toast('Aucune zone à traiter', 'info'); return; }
+    openMini('🧹 TRAITER UNE ZONE', `${a.name} — remise en ordre et levée des réserves`,
+      zs.map(x => ({icon:'📍', label:`${x.z.name} (${x.r}/100)`, hint:zoneRiskCauses(x.z.id).slice(0, 2).join(' · '), cls:x.r >= 60 ? 'danger' : 'primary'})),
+      i => treatZone(a, zs[i].z.id));
     return;
   }
   if(o === 'qcm'){ startQCM(a); return; }
@@ -3099,6 +3189,15 @@ function endVacation(){
   const alarmsHandled = alarms.filter(e => e.decidedAt).length;
   const pointsTried = (G.debrief.badges || 0) + (G.debrief.badgesFailed || 0) + (G.materiel.wrongKeys || 0);
   const issued = K.issued || 0;
+  /* Sécurité du site à la relève : zones laissées à risque, anomalies non
+     traitées, sinistres qui se sont propagés faute de compartimentage. */
+  const zoneList = G.site.zones.map(z => zoneRisk(z.id));
+  const redZones = zoneList.filter(r => r >= 40).length;
+  const defautsLaisses = Object.values(G.zones).reduce((n, z) => n + z.defauts.length, 0);
+  const siteSafety = Math.max(0, 1
+    - redZones / Math.max(3, G.site.zones.length / 2)
+    - defautsLaisses * 0.1
+    - (G.k.propagations || 0) * 0.25);
   const trainingExpected = Math.max(1, 3 - Math.floor((G.events.filter(e => e.delay).length + (K.degTotal || 0)) / 2));
   const rat = (ok, tot) => tot > 0 ? Math.max(0, Math.min(1, ok / tot)) : null;
   const ax = parts => {
@@ -3112,6 +3211,7 @@ function endVacation(){
     regulation: ax([
       {w:3, v:rat(doneRounds, planned.length)},
       {w:3, v:rat(alarmsHandled, alarms.length)},
+      {w:4, v:siteSafety},
       {w:1, v:rat(K.inhibLifted || 0, K.inhibPosed || 0)},
       {w:1, v:rat(K.ssiOk || 0, K.ssiTotal || 0)},
       {w:1, v:rat(G.s3.auditsGood, G.s3.audits)},
@@ -3121,6 +3221,7 @@ function endVacation(){
       {w:2, v:rat(alarmsHandled, alarms.length)},
       {w:2, v:rat(onTimeRounds, doneRounds)},
       {w:1, v:rat(K.degHandled || 0, K.degTotal || 0)},
+      {w:2, v:(G.k.propagations || 0) ? Math.max(0, 1 - G.k.propagations * 0.4) : null},
     ]),
     rh: ax([
       {w:3, v:rat((K.ordersGiven || 0) - (K.ordersDangerous || 0), K.ordersAsked || 0)},
@@ -3160,6 +3261,11 @@ function endVacation(){
     ['MCI conformes', frac(K.mciGood || 0, K.mciTotal || 0)],
     ['Audits SSIAP 3 réussis', frac(G.s3.auditsGood, G.s3.audits)],
     ['Actions de formation', `${G.debrief.training || 0} / ${trainingExpected} attendue(s)`],
+    ['Zones remises en ordre', `${K.zonesTreated || 0}`],
+    ['Départs de feu éteints sur place', `${K.feuxEteints || 0}`],
+    ['Anomalies laissées non traitées', `${defautsLaisses}`],
+    ['Zones à risque à la relève', `${redZones}`],
+    ['Propagations de sinistre', `${G.k.propagations || 0}`],
   ];
 
   const total = Math.round(Object.values(axes).reduce((s,v)=>s+v,0) / 6);
@@ -3236,6 +3342,16 @@ function endVacation(){
       Départs sans radio : <b style="color:${G.materiel.noRadioDepartures?'#ff6b5e':'#4ade80'}">${G.materiel.noRadioDepartures}</b><br>
       Remises du passe général : <b style="color:${G.materiel.pgIssues?'#ffb020':'#4ade80'}">${G.materiel.pgIssues}</b> ·
       Non restitués à la relève : <b style="color:${G.materiel.notReturned?'#ff6b5e':'#4ade80'}">${G.materiel.notReturned}</b>
+    </div>`;
+
+  const risques = G.site.zones.map(z => ({z, r:zoneRisk(z.id), c:zoneRiskCauses(z.id)}))
+    .filter(x => x.r >= 40).sort((a, b) => b.r - a.r);
+  h += `<h2>📍 ÉTAT DU SITE À LA RELÈVE</h2>
+    <div class="evContent" style="line-height:1.7">
+      ${risques.length
+        ? risques.map(x => `<div><b style="color:${x.r >= 60 ? '#ff6b5e' : '#ffb020'}">${x.z.name} (${x.r}/100)</b> — ${x.c.join(', ')}</div>`).join('')
+        : 'Aucune zone laissée en situation à risque.'}
+      ${(G.k.propagations || 0) ? `<div style="color:#ff6b5e;margin-top:6px"><b>${G.k.propagations} propagation(s) de sinistre</b> — compartimentage non tenu</div>` : ''}
     </div>`;
 
   h += `<h2>🔧 MODES DÉGRADÉS & SSI</h2>
@@ -3449,6 +3565,9 @@ function renderActions(){
     <div class="ol"><b>Surveillance compensatoire</b><span>${G.deg.detect ? (G.deg.detect.covered ? 'Mesures en place · ' + zoneName(G.deg.detect.zoneId) : '⚠ DÉTECTION HS · ' + zoneName(G.deg.detect.zoneId)) : 'Détection nominale'}</span></div></button>`;
 
   h += `<div class="matHead">📦 MATÉRIEL & RONDES</div>`;
+  const hot = riskiestZone();
+  h += `<button class="orderBtn ${hot && hot.r >= 60 ? 'danger' : 'primary'}" data-act="open-sitestate"><div class="oi">📍</div>
+    <div class="ol"><b>État du site</b><span>${hot && hot.r >= 25 ? `Zone la plus exposée : ${zoneName(hot.id)} (${hot.r}/100)` : 'Aucune zone exposée'}</span></div></button>`;
   h += `<button class="orderBtn primary" data-act="open-materiel"><div class="oi">📦</div>
     <div class="ol"><b>Registre matériel PCS</b><span>Clés, badges, radios — dotation / restitution</span></div></button>`;
   h += `<button class="orderBtn primary" data-act="open-planning"><div class="oi">📋</div>
@@ -3517,6 +3636,7 @@ function togglePause(){
     </div>
     <div style="font-size:9.5px;color:#7d8fa3;text-align:center">Poste en cours</div>`;
     $('pauseStats').innerHTML = h;
+    $('speedBtn').textContent = `⏩ VITESSE : ${G.speed || 1}×`;
     $('pauseScreen').classList.add('open');
   } else {
     $('pauseScreen').classList.remove('open');
@@ -3781,6 +3901,28 @@ function openSlot(kind, agentId){
 }
 
 function openMateriel(){ if(!G) return; renderMateriel(); $('materielScreen').classList.add('open'); }
+
+/* Tableau de bord du risque : la cause de chaque danger est nommée. */
+function renderSiteState(){
+  if(!G || !G.zones) return;
+  const zones = G.site.zones.map(z => ({z, r:zoneRisk(z.id), c:zoneRiskCauses(z.id)}))
+    .sort((a, b) => b.r - a.r);
+  let h = `<div class="matHint">Le risque d'une zone vient de ce qui s'y accumule : travaux par point chaud, détection hors service, compartimentage percé, accès encombré, anomalies signalées mais non traitées. Une zone laissée trop longtemps en rouge finit par produire son sinistre.</div>`;
+  for(const {z, r, c} of zones){
+    const st = G.zones[z.id];
+    const lvl = r >= 60 ? 'hi' : r >= 40 ? 'mid' : r >= 25 ? 'lo' : 'ok';
+    h += `<div class="zrow ${lvl}">
+      <div class="zrHead">
+        <span class="zrName">${z.name} <span class="zrFloor">${z.floor}</span></span>
+        <span class="zrVal">${r}</span>
+      </div>
+      <div class="zrBar"><span style="width:${r}%"></span></div>
+      <div class="zrCauses">${c.length ? c.join(' · ') : 'rien à signaler'}</div>
+      ${st.feu && st.feu.detected ? `<div class="zrFire">🔥 sinistre en cours — stade ${st.feu.stage}/3</div>` : ''}
+    </div>`;
+  }
+  $('siteStateContent').innerHTML = h;
+}
 
 /* Contrôle de dotation au départ d'une ronde */
 function checkDotation(agent, round){
@@ -4225,6 +4367,259 @@ function tickBinome(){
   }
 }
 
+
+/* ==========================================================
+   ============ ÉTAT DU SITE — MODÈLE CAUSAL ================
+   Les événements ne sont plus tirés au sort : ils naissent de
+   l'état réel des zones, que les décisions du PCS font évoluer.
+   ========================================================== */
+
+/* Locaux à forte charge calorifique ou à risque particulier */
+const ZONES_A_RISQUE = ['reserves','cuisine','chimique','local_tech','tgbt_ht','cuve',
+  'entrepot','atelier','local_oxy','spa','discotheque','quai','parkL','gaine','ss1','ss2','parking'];
+
+function initZones(site){
+  const z = {};
+  for(const zone of site.zones){
+    z[zone.id] = {
+      charge: ZONES_A_RISQUE.includes(zone.id) ? 2 : 1, // charge calorifique 0-3
+      encombrement: 0,        // stockage gênant, accès condamné
+      compartimentage: 1,     // 1 intact, 0 percé (porte calée non traitée)
+      travaux: false,         // permis de feu en cours
+      defauts: [],            // anomalies laissées en l'état
+      feu: null,              // { stage, since, detected, controlled }
+    };
+  }
+  return z;
+}
+
+/* La détection d'une zone est déduite de l'état du SSI : une seule vérité. */
+function zoneDetection(id){
+  if(G.ssi.inhibited.includes(id)) return 'inhibee';
+  if(G.deg.detect && G.deg.detect.zoneId === id) return 'panne';
+  return 'service';
+}
+
+function zoneRisk(id){
+  const z = G.zones[id];
+  if(!z) return 0;
+  let r = z.charge * 7 + z.encombrement * 12 + z.defauts.length * 13;
+  if(z.travaux) r += 26;
+  if(zoneDetection(id) !== 'service') r += 16;
+  if(!z.compartimentage) r += 13;
+  if(G.shift === 'night' && z.charge >= 2) r += 4;
+  return Math.min(100, Math.round(r));
+}
+
+function zoneRiskCauses(id){
+  const z = G.zones[id];
+  const c = [];
+  if(!z) return c;
+  if(z.travaux) c.push('travaux par point chaud en cours');
+  if(zoneDetection(id) === 'inhibee') c.push('détection inhibée');
+  if(zoneDetection(id) === 'panne') c.push('détection hors service');
+  if(!z.compartimentage) c.push('compartimentage percé');
+  if(z.encombrement >= 2) c.push('accès très encombré');
+  else if(z.encombrement === 1) c.push('accès encombré');
+  if(z.charge >= 2) c.push('forte charge calorifique');
+  for(const d of z.defauts) c.push(`« ${d} » non traité`);
+  return c;
+}
+
+/* Une anomalie laissée en l'état s'inscrit dans la zone ; la traiter l'efface. */
+function zoneAddDefect(zoneId, label){
+  const z = G.zones[zoneId];
+  if(z && !z.defauts.includes(label)) z.defauts.push(label);
+}
+function zoneClearDefect(zoneId, label){
+  const z = G.zones[zoneId];
+  if(z) z.defauts = z.defauts.filter(d => d !== label);
+}
+
+/* Effet d'un ordre sur la zone, déduit de sa nature */
+function applyZoneEffect(ev, act){
+  const z = G.zones[ev.zone];
+  if(!z) return;
+  const good = (act.s || 0) >= 6 && act.k !== 'danger';
+  if(good){
+    zoneClearDefect(ev.zone, ev.title);
+    if(/dégager|désobstru/i.test(act.l)) z.encombrement = Math.max(0, z.encombrement - 1);
+    if(/cale/i.test(act.l)) z.compartimentage = 1;
+  } else {
+    zoneAddDefect(ev.zone, ev.title);
+    if(/extincteur|issue|obstru/i.test(ev.title)) z.encombrement = Math.min(3, z.encombrement + 1);
+    if(/coupe-feu/i.test(ev.title)) z.compartimentage = 0;
+  }
+}
+
+/* ==========================================================
+   FEU : naissance, détection, propagation
+   ========================================================== */
+function igniteZone(zoneId, ev){
+  const z = G.zones[zoneId];
+  if(!z || z.feu) return;
+  const detected = zoneDetection(zoneId) === 'service';
+  z.feu = { stage:1, since:G.t, detected, controlled:false, lastGrow:G.t };
+  if(!detected){
+    /* Pas de détection : aucune alarme au PCS. Le sinistre couve. */
+    ev.hidden = true;
+    ev.autoOpen = false;
+    ev.deadline = null;
+    ev.event = '🔥 DÉPART DE FEU NON DÉTECTÉ';
+    mcAdd('PC', `⚠ ${zoneName(zoneId)} : zone ${zoneDetection(zoneId) === 'inhibee' ? 'inhibée' : 'en panne de détection'} — aucun report au CMSI`, 'warn');
+  }
+}
+
+function revealFire(zoneId, how){
+  const z = G.zones[zoneId];
+  if(!z || !z.feu || z.feu.detected) return;
+  z.feu.detected = true;
+  const ev = G.events.find(e => e.type === 'feu' && e.zoneId === zoneId && !e.resolved);
+  if(ev){
+    ev.hidden = false;
+    ev.autoOpen = true;
+    ev.deadline = G.t + 12;
+    ev.event = '🔥 FEU DÉCOUVERT — ' + how;
+  }
+  A.alarm();
+  mcAdd('PC', `🔥 FEU DÉCOUVERT en ${zoneName(zoneId)} (${how}) — aucune détection n'avait alerté le PCS`, 'crit');
+  toast('🔥 Feu découvert !', 'bad');
+  renderMC(true);
+}
+
+function tickZones(){
+  for(const id in G.zones){
+    const z = G.zones[id];
+    if(z.travaux && G.t > z.travauxUntil) {
+      z.travaux = false;
+      mcAdd('PC', `🔧 Fin des travaux par point chaud en ${zoneName(id)} — contrôle post-travaux à faire`, 'info');
+    }
+    if(!z.feu || z.feu.controlled) continue;
+
+    /* Le sinistre non traité grandit */
+    if(G.t - z.feu.lastGrow > 14){
+      z.feu.lastGrow = G.t;
+      z.feu.stage = Math.min(3, z.feu.stage + 1);
+      if(z.feu.stage === 2 && !z.feu.detected && Math.random() < 0.6){
+        revealFire(id, 'fumée signalée');
+      } else if(z.feu.stage >= 3){
+        propagateFire(id);
+      }
+    }
+  }
+}
+
+function propagateFire(from){
+  const z = G.zones[from];
+  if(!z || z.propagated) return;
+  z.propagated = true;
+  G.score -= 25;
+  G.k.propagations = (G.k.propagations || 0) + 1;
+  const voisines = G.site.zones.filter(x => x.id !== from);
+  const cible = z.compartimentage === 0 && voisines.length ? pick(voisines) : null;
+  if(cible){
+    G.zones[cible.id].feu = { stage:2, since:G.t, detected: zoneDetection(cible.id) === 'service', controlled:false, lastGrow:G.t };
+    mcAdd('PC', `🔥🔥 PROPAGATION de ${zoneName(from)} vers ${cible.name} — compartimentage percé`, 'crit');
+  } else {
+    mcAdd('PC', `🔥🔥 Sinistre généralisé en ${zoneName(from)} — intervention des sapeurs-pompiers`, 'crit');
+  }
+  A.alarm();
+  toast('🔥 Propagation !', 'bad');
+  renderMC(true);
+}
+
+/* Un agent présent sur un sinistre l'attaque : c'est lui qui éteint, pas
+   la fenêtre de décision. Un feu trop développé ne se traite plus seul. */
+function tickFireAttack(){
+  for(const id in G.zones){
+    const z = G.zones[id];
+    if(!z.feu || z.feu.controlled || !z.feu.detected) continue;
+    const sur = G.agents.find(a => a.pos === id && a.state !== 'moving' && a.state !== 'awaiting');
+    if(!sur) continue;
+    if(z.feu.stage >= 3){
+      if(!z.feu.tooBig){
+        z.feu.tooBig = true;
+        mcAdd(sur.id, `🔥 Sinistre trop développé en ${zoneName(id)} — repli, attente des sapeurs-pompiers`, 'crit');
+      }
+      continue;
+    }
+    z.feu.attack = (z.feu.attack || 0) + 0.3 * (G.speed || 1);
+    if(z.feu.attack >= 3){
+      const gene = z.encombrement >= 2;
+      if(gene && z.feu.attack < 6) continue;   // accès encombré : extinction plus lente
+      G.score += 10;
+      G.k.feuxEteints = (G.k.feuxEteints || 0) + 1;
+      mcAdd(sur.id, `🧯 Extinction du départ de feu en ${zoneName(id)} par ${sur.name}${gene ? ' (accès encombré, intervention retardée)' : ''}`, 'ok');
+      radioSay(sur, `Feu éteint, je fais le contrôle post-incendie.`, 'radio');
+      controlFire(id);
+      toast('🧯 Feu éteint', 'good');
+    }
+  }
+}
+
+/* Le feu est maîtrisé quand le PCS a pris sa décision et qu'un agent est sur zone */
+function controlFire(zoneId){
+  const z = G.zones[zoneId];
+  if(!z || !z.feu) return;
+  z.feu.controlled = true;
+  const gene = z.encombrement >= 2 ? ' malgré un accès encombré' : '';
+  mcAdd('PC', `✅ Sinistre maîtrisé en ${zoneName(zoneId)}${gene}`, 'ok');
+  z.feu = null;
+}
+
+/* Envoyer un agent lever les réserves d'une zone : le risque se traite,
+   il ne se contemple pas. */
+function treatZone(agent, zoneId){
+  const z = G.zones[zoneId];
+  if(!z || !agent) return;
+  agent.state = 'moving';
+  agent.targetId = zoneId;
+  agent.until = G.t + 3;
+  agent.workTime = 12;
+  agent.treating = zoneId;
+  mcAdd('PC', `🧹 ${agent.name} envoyé lever les réserves de ${zoneName(zoneId)}`, 'action');
+  radioSay(agent, `Reçu, je pars remettre ${zoneName(zoneId)} en ordre.`, 'order');
+  toast(`${agent.name} → ${zoneName(zoneId)}`, 'info');
+  renderAll();
+}
+function finishTreatZone(agent){
+  const zoneId = agent.treating;
+  agent.treating = null;
+  const z = G.zones[zoneId];
+  if(!z) return;
+  const avant = zoneRisk(zoneId);
+  z.encombrement = Math.max(0, z.encombrement - 2);
+  const traite = z.defauts.shift();
+  if(!z.compartimentage && /coupe-feu/i.test(traite || '')) z.compartimentage = 1;
+  const apres = zoneRisk(zoneId);
+  G.score += 6;
+  G.k.zonesTreated = (G.k.zonesTreated || 0) + 1;
+  mcAdd(agent.id, `🧹 ${zoneName(zoneId)} remise en ordre${traite ? ` — « ${traite} » traité` : ''} (risque ${avant} → ${apres})`, 'ok');
+  radioSay(agent, `${zoneName(zoneId)} dégagée, je remonte.`, 'radio');
+  renderAll();
+}
+
+/* ==========================================================
+   NAISSANCE DES ÉVÉNEMENTS À PARTIR DE L'ÉTAT DU SITE
+   ========================================================== */
+function riskiestZone(){
+  const zs = G.site.zones.map(z => ({id:z.id, r:zoneRisk(z.id)})).sort((a,b) => b.r - a.r);
+  return zs[0];
+}
+function zoneWeightedPick(kind){
+  const list = G.site.zones.map(z => {
+    let w = 1;
+    if(kind === 'feu') w = 1 + zoneRisk(z.id) / 8;
+    if(kind === 'medical') w = ZONES_A_RISQUE.includes(z.id) ? 1 : 3;   // public
+    if(kind === 'at') w = ZONES_A_RISQUE.includes(z.id) ? 3 : 1;        // locaux de travail
+    return {id:z.id, w};
+  });
+  const total = list.reduce((s, x) => s + x.w, 0);
+  let r = Math.random() * total;
+  for(const x of list){ r -= x.w; if(r <= 0) return x.id; }
+  return list[0].id;
+}
+
 /* ==========================================================
    6 quater. AGENTS EN ATTENTE D'ORDRES
    Un agent qui attend bloque sa ronde : il relance, puis il tranche seul.
@@ -4385,7 +4780,7 @@ function escalateEvent(ev){
 
   if(ev.type === 'feu'){
     G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-    mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — sinistre non levé, situation aggravée`, 'crit');
+    mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — le sinistre se poursuit, personne n'a été envoyé`, 'crit');
     mcAdd('S3', `Aucune décision du PCS sur l'alarme ${zoneName(ev.zoneId)}. Je reprends la main — ce sera au débriefing.`, 'crit');
   } else if(ev.type === 'medical' || ev.type === 'at'){
     mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — victime sans prise en charge`, 'crit');
@@ -4409,6 +4804,8 @@ function escalateEvent(ev){
 function tickV6(){
   if(!G) return;
   tickCoach();
+  tickZones();
+  tickFireAttack();
   tickEvents();
   tickAwaiting();
   tickDegraded();
@@ -4425,6 +4822,12 @@ function updateAlertStrip(){
   if(pending) bits.push(`🔔 ${pending} alarme(s)`);
   const waiting = awaitingAgents().length;
   if(waiting) bits.push(`⏸ ${waiting} agent(s) en attente`);
+  if(G.zones){
+    const feux = Object.keys(G.zones).filter(id => G.zones[id].feu && G.zones[id].feu.detected);
+    for(const id of feux) bits.push(`🔥 Feu en cours — ${zoneName(id)}`);
+    const hot = riskiestZone();
+    if(!feux.length && hot && hot.r >= 60) bits.push(`📍 ${zoneName(hot.id)} à risque (${hot.r})`);
+  }
   if(G.ld){
     const left = Math.max(0, G.ld.deadline - G.t);
     bits.push(`⏱ LDD ${left.toFixed(1)}min`);
@@ -4477,6 +4880,7 @@ function resumeShift(){
   G.k = G.k || {};
   if(typeof G.coachIdx !== 'number') G.coachIdx = COACH.length;
   G.materiel = G.materiel || initMateriel(G.site);
+  G.zones = G.zones || initZones(G.site);
   G.deg = G.deg || initDegraded();
   G.ssi = G.ssi || initSSI();
   G.rh = G.rh || initRH();
@@ -4669,6 +5073,8 @@ function handleTap(e){
   if(act === 'close-order'){ $('orderScreen').classList.remove('open'); return; }
   if(act === 'close-actions'){ $('actionsScreen').classList.remove('open'); return; }
   if(act === 'open-materiel'){ $('actionsScreen').classList.remove('open'); openMateriel(); return; }
+  if(act === 'open-sitestate'){ $('actionsScreen').classList.remove('open'); renderSiteState(); $('siteStateScreen').classList.add('open'); return; }
+  if(act === 'close-sitestate'){ $('siteStateScreen').classList.remove('open'); return; }
   if(act === 'close-materiel'){ $('materielScreen').classList.remove('open'); return; }
   if(act === 'close-mini'){ closeMini(); return; }
   if(act === 'close-hq'){ $('hqScreen').classList.remove('open'); return; }
@@ -4683,7 +5089,12 @@ function handleTap(e){
   if(act === 'unassign-round'){ unassignRound(btn.dataset.round); return; }
   if(act === 'pause'){ togglePause(); return; }
   if(act === 'resume'){ togglePause(); return; }
-  if(act === 'speed'){ if(!G) return; G.speed = G.speed === 1 ? 2 : 1; btn.textContent = G.speed + '×'; return; }
+  if(act === 'speed'){
+    if(!G) return;
+    G.speed = G.speed === 1 ? 2 : 1;
+    btn.textContent = `⏩ VITESSE : ${G.speed}×`;
+    return;
+  }
   if(act === 'sound'){
     SAVE.muted = !SAVE.muted; A.muted = SAVE.muted; writeSave();
     btn.textContent = SAVE.muted ? '🔇' : '🔊';

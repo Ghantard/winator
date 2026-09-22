@@ -77,6 +77,38 @@ n'est ni récompensée ni punie —, et l'attente de formation se réduit quand 
 vacation a été chargée. Le débriefing affiche le détail chiffré de chaque
 ratio, pour que la note se lise au lieu de se subir.
 
+## Le site a un état, et cet état produit les événements
+
+Les incidents ne sont plus tirés au sort : chaque zone porte un état vivant —
+charge calorifique, encombrement, compartimentage, travaux par point chaud,
+détection en service ou non, anomalies signalées mais non traitées — d'où
+découle un **niveau de risque** visible sur le plan et détaillé dans l'écran
+**ÉTAT DU SITE**, cause par cause.
+
+- Une anomalie **traitée** disparaît de la zone ; **consignée**, elle s'y
+  inscrit et fait monter le risque. Une cale laissée sur une porte coupe-feu
+  perce le compartimentage, un extincteur laissé obstrué encombre l'accès.
+- Un **permis de feu signé sans contrôle** crée un point chaud non surveillé
+  pendant 90 minutes, dans cette zone précise.
+- Une zone laissée trop longtemps en rouge **finit par produire son sinistre** :
+  le feu naît là où la négligence s'est accumulée.
+- Un feu dans une zone **inhibée ou en panne de détection ne déclenche aucune
+  alarme** : il couve, et n'est découvert que par un agent en ronde ou par la
+  fumée, avec le retard que cela suppose.
+- Un sinistre non traité grandit par paliers ; au stade 3 il **se propage à une
+  zone voisine si le compartimentage a été percé**. Un agent envoyé sur place
+  l'éteint tant qu'il est au stade 1 ou 2 — plus lentement si l'accès est
+  encombré —, au-delà il faut les secours.
+- Le risque se traite : un agent peut être envoyé **lever les réserves** d'une
+  zone (dégagement, remise en ordre), ce qui fait redescendre son niveau.
+- L'état du site à la relève pèse sur la note : zones laissées à risque,
+  anomalies non traitées et propagations entrent dans l'axe Réglementation.
+
+Vérifié par simulation comparée de deux vacations complètes jouées par un
+robot, l'une traitant les anomalies, l'autre les consignant systématiquement :
+la seconde finit avec 4 à 9 anomalies non traitées, 1 à 3 zones à risque,
+plusieurs propagations et un score d'exploitation trois à six fois inférieur.
+
 ## Conduite de la vacation
 
 - **Chaque anomalie a ses propres ordres.** Plus de « traiter sur place »
