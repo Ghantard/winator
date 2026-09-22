@@ -47,7 +47,6 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   display:flex;align-items:center;justify-content:center;font-family:inherit;
   transition:.15s;position:relative}
 .hbtn:active{transform:scale(.92);background:rgba(40,60,85,.8)}
-.hbtn.mute{color:#ff453a;border-color:rgba(255,59,48,.3)}
 .hbtn.hot{border-color:rgba(255,176,32,.5);color:#ffb020;animation:pulse-soft 1.5s infinite}
 .hbtn.urgent{border-color:rgba(255,59,48,.6);color:#ff6b5e;animation:urgent-pulse 1.2s infinite}
 .hbtn .nbadge{position:absolute;top:-4px;right:-4px;background:#ff453a;color:#fff;
@@ -199,9 +198,6 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .agent .ef.crit{background:linear-gradient(90deg,#ff453a,#f87171)}
 .agent .th{font-size:6.5px;color:#4a6076;text-align:center;margin-top:5px;
   letter-spacing:.5px;font-weight:800;border-top:1px solid rgba(80,110,150,.1);padding-top:3px}
-.agent .rprog{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,176,32,.2);overflow:hidden}
-.agent .rprog .rfill{height:100%;background:linear-gradient(90deg,#ffb020,#ff8c00);
-  transition:width .3s ease;border-radius:0 2px 2px 0}
 .agent .rpts{position:absolute;bottom:0;left:0;right:0;height:3px;display:flex;gap:1px;
   padding:0 2px;pointer-events:none}
 .agent .rpts .rp{flex:1;background:rgba(80,110,150,.3);border-radius:1px}
@@ -414,10 +410,6 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .matName{font-size:10px;font-weight:800;color:#e8f0f8}
 .matSub{font-size:8px;color:#7d8fa3;font-weight:500;margin-top:1px}
 .matZones{font-size:7.5px;color:#7ab0ff;line-height:1.35;margin-top:2px}
-.matBtns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:112px}
-.matBtn{padding:5px 7px;border-radius:6px;border:1px solid rgba(80,140,220,.3);cursor:pointer;
-  background:rgba(80,140,220,.12);color:#7ab0ff;font-family:inherit;font-size:9px;font-weight:800}
-.matBtn.back{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.12);color:#4ade80}
 .meta-item.alert{color:#ff8b7e;font-weight:800}
 #alertBar{display:none;align-items:center;gap:9px;padding:9px 11px;flex-shrink:0;
   border-top:1px solid rgba(168,85,247,.45);
@@ -468,8 +460,6 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .shiftBtn span{display:block;font-size:8px;font-weight:600;color:#7d8fa3;margin-top:3px}
 .tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:7.5px;font-weight:800;letter-spacing:.3px}
 .tag.n1{background:rgba(96,165,250,.15);color:#7ab0ff}
-.tag.n2{background:rgba(48,209,88,.15);color:#4ade80}
-.tag.n3{background:rgba(255,176,32,.15);color:#ffb020}
 .tag.stag{background:rgba(255,59,48,.15);color:#ff8b7e}
 .tag.badge{background:rgba(34,211,238,.15);color:#22d3ee}
 .tag.hidden{background:rgba(168,85,247,.15);color:#c084fc}
@@ -585,7 +575,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 /* Zones tactiles : 44 px minimum sur tout ce qui se touche */
 .btn-main,.btn-sec,.orderBtn,.evChoice,.qcmA,.mciOption,.shiftBtn,
 .siteCard,.pickerAgent,.shopItem,.skillRow.canbuy{min-height:48px}
-.psBtn,.roundItem .riActions button,.matBtn{min-height:42px;padding:10px 12px}
+.psBtn,.roundItem .riActions button{min-height:42px;padding:10px 12px}
 .hbtn{min-width:42px;height:42px;font-size:15px}
 .zm{min-height:46px}
 
@@ -715,13 +705,9 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <button class="hbtn" data-act="open-actions" id="actionsBtn">⚡</button>
   </header>
   <div id="metaRow">
-    <span class="meta-item">🏢 <b id="metaSite">—</b></span>
-    <span class="sep">|</span>
     <span class="meta-item">📅 <b id="metaDate">—</b></span>
     <span class="sep">|</span>
     <span class="meta-item" id="metaWeather">🌙</span>
-    <span class="sep">|</span>
-    <span class="meta-item">👥 <b id="metaBinome">—</b></span>
     <span class="sep">|</span>
     <span class="meta-item">🎖 <b id="metaS3">absent</b></span>
     <span class="sep">|</span>
@@ -1277,33 +1263,32 @@ const EVENTS = [
      {text:'Engueulade.',good:false}]},
 ];
 
-const QCM_POOL = [
-  {q:'Que signifie SSIAP ?',a:['Service Sécurité Incendie Assistance Personne','Service Surveillance Intervention Anti-Panique','Sécurité SSI Assistance Pompiers'],correct:0},
-  {q:'Délai max levée de doute ?',a:['10 min','3 à 5 min','15 min'],correct:1},
-  {q:'En IGH, l\'évacuation se fait :',a:['Verticale escaliers','Compartimentage + transfert horizontal','Ascenseurs'],correct:1},
-  {q:'Un permis de feu est valable :',a:['Une vacation','Durée travaux avec contrôles','Une semaine'],correct:1},
-  {q:'Défaut SSI non résolu ?',a:['Acquitter oublier','Isoler + maintenance + surveillance','Attendre'],correct:1},
-  {q:'ERP Type U, patients évacués :',a:['Verticalement','Horizontalement par compartimentage','Ascenseur'],correct:1},
-  {q:'Réglementation IGH exige :',a:['1 SSIAP','2 SSIAP min permanents','Aucun'],correct:1},
-  {q:'Zone ATEX :',a:['Risque d\'explosion','Anti-feu','Technique'],correct:0},
-  {q:'Délai évac ERP ?',a:['5 min','8 min','10 min'],correct:0},
-  {q:'DAT signifie :',a:['Doc Admin Travaux','Déclaration Accident Travail','Dossier Action Tech'],correct:1},
-  {q:'Pointage badge en ronde :',a:['Optionnel','Obligatoire réglementaire','Uniquement jour'],correct:1},
-  {q:'Ronde de nuit diffère car :',a:['Plus rapide','Points moins visibles + vigilance accrue','Aucune différence'],correct:1},
-];
-const AUDIT_QUESTIONS = [
-  {q:'Délai réglementaire levée de doute ?',a:['10 min','3 à 5 min','15 min'],correct:1},
-  {q:'En IGH, feu confirmé :',a:['Évac verticale','Compartimentage + transfert horizontal','Ascenseurs'],correct:1},
-  {q:'Permis de feu signé par :',a:['Artisan seul','SSIAP 2 et artisan','Direction'],correct:1},
-  {q:'MCI contient :',a:['Qui/Quand/Où/Quoi/Conséquence/Mesures','Nom agent seul','Heure seule'],correct:0},
-  {q:'Panne CMSI totale :',a:['Fermer site','Mode dégradé + rondes manuelles','Attendre'],correct:1},
-  {q:'Effectif min SSIAP IGH :',a:['1 SSIAP 2','2 SSIAP dont 1 SSIAP 2','3 SSIAP 1'],correct:1},
-  {q:'Stagiaire en ronde :',a:['Seul','Binôme avec tuteur','Autonome'],correct:1},
-  {q:'Alarme feu ERP U : patients :',a:['Verticalement','Horizontalement par compartimentage','Jamais'],correct:1},
-  {q:'SSIAP 2 peut inhiber ?',a:['Toujours','Uniquement travaux/technique','La nuit'],correct:1},
-  {q:'Ronde surveillance :',a:['Contrôle SSI','Contrôle accès et circulations','Maintenance'],correct:1},
-  {q:'Le pointage badge sert à :',a:['Rien','Prouver le passage de l\'agent','Suivre l\'agent en direct'],correct:1},
-  {q:'Fenêtre de tolérance ronde :',a:['Aucune','± quelques minutes selon le site','±1h'],correct:1},
+/* ==========================================================
+   BANQUE DE QUESTIONS — formation des agents et audits SSIAP 3
+   Un seul jeu : les deux listes d'origine se recouvraient presque
+   entièrement. `hard` marque les questions réservées aux audits.
+   ========================================================== */
+const QUESTIONS = [
+  {q:'Que signifie SSIAP ?',a:['Service Sécurité Incendie Assistance à Personnes','Service Surveillance Intervention Anti-Panique','Sécurité SSI Assistance Pompiers'],correct:0},
+  {q:'Délai d\'une levée de doute ?',a:['10 min','3 à 5 min','15 min'],correct:1},
+  {q:'En IGH, face à un feu confirmé :',a:['Évacuation verticale par les escaliers','Compartimentage et transfert horizontal','Évacuation par les ascenseurs'],correct:1},
+  {q:'Un permis de feu est valable :',a:['Une vacation','La durée des travaux, avec contrôles','Une semaine'],correct:1},
+  {q:'Défaut SSI non résolu en fin de poste :',a:['Acquitter et oublier','Isoler, maintenance et surveillance renforcée','Attendre la relève'],correct:1},
+  {q:'ERP type U, évacuation des patients :',a:['Verticalement','Horizontalement par compartimentage','Par ascenseur'],correct:1},
+  {q:'Zone ATEX :',a:['Risque d\'explosion','Zone anti-feu','Local technique'],correct:0},
+  {q:'DAT signifie :',a:['Document Administratif de Travaux','Déclaration d\'Accident du Travail','Dossier d\'Action Technique'],correct:1},
+  {q:'Le pointage badge en ronde sert à :',a:['Rien de réglementaire','Prouver le passage de l\'agent','Suivre l\'agent en direct'],correct:1},
+  {q:'Une ronde de nuit diffère car :',a:['Elle est plus rapide','Points moins visibles, vigilance accrue','Aucune différence'],correct:1},
+  {q:'Un stagiaire en ronde :',a:['Peut y aller seul','Est en binôme avec son tuteur','Est autonome après une semaine'],correct:1},
+  {q:'Odeur de gaz dans un local :',a:['Chercher la fuite avec une lampe','Aucune source d\'énergie, couper, ventiler, évacuer','Ouvrir le disjoncteur du local'],correct:1},
+  {q:'Objet abandonné dans une circulation :',a:['L\'ouvrir pour identifier le propriétaire','Ne pas y toucher, baliser et rendre compte','Le porter aux objets trouvés'],correct:1},
+  {q:'Une porte coupe-feu calée en position ouverte :',a:['C\'est toléré en journée','Retirer la cale et contrôler la fermeture','La signaler en fin de vacation'],correct:1},
+  {q:'La main courante doit contenir :',a:['Qui, quand, où, quoi, conséquences, mesures prises','Le nom de l\'agent seul','L\'heure seule'],correct:0, hard:true},
+  {q:'Panne totale du CMSI :',a:['Fermer l\'établissement','Mode dégradé : rondes et surveillance humaine renforcées','Attendre la maintenance'],correct:1, hard:true},
+  {q:'Le SSIAP 2 peut inhiber une zone :',a:['Quand il le souhaite','Pour des travaux, avec surveillance et levée avant la relève','La nuit uniquement'],correct:1, hard:true},
+  {q:'Effectif minimal de sécurité incendie en IGH :',a:['1 SSIAP 2','2 SSIAP dont 1 SSIAP 2','3 SSIAP 1'],correct:1, hard:true},
+  {q:'Une ronde de surveillance contrôle :',a:['Les organes du SSI','Les accès et les circulations','La maintenance des installations'],correct:1, hard:true},
+  {q:'La tolérance horaire d\'une ronde :',a:['N\'existe pas','Quelques minutes, selon les consignes du site','Une heure'],correct:1, hard:true},
 ];
 
 const CAREER = [
@@ -1337,18 +1322,13 @@ const SKILLS = {
   vitesse:{name:'Vitesse',icon:'💨',cost:[8,16,24],desc:['-8% trajet','-16% trajet','-25% trajet']},
   vigilance:{name:'Vigilance',icon:'👁',cost:[8,16,24],desc:['+8% détection points cachés','+16%','+24%']},
   endurance:{name:'Endurance',icon:'💪',cost:[8,16,24],desc:['Fatigue -15%','-30%','-45%']},
-  sst:{name:'SST',icon:'🩹',cost:[6,12,20],desc:['Base SST','Confirmé','Chef secours']},
   badge:{name:'Badge rapide',icon:'📇',cost:[6,12,20],desc:['Scan plus rapide','+10% réussite','Maître badge']},
-  comm:{name:'Comm.',icon:ICON_VHF,cost:[6,12,20],desc:['Clarté','Protocole','Chef comms']},
 };
 
 const SHOP = [
-  {id:'talkie',icon:ICON_VHF,name:'Talkie pro',desc:'+10% vitesse ordres',cost:15},
   {id:'lampe',icon:'🔦',name:'Lampe LED',desc:'Points cachés -30% (nuit)',cost:15},
   {id:'badge_reader',icon:'📇',name:'Lecteur badge pro',desc:'Pointage +15% réussite',cost:22},
   {id:'tablette',icon:'📱',name:'Tablette MCI',desc:'+20% note MCI',cost:25},
-  {id:'camera',icon:'📷',name:'Caméra thermique',desc:'+25% détection feux',cost:35},
-  {id:'testeur',icon:'🔧',name:'Testeur SSI',desc:'Défauts -50%',cost:28},
   {id:'cafe',icon:'☕',name:'Machine à café',desc:'Fatigue -20%',cost:22},
 ];
 
@@ -1368,10 +1348,8 @@ function defaultSave(){
     muted:false, owned:[], agents:{},
     rhScore:0, achs:{},
     money:0, coachDone:false,
-    stats:{fires:0,mci_good:0,audits:0,qcms:0,roundsDone:0,roundsMissed:0,
-           badges:0,badgesFailed:0,nightVacations:0,sitesVisited:[],
-           lddOk:0, degradedHandled:0, datDone:0, keyErrors:0, ignored:0},
-    firstTime:true,
+    stats:{mci_good:0, audits:0, qcms:0, roundsDone:0, badges:0,
+           nightVacations:0, sitesVisited:[]},
   };
 }
 function loadSave(){
@@ -1383,7 +1361,7 @@ function writeSave(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE));
 function ensureAgentData(){
   if(!SAVE.agents) SAVE.agents = {};
   for(const a of [...AGENT_POOL, ...STAG_POOL]){
-    if(!SAVE.agents[a.id]) SAVE.agents[a.id] = { xp:0, skills:{vitesse:0,vigilance:0,endurance:0,sst:0,badge:0,comm:0} };
+    if(!SAVE.agents[a.id]) SAVE.agents[a.id] = { xp:0, skills:{vitesse:0,vigilance:0,endurance:0,badge:0} };
   }
   writeSave();
 }
@@ -1534,7 +1512,7 @@ function startGame(){
     t:startT, paused:false, speed:1, score:0,
     agents: currentTeam.agents.map(a => ({...a})),
     stagiaire: currentTeam.stagiaire ? {...currentTeam.stagiaire} : null,
-    mc:[], events:[], solved:[], dossiers:{},
+    mc:[], events:[],
     rounds: generateRounds(site, shift),
     nextEventAt: startT + 120,
     weather: pick([
@@ -1549,15 +1527,14 @@ function startGame(){
     nextAuditAt: startT + 240 + Math.random()*180,
     auditOpen: false,
     s3:{present:false, audits:0, auditsGood:0},
-    debrief:{regulation:0, time:0, rh:0, mci:0, stagiaire:0, training:0, materiel:0, count:0, ignored:0,
+    debrief:{rh:0, training:0, ignored:0,
              roundsOk:0, roundsMissed:0, roundsLate:0, roundsIncidents:0,
              badges:0, badgesFailed:0, pointsMissed:0},
-    activeModal:null, mciPending:0, qcmAvailable:true,
+    activeModal:null, mciPending:0,
     k:{}, coachIdx:0,
     ld:null,
     nextDegradedAt: startT + 90 + Math.random()*120,
     date: randDate(),
-    firesThisVacation:0,
     uid:1,
   };
   G.materiel = initMateriel(site);
@@ -1592,9 +1569,7 @@ function applyShiftHeader(){
   $('sitetag').textContent = G.site.icon + ' ' + G.site.name;
   $('shiftBadge').textContent = (G.shift === 'day' ? '☀ JOUR' : '🌙 NUIT');
   $('shiftBadge').className = 'shift ' + G.shift;
-  $('metaSite').textContent = G.site.name;
   $('metaWeather').textContent = G.weather.icon + ' ' + G.weather.label;
-  $('metaBinome').textContent = G.agents.map(a => a.id + ' ' + a.name).join(' · ') + (G.stagiaire ? ' + ' + G.stagiaire.name : '');
   $('metaDate').textContent = G.date;
 }
 
@@ -1910,7 +1885,6 @@ function assignRound(roundId, agentId){
     if(!tutFree){
       mcAdd('PC', `⚠ ${G.stagiaire.name} seul en ronde refusé — le binôme avec un titulaire est obligatoire`, 'warn');
       toast('Binôme obligatoire : tuteur indisponible', 'bad');
-      G.debrief.stagiaire -= 1;
       G.k.stagSolo = (G.k.stagSolo || 0) + 1;
       return;
     }
@@ -1997,7 +1971,6 @@ function handleRoundCheckpoint(agent){
       agent.pointResults.push('miss');
       round.pointsMissed = (round.pointsMissed || 0) + 1;
       G.debrief.pointsMissed = (G.debrief.pointsMissed || 0) + 1;
-      G.debrief.regulation -= 1;
       mcAdd(agent.id, `👁 Point de contrôle raté en ${zoneName(point.zoneId)} — zone mal éclairée`, 'warn');
       radioSay(agent, `Zone sombre, je n'ai pas pu contrôler complètement ${zoneName(point.zoneId)}.`, 'radio');
       toast(`Point raté : ${zoneName(point.zoneId)}`, 'bad');
@@ -2012,9 +1985,6 @@ function handleRoundCheckpoint(agent){
   if(!point._keyChecked && !keyCovers(agent, point.zoneId)){
     point._keyChecked = true;
     G.materiel.wrongKeys++;
-    SAVE.stats.keyErrors = (SAVE.stats.keyErrors || 0) + 1;
-    G.debrief.materiel -= 2;
-    G.debrief.time -= 1;
     round.pointsMissed = (round.pointsMissed || 0) + 1;
     agent.pointResults.push('miss');
     const k = agentKey(agent);
@@ -2095,10 +2065,6 @@ function completeBadgeScan(agent){
 
       const anoZone = incident.req === 'inhibited' && G.ssi.inhibited.length
         ? G.ssi.inhibited[0] : point.zoneId;
-      const dId = createDossier(`${incident.emoji} ${incident.label}`, anoZone, agent.name);
-      addStep(dId, `Détection pendant ${round.id}`, 'info');
-      addStep(dId, `Zone : ${zoneName(point.zoneId)}`, 'info');
-      addStep(dId, incident.desc, incident.severity === 'major' ? 'crit' : 'warn');
 
       const anoId = G.uid++;
       const ev = {
@@ -2113,7 +2079,7 @@ function completeBadgeScan(agent){
         dilemma: `${agent.name} a détecté une anomalie. Doit-il traiter, noter, revenir au PC, ou appeler les secours ?`,
         awaitingOrders: true,
         acts: incident.acts || [],
-        created: G.t, spawnedAt: G.t, dossierId: dId, resolved: false,
+        created: G.t, spawnedAt: G.t, resolved: false,
         roundId: round.id, roundPointIdx: agent.rondeIndex,
       };
       G.events.push(ev);
@@ -2139,7 +2105,6 @@ function completeBadgeScan(agent){
   } else {
     // Badge échoué
     agent.pointResults.push('badge');
-    SAVE.stats.badgesFailed++;
     G.debrief.badgesFailed = (G.debrief.badgesFailed || 0) + 1;
     G.score -= 3;
     A.badgeFail();
@@ -2180,9 +2145,7 @@ function nextRoundPoint(agent){
     const totalPts = Math.max(0, basePts - missPenalty - latePenalty);
 
     G.score += totalPts;
-    G.debrief.time += 2;
     G.debrief.roundsOk = (G.debrief.roundsOk || 0) + 1;
-    G.debrief.regulation += 2;
     SAVE.stats.roundsDone = (SAVE.stats.roundsDone || 0) + 1;
 
     const tags = [];
@@ -2256,9 +2219,7 @@ function checkRoundTiming(){
     if(delta < -tol && r.status !== 'running' && r.status !== 'done' && r.status !== 'missed'){
       r.status = 'missed';
       G.score -= 12;
-      G.debrief.regulation -= 3;
       G.debrief.roundsMissed = (G.debrief.roundsMissed || 0) + 1;
-      SAVE.stats.roundsMissed = (SAVE.stats.roundsMissed || 0) + 1;
       mcAdd('PC', `❌ ${r.id} MANQUÉE (tolérance ±${tol}min dépassée) — non-conformité`, 'crit');
       A.fail();
       toast(`${r.id} manquée !`, 'bad');
@@ -2269,21 +2230,6 @@ function checkRoundTiming(){
 /* ==========================================================
    DOSSIERS / RADIO
    ========================================================== */
-let dossierCounter = 1;
-function createDossier(title, zone, agent){
-  const id = 'INC-' + String(dossierCounter++).padStart(3,'0');
-  G.dossiers[id] = { id, title, zone, agent, created: G.t, closedAt: null, steps: [], status:'open' };
-  return id;
-}
-function addStep(dId, txt, type){
-  const d = G.dossiers[dId]; if(!d) return;
-  d.steps.push({ t:G.t, txt, type: type||'info' });
-}
-function closeDossier(dId, status, txt){
-  const d = G.dossiers[dId]; if(!d) return;
-  d.status = status; d.closedAt = G.t;
-  if(txt) addStep(dId, txt, status === 'ok' ? 'ok' : 'crit');
-}
 
 function radioSay(agent, text, type){
   if(!agent) return;
@@ -2551,7 +2497,7 @@ function spawnEvent(evId){
     deadline: G.t + (urgent ? 12 : 25),
     autoOpen: true, escalated:false};
   G.events.push(instance);
-  if(ev.type === 'feu'){ A.alarm(); G.firesThisVacation++; SAVE.stats.fires++; }
+  if(ev.type === 'feu')A.alarm();
   else A.beep(880,0.1,0.07);
   mcAdd('PC', `⚠ ${ev.event} — ${zoneName(z.id)}`, ev.type==='feu'?'crit':'warn');
   renderMC(true);
@@ -2616,7 +2562,7 @@ function renderEventModal(ev){
   $('eventContent').innerHTML = h;
 }
 function iconFor(t){
-  return {feu:'🔥',medical:'🚑',at:'🩹',rh:'👥',ssi:'⚙',permis:'📝',stagiaire:'🎓',conflit:'💬',anomalie:'⚠'}[t] || '⚠';
+  return {feu:'🔥',medical:'🚑',at:'🩹',rh:'👥',ssi:'⚙',permis:'📝',conflit:'💬',anomalie:'⚠'}[t] || '⚠';
 }
 
 function resolveChoice(idx){
@@ -2630,9 +2576,6 @@ function resolveChoice(idx){
   ev.deadline = null;
   ev.decidedAt = G.t;
   G.score += c.score || 0;
-  G.debrief.count++;
-  G.debrief.regulation += c.reg || 0;
-  G.debrief.time += c.time || 0;
   if(ev.type === 'rh') G.debrief.rh += c.score > 0 ? 2 : -1;
   if(ev.type === 'conflit') G.debrief.rh += c.score > 0 ? 1 : -1;
 
@@ -2672,7 +2615,6 @@ function resolveChoice(idx){
     setTimeout(() => { G.mciPending = 0; openMCI(ev); }, 350);
   } else {
     ev.resolved = true;
-    G.solved.push(ev);
     renderMC(true);
   }
   toast(`Choix validé · ${c.score>0?'+':''}${c.score} pts`, c.score>0?'good':c.score<0?'bad':'info');
@@ -2725,7 +2667,6 @@ function resolveAnomaly(evId, idx){
     A.fail();
   } else if(act.k === 'call'){
     radioSay(a, `Je reste sur place en surveillance jusqu'à leur arrivée.`, 'order');
-    G.debrief.time += 1;
   } else if(act.k === 'return'){
     radioSay(a, `Reçu, je remonte au PCS.`, 'order');
   } else {
@@ -2735,14 +2676,12 @@ function resolveAnomaly(evId, idx){
   /* Décision prise par l'agent faute d'ordre : aucun point pour le PCS. */
   if(ev.autoDecided) scorePts = 0;
   G.score += scorePts;
-  G.debrief.regulation += (ev.autoDecided ? 0 : (act.r || 0));
   if(!ev.autoDecided) G.k.ordersGiven = (G.k.ordersGiven || 0) + 1;
   if(act.k === 'danger') G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
 
   ev.resolved = true;
   a.state = 'idle';
   a.currentAnomaly = null;
-  if(ev.dossierId) closeDossier(ev.dossierId, act.k === 'danger' ? 'ko' : 'ok', act.mc);
 
   const zoneEl = document.querySelector(`[data-zone="${ev.zone}"]`);
   if(zoneEl) zoneEl.classList.remove('await', 'alert');
@@ -2814,20 +2753,17 @@ function resolveMCI(idx){
     G.k.mciGood = (G.k.mciGood || 0) + 1;
     bonus = SAVE.owned.includes('tablette') ? 8 : 6;
     G.score += bonus;
-    G.debrief.mci += 2;
     SAVE.stats.mci_good++;
     mcAdd('PC', `✔ MCI conforme (+${bonus} pts)`, 'ok');
     A.success();
     toast('✔ MCI conforme', 'good');
   } else {
     G.score -= 3;
-    G.debrief.mci -= 1;
     mcAdd('PC', '❌ MCI non conforme.', 'crit');
     A.fail();
     toast('❌ MCI non conforme', 'bad');
   }
   ev.resolved = true;
-  G.solved.push(ev);
   renderMC(true);
   setTimeout(() => {
     $('mciScreen').classList.remove('open');
@@ -3010,7 +2946,7 @@ function execOrder(o){
 /* QCM / AUDIT */
 let qcmState = null;
 function startQCM(agent){
-  const qs = [...QCM_POOL].sort(() => Math.random()-0.5).slice(0, 3);
+  const qs = [...QUESTIONS].sort(() => Math.random()-0.5).slice(0, 3);
   qcmState = { agent, qs, idx:0, correct:0 };
   renderQCM();
   $('qcmScreen').classList.add('open');
@@ -3068,7 +3004,8 @@ let auditState = null;
 function openAudit(){
   G.auditOpen = true;
   G.s3.present = true;
-  const q = pick(AUDIT_QUESTIONS);
+  /* L'audit du chef de service pioche en priorité dans les questions difficiles. */
+  const q = pick(QUESTIONS.filter(x => x.hard));
   auditState = { q, answered:false };
   let h = `<div style="padding:10px 12px;background:linear-gradient(135deg,#1a1200,#0e0a00);border:1px solid #facc15;border-radius:6px;margin-bottom:8px">
     <div style="font-size:10px;color:#facc15;font-weight:800;letter-spacing:1px;margin-bottom:5px">🎖 SSIAP 3 — QUESTION D'AUDIT</div>
@@ -3097,13 +3034,11 @@ function resolveAudit(i){
   if(i === q.correct){
     G.s3.auditsGood++;
     G.score += 8;
-    G.debrief.regulation += 2;
     SAVE.stats.audits++;
     mcAdd('S3', `✔ Réponse correcte.`, 'ok');
     A.success(); toast('✔ Audit réussi', 'good');
   } else {
     G.score -= 4;
-    G.debrief.regulation -= 2;
     mcAdd('S3', `❌ Réponse incorrecte.`, 'crit');
     A.fail(); toast('❌ Audit échoué', 'bad');
   }
@@ -3138,23 +3073,18 @@ function endVacation(){
   const notReturned = [...G.materiel.keys, ...G.materiel.radios, ...G.materiel.badges].filter(i => i.holder);
   G.materiel.notReturned = notReturned.length;
   if(notReturned.length){
-    G.debrief.materiel -= notReturned.length * 2;
     mcAdd('PC', `⚠ Relève : ${notReturned.length} matériel(s) non restitué(s) — ${notReturned.map(i=>i.id).join(', ')}`, 'warn');
   } else {
-    G.debrief.materiel += 3;
     mcAdd('PC', `📦 Relève : intégralité du matériel restituée au râtelier PCS`, 'ok');
   }
   if(G.ssi.inhibited.length){
-    G.debrief.regulation -= G.ssi.inhibited.length * 3;
     mcAdd('PC', `⚠ Relève : ${G.ssi.inhibited.length} zone(s) laissée(s) INHIBÉE(S) — transmission impérative à la relève`, 'crit');
   }
   if(G.rh.datOpen && !G.rh.datDone){
     G.debrief.rh -= 4;
-    G.debrief.regulation -= 2;
     mcAdd('PC', `⚠ Relève : dossier DAT non constitué`, 'crit');
   }
   if(G.deg.power && !G.deg.power.generator){
-    G.debrief.regulation -= 3;
     mcAdd('PC', `⚠ Relève : site toujours en coupure secteur sans groupe`, 'crit');
   }
 
@@ -3219,8 +3149,8 @@ function endVacation(){
     ['Rondes dans la tolérance', frac(onTimeRounds, doneRounds)],
     ['Alarmes traitées dans le délai', frac(alarmsHandled, alarms.length)],
     ['Levées de doute ≤ 5 min', frac(K.lddOnTime || 0, K.lddTotal || 0)],
-    ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)],
-    ['dont manœuvres à proscrire', `${K.ordersDangerous || 0}`],
+    ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)
+      + ((K.ordersDangerous || 0) ? ` (dont ${K.ordersDangerous} à proscrire)` : '')],
     ['Manœuvres SSI justifiées', frac(K.ssiOk || 0, K.ssiTotal || 0)],
     ['Inhibitions levées', frac(K.inhibLifted || 0, K.inhibPosed || 0)],
     ['Modes dégradés traités', frac(K.degHandled || 0, K.degTotal || 0)],
@@ -3245,7 +3175,6 @@ function endVacation(){
   const prime = Math.max(0, Math.round((total - 50) * 2 + (G.shift === 'night' ? 40 : 0)));
   SAVE.money = (SAVE.money || 0) + prime;
   if(G.rh.datDone) SAVE.stats.datDone = (SAVE.stats.datDone || 0) + 1;
-  SAVE.stats.degradedHandled = (SAVE.stats.degradedHandled || 0) + G.deg.history.length;
 
   SAVE.vacations++;
   SAVE.xp += xpGain;
@@ -3258,7 +3187,7 @@ function endVacation(){
     mc: G.mc.slice(-30).map(e => ({t:Math.floor(e.t),txt:e.txt,cls:e.cls})),
   });
   if(SAVE.vacationsData.length > 20) SAVE.vacationsData.shift();
-  checkAchievements();
+  checkAchievements(total);
   writeSave();
 
   const badgeRate = G.debrief.badges + G.debrief.badgesFailed > 0
@@ -3285,14 +3214,6 @@ function endVacation(){
         if(r.status === 'done' && (r.doneAt - r.time) > r.tolerance) tags.push('EN RETARD');
         return `<div style="color:${color}">${icon} <b>${r.id}</b> ${fmtTime(r.time)} — ${ROUND_TYPES[r.type].name}${agent ? ' · ' + agent.name : ''}${tags.length ? ' · ' + tags.join(', ') : ''}</div>`;
       }).join('')}
-    </div>`;
-
-  h += `<h2>📇 POINTAGES BADGE</h2>
-    <div class="evContent">
-      Réussis : <b style="color:#4ade80">${G.debrief.badges || 0}</b> ·
-      Échecs : <b style="color:#ff6b5e">${G.debrief.badgesFailed || 0}</b> ·
-      Taux : <b style="color:#22d3ee">${badgeRate}%</b><br>
-      ${G.shift === 'night' ? `🌙 Points cachés ratés : <b style="color:#c084fc">${G.debrief.pointsMissed || 0}</b>` : ''}
     </div>`;
 
   h += `<h2>ÉVALUATION PAR AXE</h2>`;
@@ -3332,13 +3253,9 @@ function endVacation(){
       XP gagné : <b style="color:#ffb020">+${xpGain} XP</b>${lvl.bonus?' (bonus +'+lvl.bonus+')':''}<br>
       Prime de vacation : <b style="color:#4ade80">+${prime} €</b> · Cagnotte : <b>${SAVE.money} €</b><br>
       Vacation n°${SAVE.vacations} · XP total : <b>${SAVE.xp}</b><br>
-      Rondes : <b style="color:#4ade80">${G.debrief.roundsOk}</b> effectuées ·
-      <b style="color:#ff6b5e">${G.debrief.roundsMissed}</b> manquées<br>
-      Rondes en retard : <b style="color:#ffb020">${G.debrief.roundsLate || 0}</b><br>
-      Anomalies trouvées : <b>${G.debrief.roundsIncidents || 0}</b><br>
-      Audits SSIAP 3 : <b>${G.s3.auditsGood}/${G.s3.audits}</b><br>
-      Alarmes non traitées dans le délai : <b style="color:${G.debrief.ignored ? '#ff6b5e' : '#4ade80'}">${G.debrief.ignored || 0}</b><br>
-      Score RH cumulé : <b>${SAVE.rhScore > 0 ? '+' : ''}${SAVE.rhScore}</b><br>
+      Anomalies trouvées en ronde : <b>${G.debrief.roundsIncidents || 0}</b> ·
+      pointages badge : <b style="color:#22d3ee">${badgeRate}%</b>${G.shift === 'night' ? ` · points cachés ratés : <b style="color:#c084fc">${G.debrief.pointsMissed || 0}</b>` : ''}<br>
+      Alarmes laissées sans décision : <b style="color:${G.debrief.ignored ? '#ff6b5e' : '#4ade80'}">${G.debrief.ignored || 0}</b><br>
       Palier : <b style="color:#ffb020">${careerLevel(SAVE.xp).name}</b>
     </div>`;
 
@@ -3360,13 +3277,14 @@ function axis(name, val){
   return `<div class="axisRow"><span class="axName">${name}</span><span class="axScore ${cls}">${val}/100</span></div>`;
 }
 
-function checkAchievements(){
+function checkAchievements(total){
   const chk = (id, cond) => {
     if(SAVE.achs[id]) return false;
     if(cond){ SAVE.achs[id] = true; toast('🏆 Succès débloqué !', 'good'); return true; }
     return false;
   };
   chk('first', SAVE.vacations >= 1);
+  chk('perfect', total >= 90);
   chk('veteran', SAVE.vacations >= 10);
   chk('rounds_master', (SAVE.stats.roundsDone || 0) >= 50);
   chk('badge_pro', (SAVE.stats.badges || 0) >= 100);
@@ -3666,7 +3584,6 @@ function initMateriel(site){
     log: [], pgIssues: 0, wrongKeys: 0, noRadioDepartures: 0, notReturned: 0,
   };
 }
-function matKinds(){ return ['keys','radios','badges']; }
 function matFind(kind, id){ return G.materiel[kind].find(x => x.id === id); }
 function matHolderItem(kind, agentId){ return G.materiel[kind].find(x => x.holder === agentId); }
 function matLog(txt){ G.materiel.log.push({t:G.t, txt}); }
@@ -3679,13 +3596,9 @@ function giveItem(kind, it, ag){
   if(prev) prev.holder = null;
   it.holder = ag.id;
   matLog(`Remise ${it.id} → ${ag.name}`);
-  if(it.master){
-    G.materiel.pgIssues++;
-    G.debrief.materiel -= 1;
-  } else {
-    G.debrief.materiel += 1;
-  }
+  if(it.master) G.materiel.pgIssues++;
 }
+
 function issueItem(kind, itemId, agentId){
   const it = matFind(kind, itemId);
   const ag = allStaff().find(a => a.id === agentId);
@@ -3759,7 +3672,6 @@ function returnItem(kind, itemId){
   matLog(`Restitution ${it.id}${ag ? ' par ' + ag.name : ''}`);
   mcAdd('PC', `📥 Registre matériel : ${it.icon} ${it.id} restitué${ag ? ' par ' + ag.name : ''}`, 'ok');
   it.holder = null;
-  G.debrief.materiel += 1;
   A.click();
   renderMateriel();
 }
@@ -3767,29 +3679,6 @@ function allStaff(){ return [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])]
 function agentKey(agent){ return matHolderItem('keys', agent.id); }
 function agentRadio(agent){ return matHolderItem('radios', agent.id); }
 function agentBadge(agent){ return matHolderItem('badges', agent.id); }
-/* Trousseau(x) nécessaire(s) pour couvrir tous les points d'une ronde.
-   Un agent ne porte qu'un trousseau : s'il en faut plusieurs, c'est le passe
-   général qu'il faut lui remettre. */
-function keysForRound(round){
-  const keys = G.materiel.keys.filter(k => !k.master);
-  const zones = [...new Set(round.points.map(p => p.zoneId))];
-  const full = keys.filter(k => zones.every(z => k.zones.includes(z)));
-  if(full.length) return { ids: full.map(k => k.id), single:true, missing:[] };
-  const chosen = [];
-  let rest = zones.slice();
-  while(rest.length){
-    let best = null, bestCov = 0;
-    for(const k of keys){
-      if(chosen.includes(k)) continue;
-      const cov = rest.filter(z => k.zones.includes(z)).length;
-      if(cov > bestCov){ best = k; bestCov = cov; }
-    }
-    if(!best) break;
-    chosen.push(best);
-    rest = rest.filter(z => !best.zones.includes(z));
-  }
-  return { ids: chosen.map(k => k.id), single:false, missing:rest };
-}
 /* Libellé du trousseau à remettre pour une ronde */
 function keyHint(round){
   const k = keyForRound(round);
@@ -3900,14 +3789,11 @@ function checkDotation(agent, round){
   if(radio && badge && key && !uncoveredPoints(agent, round).length) G.k.departsComplete = (G.k.departsComplete || 0) + 1;
   if(!radio){
     G.materiel.noRadioDepartures++;
-    G.debrief.materiel -= 3;
-    G.debrief.regulation -= 1;
     mcAdd('PC', `⚠ ${agent.name} part en ronde SANS RADIO — liaison PCS impossible`, 'warn');
     toast(`${agent.name} sans radio !`, 'bad');
     agent.noRadio = true;
   } else { agent.noRadio = false; }
   if(!badge){
-    G.debrief.materiel -= 2;
     mcAdd('PC', `⚠ ${agent.name} n'a pas de badge de pointage — points non traçables`, 'warn');
     agent.noBadge = true;
   } else { agent.noBadge = false; }
@@ -3959,8 +3845,6 @@ function tickDegraded(){
     if(!d.power.generator && !d.power.failed && G.t > d.power.deadline){
       d.power.failed = true;
       G.score -= 6;
-      G.debrief.regulation -= 3;
-      G.debrief.time -= 2;
       mcAdd('PC', `⚡ Groupe électrogène non basculé dans les délais — site en éclairage de sécurité seul`, 'crit');
       toast('Groupe non basculé !', 'bad');
     }
@@ -3982,7 +3866,6 @@ function tickDegraded(){
       d.detect = null;
     } else if(!d.detect.covered && G.t - d.detect.lastPenalty > 20){
       d.detect.lastPenalty = G.t;
-      G.debrief.regulation -= 2;
       G.score -= 3;
       mcAdd('PC', `⚠ Zone ${zoneName(d.detect.zoneId)} toujours sans surveillance compensatoire`, 'warn');
     }
@@ -4005,8 +3888,6 @@ function execGenerator(){
   } else {
     mcAdd('PC', `⚡ Bascule groupe électrogène ${fmtTime(G.t)} — alimentation de remplacement OK, CMSI sous tension`, 'ok');
     G.score += 6;
-    G.debrief.regulation += 3;
-    G.debrief.time += 2;
     toast('Groupe électrogène en service', 'good');
   }
 }
@@ -4020,13 +3901,10 @@ function execRadioBackup(){
     relay.state = 'working'; relay.pos = 'pcs'; relay.until = G.t + 12; relay.workTime = 12;
     mcAdd('PC', `📞 Mode dégradé radio : liaison téléphonique PCS + agent de liaison (${relay.name})`, 'action');
     G.score += 4;
-    G.debrief.regulation += 2;
-    G.debrief.materiel += 2;
     toast('Liaison de secours activée', 'good');
   } else {
     mcAdd('PC', `📞 Mode dégradé radio : liaison téléphonique PCS seule — aucun agent disponible pour la liaison`, 'warn');
     G.score += 2;
-    G.debrief.regulation += 1;
     toast('Liaison téléphonique seule', 'info');
   }
 }
@@ -4052,7 +3930,6 @@ function execSurveillanceRenforcee(){
   startRoundForAgent(a, adhoc);
   mcAdd('PC', `📡 Surveillance compensatoire zone ${zoneName(zid)} — rondes rapprochées, maintenance SSI avisée`, 'ok');
   G.score += 5;
-  G.debrief.regulation += 3;
   toast('Mesures compensatoires engagées', 'good');
 }
 
@@ -4071,9 +3948,9 @@ function execBPS(){
 }
 function execRearm(){
   G.k.ssiTotal = (G.k.ssiTotal || 0) + 1;
-  if(G.ld){ 
+  if(G.ld){
     mcAdd('PC', `⚠ Réarmement refusé — levée de doute en cours`, 'warn');
-    G.debrief.regulation -= 2;
+    G.score -= 3;
     toast('Levée de doute en cours !', 'bad');
     return;
   }
@@ -4084,7 +3961,6 @@ function execRearm(){
   G.ssi.rearmNeeded = false;
   mcAdd('PC', `♻ Réarmement CMSI/SDI ${fmtTime(G.t)} — détecteur réarmé après contrôle sur site`, 'ok');
   G.score += 3;
-  G.debrief.regulation += 2;
   toast('CMSI réarmé', 'good');
 }
 function execInhib(){
@@ -4098,7 +3974,6 @@ function execInhib(){
       G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
       mcAdd('PC', `🚫 Inhibition zone ${z.name} ${fmtTime(G.t)} — travaux, surveillance humaine maintenue`, 'warn');
       G.score += 2;
-      G.debrief.regulation += 1;
       toast('Zone inhibée : ' + z.name, 'info');
     });
 }
@@ -4113,7 +3988,6 @@ function execDesinhib(){
       G.k.inhibLifted = (G.k.inhibLifted || 0) + 1;
       mcAdd('PC', `✅ Levée d'inhibition zone ${z.name} ${fmtTime(G.t)} — détection en service, essais OK`, 'ok');
       G.score += 3;
-      G.debrief.regulation += 2;
       toast('Détection rétablie : ' + z.name, 'good');
     });
 }
@@ -4131,12 +4005,10 @@ function execDesenf(){
         G.k.ssiOk = (G.k.ssiOk || 0) + 1;
         mcAdd('PC', `🌬 Désenfumage manuel zone ${z.name} ${fmtTime(G.t)} — commande CMSI, contrôle de position des volets`, 'action');
         G.score += 5;
-        G.debrief.regulation += 3;
         toast('Désenfumage engagé', 'good');
       } else {
         mcAdd('PC', `⚠ Désenfumage zone ${z.name} sans sinistre déclaré — manœuvre injustifiée`, 'warn');
         G.score -= 3;
-        G.debrief.regulation -= 2;
         toast('Manœuvre injustifiée', 'bad');
       }
     });
@@ -4145,7 +4017,7 @@ function execCompart(){
   G.k.ssiTotal = (G.k.ssiTotal || 0) + 1;
   if(G.siteId !== 'igh'){
     mcAdd('PC', `⚠ Compartimentage automatique non applicable sur ce site`, 'warn');
-    G.debrief.regulation -= 1;
+    G.score -= 3;
     toast('Procédure réservée aux IGH', 'bad');
     return;
   }
@@ -4153,7 +4025,6 @@ function execCompart(){
   G.ssi.compart = true;
   mcAdd('PC', `🧱 Compartimentage IGH ${fmtTime(G.t)} — isolement du compartiment sinistré, transfert horizontal des occupants`, 'crit');
   G.score += 6;
-  G.debrief.regulation += 3;
   toast('Compartimentage IGH engagé', 'good');
 }
 
@@ -4187,10 +4058,7 @@ function tickLDD(){
     const onTime = elapsed <= 5;
     if(onTime){
       G.k.lddOnTime = (G.k.lddOnTime || 0) + 1;
-      SAVE.stats.lddOk = (SAVE.stats.lddOk || 0) + 1;
       G.score += 5;
-      G.debrief.time += 2;
-      G.debrief.regulation += 2;
       mcAdd(a.id, `⏱ Levée de doute effectuée en ${elapsed.toFixed(1)} min — compte-rendu au PCS`, 'ok');
       radioSay(a, `Levée de doute terminée, je te fais le point.`, 'radio');
       toast(`Levée de doute : ${elapsed.toFixed(1)} min`, 'good');
@@ -4200,8 +4068,6 @@ function tickLDD(){
   }
   if(!G.ld.done && G.t > G.ld.deadline){
     G.score -= 6;
-    G.debrief.time -= 3;
-    G.debrief.regulation -= 2;
     mcAdd('PC', `⏱ DÉLAI DE LEVÉE DE DOUTE DÉPASSÉ (> 5 min) — alerte des secours obligatoire`, 'crit');
     toast('Délai levée de doute dépassé !', 'bad');
     if(a) a.ldd = false;
@@ -4307,7 +4173,6 @@ function resolveDAT(i){
     const sc = G.rh.datScore;
     G.score += sc * 3;
     G.debrief.rh += sc;
-    G.debrief.regulation += sc >= 3 ? 3 : 0;
     mcAdd('PC', `🩹 Dossier DAT complété ${fmtTime(G.t)} — ${sc}/${DAT_STEPS.length} étapes conformes. Employeur informé, témoignages recueillis.`, sc >= 3 ? 'ok' : 'warn');
   } else {
     renderDAT();
@@ -4332,7 +4197,6 @@ function attachBinome(round, tutor){
   st.currentRoundId = round.id;
   st.stress = Math.min(100, (st.stress || 20) + 5);
   mcAdd('PC', `🎓 ${st.name} (stagiaire) en binôme avec ${tutor.name} sur ${round.id}`, 'ok');
-  G.debrief.stagiaire += 1;
   G.debrief.training += 1;
 }
 function tickBinome(){
@@ -4354,7 +4218,6 @@ function tickBinome(){
       st.currentRoundId = null;
       st.xp += 2;
       st.stress = Math.max(0, (st.stress || 0) - 10);
-      G.debrief.stagiaire += 1;
       mcAdd('PC', `🎓 ${st.name} de retour au PCS avec ${tut.name} — débriefing de la ronde`, 'ok');
     }
   } else if(st.state === 'idle'){
@@ -4447,7 +4310,6 @@ function divertAgent(agent, zoneId){
   agent.targetId = zoneId;
   agent.until = G.t + (2.5 + Math.random()*2) * speed;
   agent.workTime = 1.5;
-  G.debrief.time += 1;
   mcAdd('PC', `➤ ${agent.name} dérouté vers ${zoneName(zoneId)}${r ? ` — ${r.id} suspendue au point ${(agent.suspendedRound.index)+1}/${r.points.length}` : ''}`, 'action');
   radioSay(agent, `Je laisse ma ronde et je file sur ${zoneName(zoneId)}.`, 'order');
   toast(`${agent.name} → ${zoneName(zoneId)}`, 'info');
@@ -4519,10 +4381,7 @@ function escalateEvent(ev){
   ev.autoOpen = false;
   const pen = {feu:{s:15, r:4, t:4}, medical:{s:12, r:3, t:4}, at:{s:10, r:3, t:3}}[ev.type] || {s:6, r:2, t:2};
   G.score -= pen.s;
-  G.debrief.regulation -= pen.r;
-  G.debrief.time -= pen.t;
   G.debrief.ignored = (G.debrief.ignored || 0) + 1;
-  SAVE.stats.ignored = (SAVE.stats.ignored || 0) + 1;
 
   if(ev.type === 'feu'){
     G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
@@ -4737,12 +4596,6 @@ function handleTap(e){
   if(datBtn){ resolveDAT(+datBtn.dataset.dat); return; }
   const slotBtn = t.closest('[data-slot]');
   if(slotBtn && G){ const [k, id] = slotBtn.dataset.slot.split(':'); openSlot(k, id); return; }
-  const matBtn = t.closest('[data-mat]');
-  if(matBtn){
-    const p = matBtn.dataset.mat.split(':');
-    if(p[0] === 'iss') issueItem(p[1], p[2], p[3]); else returnItem(p[1], p[2]);
-    return;
-  }
   const shop = t.closest('[data-shop]');
   if(shop){ buyShop(shop.dataset.shop); return; }
   const treeBtn = t.closest('[data-tree]');

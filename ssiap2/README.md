@@ -12,7 +12,7 @@ progression est sauvegardée dans le `localStorage`).
 | **0 — Prise de poste** | Choix du site (ERP M, ERP U, ERP O/N, IGH, Industriel) **et du type de vacation** (Jour 07h-19h / Nuit 19h-07h), tirage de l'équipe (2 SSIAP 1 + stagiaire éventuel) |
 | **1 — Vacation 12 h** | 8 rondes planifiées avec tolérance et pointage badge, événements SDI, chrono de levée de doute, registre matériel, modes dégradés, incidents RH, QCM et exercices CMSI. De jour la vacation s'ouvre par la prise de poste et se termine par la fermeture ; **de nuit c'est l'inverse** : la ronde de fermeture ouvre le poste (verrouillage, extinction, départ du public) et la ronde d'ouverture le termine avant la relève du matin |
 | **2 — Débriefing SSIAP 3** | Note sur 6 axes : Réglementation, Réactivité, Management/RH, Qualité MCI, Gestion du matériel, Formation — XP, prime de vacation, succès |
-| **3 — Inter-vacation** | Arbre de compétences des SSIAP 1, boutique PCS, historique, changement de site / de vacation |
+| **3 — Inter-vacation** | Arbre de compétences des SSIAP 1 (vitesse, vigilance, endurance, badge), boutique PCS, historique, changement de site / de vacation |
 
 ## Moteur v6 — ce qui a été ajouté
 
@@ -141,6 +141,15 @@ la hauteur réelle du viewport (`dvh`) et les encoches (`safe-area-inset`),
 notifications déplacées en bas hors des titres, barre des agents défilable
 horizontalement dès l'arrivée d'un renfort. Vérifié de 360 à 430 px de large
 sans débordement horizontal.
+
+## Tenue du code
+
+Le moteur ne garde que ce qui agit sur la partie : les objets de boutique et
+les branches de compétences sans effet ont été retirés plutôt que laissés en
+promesse, les compteurs de débriefing devenus inutiles après le passage à la
+notation par ratios ont disparu, les deux banques de questions (formation et
+audit) sont fusionnées, et le bandeau d'état ne répète plus ce que l'en-tête
+et les cartes d'agents affichent déjà.
 
 ## Tests
 
