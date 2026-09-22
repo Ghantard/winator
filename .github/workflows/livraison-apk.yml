@@ -1,0 +1,110 @@
+# Build an APK from html2apk/demande.json and publish it on the
+# "apk-livraison" branch, so it can be fetched with git rather than downloaded
+# by hand from the run page.
+name: Livraison APK
+
+on:
+  push:
+    paths:
+      - "html2apk/demande.json"
+      - ".github/workflows/livraison-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: html2apk
+
+jobs:
+  livraison:
+    name: Construire et livrer l'APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: html2apk/package-lock.json
+
+      # Capacitor 8's Android template compiles with sourceCompatibility 21.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer les composants du SDK Android
+        run: |
+          set -euo pipefail
+          # cmdline-tools is versioned on the runner (e.g. .../16.0/), not "latest".
+          sdkmanager=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f \
+            | sort -V | tail -1)
+          yes | "$sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$sdkmanager" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Mettre apksigner sur le PATH
+        run: echo "$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_PATH"
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Construire l'APK demandé
+        id: build
+        run: |
+          set -euo pipefail
+          site=$(node -e 'process.stdout.write(require("./demande.json").site)')
+          nom=$(node -e 'process.stdout.write(require("./demande.json").nom || "")')
+          identifiant=$(node -e 'process.stdout.write(require("./demande.json").identifiant || "")')
+
+          slug=$(printf '%s' "${nom:-app}" | tr '[:upper:]' '[:lower:]' \
+            | tr -cs 'a-z0-9' '-' | sed 's/^-*//; s/-*$//')
+          slug=${slug:-app}
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
+          mkdir -p livraison
+          node dist/cli.js build "$site" \
+            --no-docker \
+            --output "livraison/$slug.apk" \
+            ${nom:+--app-name "$nom"} \
+            ${identifiant:+--app-id "$identifiant"}
+
+          ls -l livraison
+
+      # A dedicated branch that holds only the delivered APKs, so the source
+      # branches stay free of binaries. Each run adds a commit to it.
+      - name: Livrer sur la branche apk-livraison
+        env:
+          BRANCH: apk-livraison
+          SLUG: ${{ steps.build.outputs.slug }}
+        run: |
+          set -euo pipefail
+          apk="$PWD/livraison/$SLUG.apk"
+          work=$(mktemp -d)
+          cd "$work"
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+
+          # Continue the branch when it exists, start it otherwise.
+          if git fetch -q --depth 1 origin "$BRANCH" 2>/dev/null; then
+            git checkout -q FETCH_HEAD
+            git checkout -q -b "$BRANCH"
+          else
+            git checkout -q -b "$BRANCH"
+          fi
+
+          cp "$apk" .
+          git add -A
+          git commit -q -m "APK $SLUG ($(date -u +%FT%TZ))"
+          git push -q origin "$BRANCH"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ steps.build.outputs.slug }}
+          path: html2apk/livraison/*.apk
+          if-no-files-found: error
