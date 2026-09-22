@@ -420,6 +420,20 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   background:rgba(80,140,220,.12);color:#7ab0ff;font-family:inherit;font-size:9px;font-weight:800}
 .matBtn.back{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.12);color:#4ade80}
 .meta-item.alert{color:#ff8b7e;font-weight:800}
+#coachBox{position:fixed;inset:0;z-index:130;display:none;align-items:flex-end;
+  justify-content:center;padding:12px;background:rgba(3,5,9,.55);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+#coachBox.show{display:flex}
+#coachBox .cbCard{width:100%;max-width:520px;border-radius:14px;padding:16px 14px;
+  padding-bottom:max(16px,env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(26,38,56,.99),rgba(14,20,30,.99));
+  border:1px solid rgba(255,176,32,.5);box-shadow:0 -12px 48px rgba(0,0,0,.7);
+  animation:slide-up .3s cubic-bezier(.4,0,.2,1)}
+#coachBox .cbStep{font-size:9.5px;font-weight:800;letter-spacing:1.4px;color:#ffb020}
+#coachBox .cbTitle{font-size:14.5px;font-weight:800;color:#e8f0f8;margin:6px 0 6px}
+#coachBox .cbText{font-size:11.5px;color:#b8c8d8;line-height:1.6}
+#coachBox .cbSkip{width:100%;margin-top:6px;background:none;border:none;color:#5a6b7d;
+  font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;padding:10px;min-height:40px}
 .resumeBox{padding:12px;border-radius:10px;margin-bottom:12px;
   background:linear-gradient(135deg,rgba(255,176,32,.14),rgba(168,85,247,.1));
   border:1px solid rgba(255,176,32,.45)}
@@ -671,6 +685,16 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 
 <div id="toast"></div>
 
+<div id="coachBox">
+  <div class="cbCard">
+    <div class="cbStep" id="coachStep">1/6</div>
+    <div class="cbTitle" id="coachTitle">—</div>
+    <div class="cbText" id="coachText">—</div>
+    <button class="btn-main" data-act="coach-next" id="coachBtn">COMPRIS</button>
+    <button class="cbSkip" data-act="coach-skip">Passer le guide</button>
+  </div>
+</div>
+
 <div class="ov open" id="siteScreen">
   <div class="cd">
     <h1>SSIAP 2 SIMULATOR</h1>
@@ -689,6 +713,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <button class="btn-sec" data-act="open-tree-hub">🌳 ARBRE DE COMPÉTENCES</button>
     <button class="btn-sec" data-act="open-achievements">🏆 SUCCÈS & DÉFIS</button>
     <button class="btn-sec" data-act="open-replay">📜 HISTORIQUE</button>
+    <button class="btn-sec" data-act="replay-coach">🧭 REVOIR LE GUIDE DE PRISE DE POSTE</button>
   </div>
 </div>
 
@@ -902,6 +927,7 @@ const STAG_POOL = [
 
 const ROUND_TYPES = {
   ouverture: {name:'Ouverture', icon:'🌅'},
+  /* incidents propres à chaque type : voir ROUND_INCIDENTS */
   ssi: {name:'Ronde SSI', icon:'🔥'},
   technique: {name:'Ronde technique', icon:'⚙'},
   surveillance: {name:'Surveillance', icon:'👁'},
@@ -961,14 +987,18 @@ function generateRounds(site, shift){
     R.push(mk('R7', startT + 560, 'ssi',          'Ronde SSI après-midi',8, 5));
     R.push(mk('R8', endT - 40,  'fermeture',      'Ronde de fermeture', 12, 6));
   } else {
-    R.push(mk('R1', startT + 20, 'ouverture',     'Prise de poste',     10, 6));
-    R.push(mk('R2', startT + 100, 'surveillance', 'Surveillance 1',     8,  5));
-    R.push(mk('R3', startT + 190, 'ssi',          'Ronde SSI nuit',     8,  5));
-    R.push(mk('R4', startT + 280, 'technique',    'Ronde technique',    10, 4));
-    R.push(mk('R5', startT + 370, 'surveillance', 'Surveillance 2',     8,  5));
-    R.push(mk('R6', startT + 460, 'ssi',          'Ronde SSI profonde', 8,  5));
-    R.push(mk('R7', startT + 550, 'technique',    'Ronde technique 2',  10, 4));
-    R.push(mk('R8', endT - 40,  'fermeture',      'Ronde avant relève', 12, 6));
+    /* Vacation de nuit : le site ferme au moment de la prise de poste et
+       rouvre avant la relève. La ronde de fermeture ouvre donc la vacation
+       (verrouillage, extinction, vérification du départ du public) et la
+       ronde d'ouverture la termine (déverrouillage, remise en service). */
+    R.push(mk('R1', startT + 20, 'fermeture',     'Ronde de fermeture',     12, 6));
+    R.push(mk('R2', startT + 110, 'surveillance', 'Surveillance 1',         8,  5));
+    R.push(mk('R3', startT + 200, 'ssi',          'Ronde SSI nuit',         8,  5));
+    R.push(mk('R4', startT + 290, 'technique',    'Ronde technique',        10, 4));
+    R.push(mk('R5', startT + 380, 'surveillance', 'Surveillance 2',         8,  5));
+    R.push(mk('R6', startT + 470, 'ssi',          'Ronde SSI profonde',     8,  5));
+    R.push(mk('R7', startT + 560, 'technique',    'Ronde technique 2',      10, 4));
+    R.push(mk('R8', endT - 45,  'ouverture',      'Ouverture avant relève', 12, 6));
   }
   return R;
 }
@@ -996,13 +1026,16 @@ const ROUND_INCIDENTS = {
     {label:'Traces d\'effraction', emoji:'🔓', severity:'major', desc:'Marques sur porte', action:'Signalement'},
   ],
   ouverture: [
-    {label:'Accès non sécurisé', emoji:'🚪', severity:'minor', desc:'Porte non verrouillée', action:'Verrouillage'},
+    {label:'Issue de secours condamnée', emoji:'🚪', severity:'major', desc:'Sortie non dégagée avant ouverture', action:'Dégagement immédiat'},
+    {label:'Éclairage de sécurité HS', emoji:'💡', severity:'minor', desc:'Bloc non rallumé', action:'Signalé maintenance'},
+    {label:'Zone encore inhibée', emoji:'🚫', severity:'major', desc:'Détection non remise en service', action:'Remise en service'},
     {label:'Anomalie détectée', emoji:'⚠', severity:'minor', desc:'Écart constaté', action:'Tracé MC'},
   ],
   fermeture: [
     {label:'Lumière oubliée', emoji:'💡', severity:'minor', desc:'Éclairage allumé', action:'Éteinte'},
     {label:'Porte non verrouillée', emoji:'🔒', severity:'major', desc:'Accès non sécurisé', action:'Verrouillage'},
-    {label:'Présence inattendue', emoji:'👤', severity:'major', desc:'Personne sur site', action:'Contrôle'},
+    {label:'Présence inattendue', emoji:'👤', severity:'major', desc:'Personne restée sur le site après fermeture', action:'Contrôle et évacuation'},
+    {label:'Appareil resté sous tension', emoji:'🔌', severity:'minor', desc:'Équipement non consigné', action:'Mise hors tension'},
   ],
 };
 
@@ -1194,7 +1227,7 @@ function defaultSave(){
     xp:0, vacations:0, vacationsData:[],
     muted:false, owned:[], agents:{},
     rhScore:0, achs:{},
-    money:0,
+    money:0, coachDone:false,
     stats:{fires:0,mci_good:0,audits:0,qcms:0,roundsDone:0,roundsMissed:0,
            badges:0,badgesFailed:0,nightVacations:0,sitesVisited:[],
            lddOk:0, degradedHandled:0, datDone:0, keyErrors:0, ignored:0},
@@ -1380,6 +1413,7 @@ function startGame(){
              roundsOk:0, roundsMissed:0, roundsLate:0, roundsIncidents:0,
              badges:0, badgesFailed:0, pointsMissed:0},
     activeModal:null, mciPending:0, qcmAvailable:true,
+    k:{}, coachIdx:0,
     ld:null,
     nextDegradedAt: startT + 90 + Math.random()*120,
     date: randDate(),
@@ -1730,6 +1764,7 @@ function assignRound(roundId, agentId){
       mcAdd('PC', `⚠ ${G.stagiaire.name} seul en ronde refusé — le binôme avec un titulaire est obligatoire`, 'warn');
       toast('Binôme obligatoire : tuteur indisponible', 'bad');
       G.debrief.stagiaire -= 1;
+      G.k.stagSolo = (G.k.stagSolo || 0) + 1;
       return;
     }
     r.wantBinome = true;
@@ -1928,6 +1963,9 @@ function completeBadgeScan(agent){
       agent.state = 'awaiting';
       agent.currentAnomaly = ev;
 
+      ev.askedAt = G.t;
+      ev.nagged = 0;
+      G.k.ordersAsked = (G.k.ordersAsked || 0) + 1;
       mcAdd(agent.id, `${incident.emoji} ${incident.label} en ${zoneName(point.zoneId)} — ⏸ DEMANDE D'ORDRES`, 'crit');
       radioSay(agent, `Chef, j'ai trouvé : ${incident.label} en ${zoneName(point.zoneId)}. Je fais quoi ?`,
         incident.severity === 'major' ? 'major' : 'order');
@@ -2224,6 +2262,11 @@ function renderAll(){
   const nextR = G.rounds.filter(r => r.status === 'pending' || r.status === 'assigned' || r.status === 'late')
     .sort((a,b) => a.time - b.time)[0];
   $('metaRound').textContent = nextR ? `${nextR.id} ${fmtTime(nextR.time)}` : '—';
+  const waiting = awaitingAgents().length;
+  const alarms = G.events.filter(e => !e.resolved && !e.awaitingOrders).length;
+  const btn = $('actionsBtn');
+  btn.className = 'hbtn' + (alarms ? ' urgent' : waiting ? ' hot' : '');
+  btn.innerHTML = '⚡' + ((waiting + alarms) ? `<span class="nbadge">${waiting + alarms}</span>` : '');
   renderMap();
   renderAgents();
   renderPlanningStrip();
@@ -2412,6 +2455,7 @@ function resolveChoice(idx){
     mcAdd('PC', `🩹 Dossier d'accident du travail à constituer — voir ACTIONS PCS`, 'warn');
     toast('DAT à saisir', 'bad');
   }
+  if(ev.type === 'rh') G.k.rhNeeded = (G.k.rhNeeded || 0) + 1;
   if(ev.type === 'rh' && !G.rh.reinforced && !G.rh.incoming){
     mcAdd('PC', `👥 Effectif incomplet — possibilité de rappel d'astreinte depuis les ACTIONS PCS`, 'info');
   }
@@ -2475,7 +2519,10 @@ function resolveAnomaly(evId, order){
       break;
   }
 
+  /* Décision prise par l'agent faute d'ordre : aucun point pour le PCS. */
+  if(ev.autoDecided) scorePts = 0;
   G.score += scorePts;
+  if(!ev.autoDecided) G.k.ordersGiven = (G.k.ordersGiven || 0) + 1;
   ev.resolved = true;
   a.state = 'idle';
   a.currentAnomaly = null;
@@ -2526,6 +2573,10 @@ function openMCI(ev){
 function resolveMCI(idx){
   const ev = G.activeModal;
   if(!ev) return;
+  /* Un second appui pendant la fermeture différée ne doit pas recompter
+     la main courante (les points étaient encaissés à chaque touche). */
+  if(ev.mciResolved) return;
+  ev.mciResolved = true;
   const chosen = ev.mci[idx];
   document.querySelectorAll('.mciOption').forEach(b => {
     const i = +b.dataset.mci;
@@ -2534,7 +2585,9 @@ function resolveMCI(idx){
     b.disabled = true;
   });
   let bonus = 0;
+  G.k.mciTotal = (G.k.mciTotal || 0) + 1;
   if(chosen.good){
+    G.k.mciGood = (G.k.mciGood || 0) + 1;
     bonus = SAVE.owned.includes('tablette') ? 8 : 6;
     G.score += bonus;
     G.debrief.mci += 2;
@@ -2746,6 +2799,8 @@ function renderQCM(){
 }
 function resolveQCM(i){
   const s = qcmState;
+  if(!s || s.locked) return;
+  s.locked = true;
   const q = s.qs[s.idx];
   document.querySelectorAll('.qcmA').forEach((b, idx) => {
     if(idx === q.correct) b.classList.add('good');
@@ -2755,6 +2810,7 @@ function resolveQCM(i){
   if(i === q.correct) s.correct++;
   setTimeout(() => {
     s.idx++;
+    s.locked = false;
     if(s.idx >= s.qs.length) finishQCM();
     else renderQCM();
   }, 900);
@@ -2837,6 +2893,7 @@ function endVacation(){
   clearInterval(timer);
   timer = null;
   clearShift();
+  if(!SAVE.coachDone) finishCoach();
   A.stopAmbient();
   A.success();
 
@@ -2871,14 +2928,79 @@ function endVacation(){
     mcAdd('PC', `⚠ Relève : site toujours en coupure secteur sans groupe`, 'crit');
   }
 
-  const axes = {
-    regulation: clamp(Math.round(50 + G.debrief.regulation * 6 + G.debrief.roundsOk * 3 - G.debrief.roundsMissed * 6), 0, 100),
-    time: clamp(Math.round(60 + G.debrief.time * 8), 0, 100),
-    rh: clamp(Math.round(50 + G.debrief.rh * 6 + (G.stagiaire ? G.debrief.stagiaire * 4 : 8)), 0, 100),
-    mci: clamp(Math.round(50 + G.debrief.mci * 10), 0, 100),
-    materiel: clamp(Math.round(60 + G.debrief.materiel * 4 - G.materiel.wrongKeys * 6 - G.materiel.noRadioDepartures * 8 - G.materiel.pgIssues * 3), 0, 100),
-    training: clamp(Math.round(40 + G.debrief.training * 8), 0, 100),
+  /* Notation par occasion : chaque axe est la moyenne pondérée de ratios
+     « ce qui a été tenu / ce qui s'est présenté ». Un axe sans occasion
+     n'est pas pénalisé (70 = vacation calme et conforme). */
+  const K = G.k || {};
+  const planned = G.rounds.filter(x => !x.adhoc);
+  const doneRounds = planned.filter(x => x.status === 'done').length;
+  const onTimeRounds = planned.filter(x => x.status === 'done' && (x.doneAt - x.time) <= x.tolerance).length;
+  const alarms = G.events.filter(e => e.delay);
+  const alarmsHandled = alarms.filter(e => e.decidedAt).length;
+  const pointsTried = (G.debrief.badges || 0) + (G.debrief.badgesFailed || 0) + (G.materiel.wrongKeys || 0);
+  const issued = K.issued || 0;
+  const trainingExpected = Math.max(1, 3 - Math.floor((G.events.filter(e => e.delay).length + (K.degTotal || 0)) / 2));
+  const rat = (ok, tot) => tot > 0 ? Math.max(0, Math.min(1, ok / tot)) : null;
+  const ax = parts => {
+    const act = parts.filter(p => p.v !== null && p.v !== undefined);
+    if(!act.length) return 70;
+    const w = act.reduce((a, p) => a + p.w, 0);
+    return Math.round(act.reduce((a, p) => a + p.w * p.v, 0) / w * 100);
   };
+
+  const axes = {
+    regulation: ax([
+      {w:3, v:rat(doneRounds, planned.length)},
+      {w:3, v:rat(alarmsHandled, alarms.length)},
+      {w:1, v:rat(K.inhibLifted || 0, K.inhibPosed || 0)},
+      {w:1, v:rat(K.ssiOk || 0, K.ssiTotal || 0)},
+      {w:1, v:rat(G.s3.auditsGood, G.s3.audits)},
+    ]),
+    time: ax([
+      {w:3, v:rat(K.lddOnTime || 0, K.lddTotal || 0)},
+      {w:2, v:rat(alarmsHandled, alarms.length)},
+      {w:2, v:rat(onTimeRounds, doneRounds)},
+      {w:1, v:rat(K.degHandled || 0, K.degTotal || 0)},
+    ]),
+    rh: ax([
+      {w:3, v:rat(K.ordersGiven || 0, K.ordersAsked || 0)},
+      {w:2, v:G.stagiaire ? rat(K.binomeOk || 0, (K.binomeOk || 0) + (K.stagSolo || 0)) : null},
+      {w:2, v:G.rh.datOpen ? (G.rh.datDone ? G.rh.datScore / DAT_STEPS.length : 0) : null},
+      {w:1, v:rat(K.rhCovered || 0, K.rhNeeded || 0)},
+    ]),
+    mci: ax([{w:1, v:rat(K.mciGood || 0, K.mciTotal || 0)}]),
+    materiel: ax([
+      {w:3, v:rat(pointsTried - (G.materiel.wrongKeys || 0), pointsTried)},
+      {w:2, v:rat(K.departsComplete || 0, K.departs || 0)},
+      {w:2, v:issued ? rat(issued - G.materiel.notReturned, issued) : null},
+      {w:1, v:rat(G.debrief.badges || 0, (G.debrief.badges || 0) + (G.debrief.badgesFailed || 0))},
+      {w:1, v:G.materiel.pgIssues ? Math.max(0, 1 - G.materiel.pgIssues * 0.34) : null},
+    ]),
+    /* L'attente de formation se réduit quand la vacation a été chargée :
+       on ne reproche pas un QCM non fait à un poste qui a enchaîné les alarmes. */
+    training: ax([{w:1, v:Math.min(1, (G.debrief.training || 0) / trainingExpected)}]),
+  };
+
+  /* Détail présenté au joueur : d'où vient chaque note */
+  const pct = v => v === null ? '—' : Math.round(v * 100) + '%';
+  const frac = (ok, tot) => tot > 0 ? `${ok}/${tot}` : 'sans objet';
+  const detail = [
+    ['Rondes tenues', frac(doneRounds, planned.length)],
+    ['Rondes dans la tolérance', frac(onTimeRounds, doneRounds)],
+    ['Alarmes traitées dans le délai', frac(alarmsHandled, alarms.length)],
+    ['Levées de doute ≤ 5 min', frac(K.lddOnTime || 0, K.lddTotal || 0)],
+    ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)],
+    ['Manœuvres SSI justifiées', frac(K.ssiOk || 0, K.ssiTotal || 0)],
+    ['Inhibitions levées', frac(K.inhibLifted || 0, K.inhibPosed || 0)],
+    ['Modes dégradés traités', frac(K.degHandled || 0, K.degTotal || 0)],
+    ['Départs en ronde complets', frac(K.departsComplete || 0, K.departs || 0)],
+    ['Points ouverts du premier coup', frac(pointsTried - (G.materiel.wrongKeys || 0), pointsTried)],
+    ['Matériel restitué', frac(issued - G.materiel.notReturned, issued)],
+    ['MCI conformes', frac(K.mciGood || 0, K.mciTotal || 0)],
+    ['Audits SSIAP 3 réussis', frac(G.s3.auditsGood, G.s3.audits)],
+    ['Actions de formation', `${G.debrief.training || 0} / ${trainingExpected} attendue(s)`],
+  ];
+
   const total = Math.round(Object.values(axes).reduce((s,v)=>s+v,0) / 6);
   let rank, rcolor;
   if(total >= 90){ rank='SSIAP 2 Émérite'; rcolor='#4ade80'; }
@@ -2949,6 +3071,11 @@ function endVacation(){
   h += axis('Qualité MCI', axes.mci);
   h += axis('Gestion du matériel', axes.materiel);
   h += axis('Formation', axes.training);
+
+  h += `<h2>🧮 D'OÙ VIENT LA NOTE</h2>
+    <div class="evContent" style="line-height:1.7">
+      ${detail.map(d => `<div style="display:flex;justify-content:space-between;gap:10px"><span style="color:#8fa4b8">${d[0]}</span><b>${d[1]}</b></div>`).join('')}
+    </div>`;
 
   h += `<h2>📦 REGISTRE MATÉRIEL</h2>
     <div class="evContent" style="font-size:9px;line-height:1.6">
@@ -3316,6 +3443,7 @@ function matLog(txt){ G.materiel.log.push({t:G.t, txt}); }
 /* Remise élémentaire, sans message : utilisée par la remise manuelle
    et par la dotation automatique au départ en ronde. */
 function giveItem(kind, it, ag){
+  G.k.issued = (G.k.issued || 0) + 1;
   const prev = matHolderItem(kind, ag.id);
   if(prev) prev.holder = null;
   it.holder = ag.id;
@@ -3537,6 +3665,8 @@ function openMateriel(){ if(!G) return; renderMateriel(); $('materielScreen').cl
 /* Contrôle de dotation au départ d'une ronde */
 function checkDotation(agent, round){
   const radio = agentRadio(agent), badge = agentBadge(agent), key = agentKey(agent);
+  G.k.departs = (G.k.departs || 0) + 1;
+  if(radio && badge && key && !uncoveredPoints(agent, round).length) G.k.departsComplete = (G.k.departsComplete || 0) + 1;
   if(!radio){
     G.materiel.noRadioDepartures++;
     G.debrief.materiel -= 3;
@@ -3572,12 +3702,14 @@ function triggerDegraded(kind){
     mcAdd('PC', `⚡ COUPURE SECTEUR — bascule sur groupe électrogène à confirmer (3 min)`, 'crit');
     toast('⚡ Coupure secteur !', 'bad');
     G.deg.history.push({t:G.t, k:'Coupure secteur'});
+    G.k.degTotal = (G.k.degTotal || 0) + 1;
   }
   if(kind === 'radio' && !G.deg.radio){
     G.deg.radio = { since:G.t, until:G.t + 25 + Math.random()*20, backup:false };
     mcAdd('PC', `${ICON_VHF} PANNE RADIO VHF — relais HS, liaison agents dégradée`, 'crit');
     toast('Panne radio VHF', 'bad');
     G.deg.history.push({t:G.t, k:'Panne radio VHF'});
+    G.k.degTotal = (G.k.degTotal || 0) + 1;
   }
   if(kind === 'detect' && !G.deg.detect){
     const z = pick(G.site.zones.filter(x => x.id !== 'pcs'));
@@ -3586,6 +3718,7 @@ function triggerDegraded(kind){
     mcAdd('PC', `📡 PANNE DE DÉTECTION — zone ${z.name} non surveillée par le SDI`, 'crit');
     toast('📡 Détection HS : ' + z.name, 'bad');
     G.deg.history.push({t:G.t, k:'Panne détection ' + z.name});
+    G.k.degTotal = (G.k.degTotal || 0) + 1;
   }
   renderMC(true);
 }
@@ -3634,6 +3767,7 @@ function execGenerator(){
   if(G.deg.power.generator){ toast('Groupe déjà en service', 'info'); return; }
   const late = G.t > G.deg.power.deadline;
   G.deg.power.generator = true;
+  if(!late) G.k.degHandled = (G.k.degHandled || 0) + 1;
   if(late){
     mcAdd('PC', `⚡ Bascule groupe électrogène ${fmtTime(G.t)} — HORS DÉLAI`, 'warn');
     G.score += 1;
@@ -3650,6 +3784,7 @@ function execRadioBackup(){
   if(G.deg.radio.backup){ toast('Liaison de secours déjà active', 'info'); return; }
   const relay = G.agents.find(a => a.state === 'idle') || G.agents.find(a => a.state === 'pause');
   G.deg.radio.backup = true;
+  G.k.degHandled = (G.k.degHandled || 0) + 1;
   if(relay){
     relay.state = 'working'; relay.pos = 'pcs'; relay.until = G.t + 12; relay.workTime = 12;
     mcAdd('PC', `📞 Mode dégradé radio : liaison téléphonique PCS + agent de liaison (${relay.name})`, 'action');
@@ -3675,6 +3810,7 @@ function execSurveillanceRenforcee(){
   }
   const zid = G.deg.detect.zoneId;
   G.deg.detect.covered = true;
+  G.k.degHandled = (G.k.degHandled || 0) + 1;
   const adhoc = {
     id:'SC-' + (G.uid++), time:G.t, type:'surveillance', label:'Surveillance compensatoire',
     tolerance:10, points:[{zoneId:zid, hasBadge:true, hidden:false},{zoneId:zid, hasBadge:true, hidden:false}],
@@ -3703,6 +3839,7 @@ function execBPS(){
   toast('Signal sonore arrêté', 'info');
 }
 function execRearm(){
+  G.k.ssiTotal = (G.k.ssiTotal || 0) + 1;
   if(G.ld){ 
     mcAdd('PC', `⚠ Réarmement refusé — levée de doute en cours`, 'warn');
     G.debrief.regulation -= 2;
@@ -3710,6 +3847,7 @@ function execRearm(){
     return;
   }
   if(!G.ssi.alarmActive && !G.ssi.rearmNeeded){ toast('Rien à réarmer', 'info'); return; }
+  G.k.ssiOk = (G.k.ssiOk || 0) + 1;
   G.ssi.alarmActive = false;
   G.ssi.buzzer = false;
   G.ssi.rearmNeeded = false;
@@ -3726,6 +3864,7 @@ function execInhib(){
     i => {
       const z = zones[i];
       G.ssi.inhibited.push(z.id);
+      G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
       mcAdd('PC', `🚫 Inhibition zone ${z.name} ${fmtTime(G.t)} — travaux, surveillance humaine maintenue`, 'warn');
       G.score += 2;
       G.debrief.regulation += 1;
@@ -3740,6 +3879,7 @@ function execDesinhib(){
     i => {
       const z = zones[i];
       G.ssi.inhibited = G.ssi.inhibited.filter(id => id !== z.id);
+      G.k.inhibLifted = (G.k.inhibLifted || 0) + 1;
       mcAdd('PC', `✅ Levée d'inhibition zone ${z.name} ${fmtTime(G.t)} — détection en service, essais OK`, 'ok');
       G.score += 3;
       G.debrief.regulation += 2;
@@ -3755,7 +3895,9 @@ function execDesenf(){
       G.ssi.desenf.push(z.id);
       const justified = G.ssi.alarmActive || (G.ld && G.ld.zoneId === z.id) ||
         G.events.some(e => !e.resolved && e.type === 'feu' && e.zoneId === z.id);
+      G.k.ssiTotal = (G.k.ssiTotal || 0) + 1;
       if(justified){
+        G.k.ssiOk = (G.k.ssiOk || 0) + 1;
         mcAdd('PC', `🌬 Désenfumage manuel zone ${z.name} ${fmtTime(G.t)} — commande CMSI, contrôle de position des volets`, 'action');
         G.score += 5;
         G.debrief.regulation += 3;
@@ -3769,12 +3911,14 @@ function execDesenf(){
     });
 }
 function execCompart(){
+  G.k.ssiTotal = (G.k.ssiTotal || 0) + 1;
   if(G.siteId !== 'igh'){
     mcAdd('PC', `⚠ Compartimentage automatique non applicable sur ce site`, 'warn');
     G.debrief.regulation -= 1;
     toast('Procédure réservée aux IGH', 'bad');
     return;
   }
+  G.k.ssiOk = (G.k.ssiOk || 0) + 1;
   G.ssi.compart = true;
   mcAdd('PC', `🧱 Compartimentage IGH ${fmtTime(G.t)} — isolement du compartiment sinistré, transfert horizontal des occupants`, 'crit');
   G.score += 6;
@@ -3791,6 +3935,7 @@ function startLDD(ev){
   G.ssi.alarmActive = true;
   G.ssi.buzzer = true;
   G.ssi.rearmNeeded = true;
+  G.k.lddTotal = (G.k.lddTotal || 0) + 1;
   G.ld = { zoneId: ev.zoneId, evId: ev.instId, agentId: agent.id, start:G.t, deadline:G.t + 5, done:false };
   agent.state = 'moving';
   agent.targetId = ev.zoneId;
@@ -3810,6 +3955,8 @@ function tickLDD(){
     a.ldd = false;
     const onTime = elapsed <= 5;
     if(onTime){
+      G.k.lddOnTime = (G.k.lddOnTime || 0) + 1;
+      SAVE.stats.lddOk = (SAVE.stats.lddOk || 0) + 1;
       G.score += 5;
       G.debrief.time += 2;
       G.debrief.regulation += 2;
@@ -3834,7 +3981,7 @@ function tickLDD(){
 /* ==========================================================
    5. RH DE CRISE — renfort & DAT
    ========================================================== */
-function initRH(){ return { incoming:null, reinforced:false, datOpen:false, datDone:false, datStep:0, datScore:0 }; }
+function initRH(){ return { incoming:null, reinforced:false, datOpen:false, datDone:false, datStep:0, datScore:0, datLockStep:-1 }; }
 function execRenfort(){
   if(G.rh.incoming){ toast('Renfort déjà en route', 'info'); return; }
   if(G.rh.reinforced){ toast('Renfort déjà intégré', 'info'); return; }
@@ -3844,15 +3991,18 @@ function execRenfort(){
     {icon:'🎖', label:'Arbitrage SSIAP 3', hint:'Le chef de service tranche · délai variable', cls:'warning'},
   ], i => {
     if(i === 0){
+      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + 45, kind:'astreinte' };
       mcAdd('PC', `📞 Appel agent d'astreinte ${fmtTime(G.t)} — arrivée annoncée sous 45 min`, 'action');
       G.debrief.rh += 3; G.score += 4;
     } else if(i === 1){
+      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + 30, kind:'presta' };
       mcAdd('PC', `📞 Appel société prestataire ${fmtTime(G.t)} — agent extérieur sous 30 min, accueil et consignes à prévoir`, 'action');
       G.debrief.rh += 2; G.score += 2;
     } else {
       G.s3.present = true;
+      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + 60, kind:'astreinte' };
       mcAdd('S3', `Je valide le rappel d'un titulaire. Trace-le en main courante.`, 'info');
       G.debrief.rh += 1; G.score += 1;
@@ -3911,6 +4061,10 @@ function renderDAT(){
   $('datContent').innerHTML = h;
 }
 function resolveDAT(i){
+  /* Verrou par étape plutôt que par délai : un double appui ne répond pas
+     deux fois, mais l'étape suivante reste immédiatement accessible. */
+  if(G.rh.datLockStep === G.rh.datStep) return;
+  G.rh.datLockStep = G.rh.datStep;
   const s = DAT_STEPS[G.rh.datStep];
   const ok = i === s.correct;
   if(ok){ G.rh.datScore++; A.badgeSuccess(); toast('Conforme', 'good'); }
@@ -3939,6 +4093,7 @@ function attachBinome(round, tutor){
   const st = G.stagiaire;
   if(!st) return;
   round.binome = st.id;
+  G.k.binomeOk = (G.k.binomeOk || 0) + 1;
   st.state = 'binome';
   st.pos = tutor.pos;
   st.currentRoundId = round.id;
@@ -3966,6 +4121,40 @@ function tickBinome(){
     st.stress = clamp((st.stress || 20) + (degradedActive() ? 0.15 : -0.05), 0, 100);
   } else if(st.state === 'idle'){
     st.stress = Math.max(0, (st.stress || 20) - 0.3);
+  }
+}
+
+/* ==========================================================
+   6 quater. AGENTS EN ATTENTE D'ORDRES
+   Un agent qui attend bloque sa ronde : il relance, puis il tranche seul.
+   ========================================================== */
+function awaitingAgents(){
+  return [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])].filter(a => a.state === 'awaiting' && a.currentAnomaly);
+}
+function tickAwaiting(){
+  for(const a of awaitingAgents()){
+    const ev = a.currentAnomaly;
+    if(!ev || ev.resolved) continue;
+    const waited = G.t - (ev.askedAt || ev.created || G.t);
+
+    if(waited > 4 && ev.nagged < 1){
+      ev.nagged = 1;
+      radioSay(a, `Chef, je suis toujours en attente d'ordres sur ${zoneName(ev.zone)}. Ma ronde est à l'arrêt.`, 'order');
+      toast(`${a.name} attend un ordre`, 'bad');
+    } else if(waited > 8 && ev.nagged < 2){
+      ev.nagged = 2;
+      radioSay(a, `Chef, ça fait ${Math.round(waited)} minutes. Je fais quoi ?`, 'major');
+      mcAdd('PC', `⏸ ${a.name} sans instruction depuis ${Math.round(waited)} min — ronde suspendue`, 'warn');
+    } else if(waited > 12 && !ev.autoDecided){
+      /* Faute d'ordre, l'agent prend l'initiative : c'est un manquement
+         d'encadrement, pas une faute de l'agent. */
+      ev.autoDecided = true;
+      G.debrief.rh -= 3;
+      G.score -= 4;
+      G.k.ordersAuto = (G.k.ordersAuto || 0) + 1;
+      mcAdd('PC', `⚠ ${a.name} a tranché seul (${ev.title}) faute d'instruction du PCS — défaut d'encadrement`, 'crit');
+      resolveAnomaly(ev.id, ev.severity === 3 ? 'retour' : 'notre');
+    }
   }
 }
 
@@ -4129,7 +4318,9 @@ function updateEventCountdown(){
    ========================================================== */
 function tickV6(){
   if(!G) return;
+  tickCoach();
   tickEvents();
+  tickAwaiting();
   tickDegraded();
   tickLDD();
   tickRH();
@@ -4142,6 +4333,8 @@ function updateAlertStrip(){
   const bits = [];
   const pending = G.events.filter(e => !e.resolved && !e.awaitingOrders).length;
   if(pending) bits.push(`🔔 ${pending} alarme(s)`);
+  const waiting = awaitingAgents().length;
+  if(waiting) bits.push(`⏸ ${waiting} agent(s) en attente`);
   if(G.ld){
     const left = Math.max(0, G.ld.deadline - G.t);
     bits.push(`⏱ LDD ${left.toFixed(1)}min`);
@@ -4191,6 +4384,8 @@ function resumeShift(){
   G.activeModal = null;
   G.mciPending = 0;
   G.paused = false;
+  G.k = G.k || {};
+  if(typeof G.coachIdx !== 'number') G.coachIdx = COACH.length;
   G.materiel = G.materiel || initMateriel(G.site);
   G.deg = G.deg || initDegraded();
   G.ssi = G.ssi || initSSI();
@@ -4219,6 +4414,73 @@ function shiftResumeBanner(){
     <button class="btn-main" data-act="resume-shift">REPRENDRE LA VACATION</button>
     <button class="btn-sec" data-act="discard-shift">ABANDONNER LE POSTE</button>
   </div>`;
+}
+
+/* ==========================================================
+   7 ter. PREMIÈRE VACATION GUIDÉE
+   Six repères, déclenchés par la situation réelle du poste.
+   ========================================================== */
+const COACH = [
+  {id:'poste',
+   when: () => G.t > G.startT + 1,
+   title:'Vous tenez le PCS',
+   text:`En haut : l'heure de la vacation, l'état du site et le bouton ⚡ des actions PCS. Au centre : le plan des zones puis la main courante, qui trace tout ce qui se passe. En bas : vos agents — touchez une carte pour donner un ordre.`},
+  {id:'ronde',
+   when: () => G.rounds.some(r => r.status === 'pending' && !r.assignedAgentId && r.time - G.t < 12),
+   title:'Une ronde arrive',
+   text:`Touchez ASSIGNER dans le bandeau ou ouvrez 📋 le planning. L'agent choisi est équipé automatiquement : talkie, badge de pointage et trousseau du type de ronde. Une ronde non assignée passée la tolérance est une non-conformité.`},
+  {id:'alarme',
+   when: () => G.events.some(e => e.delay && !e.resolved && e.autoOpen),
+   title:'Une alarme vous interrompt',
+   text:`La fenêtre de décision s'ouvre seule et un compte à rebours démarre — le temps continue de tourner pendant que vous lisez. Choisissez avant la fin du délai : sans décision du PCS, l'événement se solde sans vous et le SSIAP 3 le relèvera au débriefing.`},
+  {id:'attente',
+   when: () => awaitingAgents().length > 0,
+   title:'Un agent attend un ordre',
+   text:`Il a trouvé une anomalie et sa ronde est à l'arrêt. Touchez sa carte en bas pour lui répondre : traiter, consigner, revenir au PC ou appeler les secours. S'il reste sans instruction, il finira par trancher seul — et c'est votre encadrement qui sera noté.`},
+  {id:'degrade',
+   when: () => !!(G.deg.power || G.deg.radio || G.deg.detect),
+   title:'Mode dégradé en cours',
+   text:`Le bandeau du haut signale coupure secteur, panne de talkie ou détection hors service. Les parades sont dans ⚡ ACTIONS PCS : bascule du groupe électrogène, liaison de secours, surveillance compensatoire. Chacune a son délai.`},
+  {id:'releve',
+   when: () => G.t > G.endT - 90,
+   title:'La relève approche',
+   text:`Avant la fin : levez les inhibitions posées, récupérez le matériel des agents et terminez les rondes engagées. Ces trois points sont contrôlés à la relève et pèsent sur la note du SSIAP 3.`},
+];
+
+function coachActive(){ return !SAVE.coachDone && G && G.coachIdx < COACH.length; }
+function tickCoach(){
+  if(!coachActive() || anyOverlayOpen() || $('coachBox').classList.contains('show')) return;
+  const step = COACH[G.coachIdx];
+  if(!step) return;
+  let ok = false;
+  try{ ok = step.when(); }catch(e){ ok = false; }
+  if(ok) showCoach();
+}
+function showCoach(){
+  const step = COACH[G.coachIdx];
+  if(!step) return;
+  $('coachStep').textContent = `REPÈRE ${G.coachIdx + 1}/${COACH.length}`;
+  $('coachTitle').textContent = step.title;
+  $('coachText').textContent = step.text;
+  $('coachBox').classList.add('show');
+  G.paused = true;           // un débutant ne doit pas être puni pendant qu'il lit
+  A.beep(720, 0.06, 0.05);
+}
+function coachNext(){
+  $('coachBox').classList.remove('show');
+  if(G) G.coachIdx = (G.coachIdx || 0) + 1;
+  if(G && G.coachIdx >= COACH.length) finishCoach();
+  if(G) G.paused = false;
+}
+function finishCoach(){
+  SAVE.coachDone = true;
+  writeSave();
+}
+function skipCoach(){
+  $('coachBox').classList.remove('show');
+  finishCoach();
+  if(G){ G.coachIdx = COACH.length; G.paused = false; }
+  toast('Guide désactivé', 'info');
 }
 
 /* ==========================================================
@@ -4291,6 +4553,15 @@ function handleTap(e){
   if(!btn || btn.disabled) return;
   const act = btn.dataset.act;
 
+  if(act === 'coach-next'){ coachNext(); return; }
+  if(act === 'coach-skip'){ skipCoach(); return; }
+  if(act === 'replay-coach'){
+    SAVE.coachDone = false; writeSave();
+    if(G) G.coachIdx = 0;
+    toast('Guide réactivé pour la prochaine vacation', 'good');
+    renderSiteGrid();
+    return;
+  }
   if(act === 'resume-shift'){ resumeShift(); return; }
   if(act === 'discard-shift'){
     clearShift();

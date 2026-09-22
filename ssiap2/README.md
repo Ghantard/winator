@@ -10,7 +10,7 @@ progression est sauvegardée dans le `localStorage`).
 | Phase | Contenu |
 |---|---|
 | **0 — Prise de poste** | Choix du site (ERP M, ERP U, ERP O/N, IGH, Industriel) **et du type de vacation** (Jour 07h-19h / Nuit 19h-07h), tirage de l'équipe (2 SSIAP 1 + stagiaire éventuel) |
-| **1 — Vacation 12 h** | 8 rondes planifiées avec tolérance et pointage badge, événements SDI, chrono de levée de doute, registre matériel, modes dégradés, incidents RH, QCM et exercices CMSI |
+| **1 — Vacation 12 h** | 8 rondes planifiées avec tolérance et pointage badge, événements SDI, chrono de levée de doute, registre matériel, modes dégradés, incidents RH, QCM et exercices CMSI. De jour la vacation s'ouvre par la prise de poste et se termine par la fermeture ; **de nuit c'est l'inverse** : la ronde de fermeture ouvre le poste (verrouillage, extinction, départ du public) et la ronde d'ouverture le termine avant la relève du matin |
 | **2 — Débriefing SSIAP 3** | Note sur 6 axes : Réglementation, Réactivité, Management/RH, Qualité MCI, Gestion du matériel, Formation — XP, prime de vacation, succès |
 | **3 — Inter-vacation** | Arbre de compétences des SSIAP 1, boutique PCS, historique, changement de site / de vacation |
 
@@ -57,8 +57,33 @@ progression est sauvegardée dans le `localStorage`).
 - Ajout du CSS manquant de `.orderBtn` et d'un ordre d'empilement explicite des
   overlays.
 
+## Première vacation guidée
+
+Six repères déclenchés par la situation réelle (prise de poste, première ronde
+à assigner, première alarme, premier agent en attente d'ordres, premier mode
+dégradé, approche de la relève). Le poste est figé pendant la lecture pour ne
+pas punir un débutant, et le guide se termine tout seul ; il est réactivable
+depuis l'écran d'accueil.
+
+## Notation
+
+Chaque axe est la **moyenne pondérée de ratios « tenu / présenté »**, pas un
+compteur ouvert : rondes tenues sur rondes prévues, alarmes traitées dans le
+délai, levées de doute sous 5 minutes, ordres donnés aux agents en attente,
+manœuvres SSI justifiées, inhibitions levées, modes dégradés traités, départs
+en ronde complets, points ouverts du premier coup, matériel restitué, MCI
+conformes, audits réussis. Un axe sans occasion vaut 70 — une vacation calme
+n'est ni récompensée ni punie —, et l'attente de formation se réduit quand la
+vacation a été chargée. Le débriefing affiche le détail chiffré de chaque
+ratio, pour que la note se lise au lieu de se subir.
+
 ## Conduite de la vacation
 
+- **Un agent en attente d'ordres ne reste pas silencieux.** Le nombre d'agents
+  bloqués s'affiche dans le bandeau et sur une pastille du bouton ⚡. L'agent
+  relance à 4 puis 8 minutes ; à 12 minutes sans instruction, il tranche seul —
+  aucun point pour le PCS et un malus d'encadrement, parce que le manquement
+  est celui du chef de poste.
 - **Les alarmes interrompent le PCS.** Un départ de feu, une urgence médicale
   ou un accident du travail ouvre la modale de décision de lui-même, et **le
   temps continue de courir pendant que vous lisez** : un délai de traitement
