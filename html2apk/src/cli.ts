@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 
 import { Command, InvalidArgumentError } from "commander";
 
-import { selectBuilder } from "./builders";
+import { DEFAULT_APP_ID, selectBuilder } from "./builders";
+import type { BuildOptions } from "./builders";
 import { createLogger, describeSource, detectSource } from "./utils";
 import type { LogLevel } from "./utils";
 
@@ -13,6 +14,8 @@ const LOG_LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 interface BuildCommandOptions {
   output: string;
   logLevel: LogLevel;
+  appId: string;
+  appName?: string;
 }
 
 function parseLogLevel(value: string): LogLevel {
@@ -36,6 +39,8 @@ export function createProgram(): Command {
     .description("Build an APK from a URL or a local folder")
     .argument("<source>", "https:// URL or path to a folder containing index.html")
     .option("-o, --output <file>", "path of the generated APK", DEFAULT_OUTPUT)
+    .option("--app-id <id>", "reverse-DNS application id", DEFAULT_APP_ID)
+    .option("--app-name <name>", "display name of the app (default: the folder name)")
     .option("--log-level <level>", `one of ${LOG_LEVELS.join(", ")}`, parseLogLevel, "info")
     .action(async (rawSource: string, options: BuildCommandOptions) => {
       const logger = createLogger(options.logLevel);
@@ -48,7 +53,12 @@ export function createProgram(): Command {
       const builder = selectBuilder(source);
       logger.debug(`Builder: ${builder.name}`);
 
-      const result = await builder.build({ source, output, logger });
+      const buildOptions: BuildOptions = { source, output, logger, appId: options.appId };
+      if (options.appName !== undefined) {
+        buildOptions.appName = options.appName;
+      }
+
+      const result = await builder.build(buildOptions);
       logger.info(`APK written to ${result.apkPath}`);
     });
 

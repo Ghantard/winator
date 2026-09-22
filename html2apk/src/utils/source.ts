@@ -52,7 +52,7 @@ export async function detectSource(
     path: isAbsolute(value) ? value : resolve(process.cwd(), value),
   };
   if (options.skipChecks !== true) {
-    assertFolderUsable(source.path);
+    assertFolderSource(source.path);
   }
   return source;
 }
@@ -129,8 +129,11 @@ function isTimeout(error: unknown): boolean {
   );
 }
 
-/** Check that the folder exists and holds an index.html file. */
-function assertFolderUsable(path: string): void {
+/**
+ * Check that the folder exists and holds an index.html file.
+ * Throws an Error with a French message otherwise.
+ */
+export function assertFolderSource(path: string): void {
   if (!existsSync(path)) {
     throw new Error(`Dossier introuvable : ${path}`);
   }

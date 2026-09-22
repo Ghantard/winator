@@ -6,6 +6,10 @@ export interface BuildOptions {
   /** Validated source: a reachable URL or a folder containing an index.html. */
   source: DetectedSource;
   logger: Logger;
+  /** Reverse-DNS application id (--app-id). */
+  appId?: string;
+  /** Display name of the app (--app-name). */
+  appName?: string;
 }
 
 export interface BuildResult {
