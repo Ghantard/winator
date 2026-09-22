@@ -220,11 +220,13 @@ export function dockerRunArgs(options: {
 /** The uid:gid to run the container as, so the APK is not owned by root. */
 export function currentUser(): string | undefined {
   const getuid = process.getuid?.bind(process);
-  const getgid = process.getgid?.bind(process);
-  if (getuid === undefined || getgid === undefined) {
+  if (getuid === undefined) {
     return undefined;
   }
-  return `${getuid()}:${getgid()}`;
+  // The caller's uid keeps the APK owned by them, but the group is root: the
+  // entrypoint needs that to append the /etc/passwd entry Node requires for an
+  // uid the image knows nothing about.
+  return `${getuid()}:0`;
 }
 
 /**

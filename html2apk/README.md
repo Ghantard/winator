@@ -113,11 +113,14 @@ installer localement.
 
 ## État
 
-Ce qui est vérifié par des tests automatisés : la détection de source, la génération du
-projet Capacitor et de sa configuration, l'enchaînement des commandes, la résolution et la
-génération de keystore, la construction des arguments Docker, et toute la couche d'affichage.
+Vérifié sur de vrais APK, en CI (job « Build réel (toolchain locale) ») : le build Gradle
+complet, la signature par `apksigner`, et les deux modes de source. Chaque run publie les APK
+produits en artifacts — environ 4 Mo pour le dossier de démonstration comme pour
+`https://example.com`.
 
-Ce qui n'a **pas** été vérifié sur un APK réel : l'étape finale du build Gradle, la signature
-par `apksigner`, et le build dans Docker. L'environnement de développement utilisé n'avait ni
-SDK Android, ni accès à `dl.google.com`, ni démon Docker. Le pipeline a été exécuté pour de
-vrai jusqu'à l'appel Gradle inclus, dans les deux modes.
+Vérifié par des tests unitaires (153) : la détection de source, la génération du projet
+Capacitor et de sa configuration, l'enchaînement des commandes, la résolution et la génération
+de keystore, la construction des arguments Docker, et toute la couche d'affichage.
+
+En cours de validation : le build dans Docker. L'image se construit, mais le build à
+l'intérieur est encore en cours de mise au point en CI.

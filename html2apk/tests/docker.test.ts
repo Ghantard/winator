@@ -11,6 +11,7 @@ import {
   CONTAINER_KEYSTORE,
   CONTAINER_OUT,
   CONTAINER_SRC,
+  currentUser,
   DEFAULT_IMAGE,
   dockerRunArgs,
   ensureImage,
@@ -238,6 +239,16 @@ describe("dockerRunArgs", () => {
     });
 
     expect(args).not.toContain("--user");
+  });
+});
+
+describe("currentUser", () => {
+  it("keeps the caller's uid but runs with group root", () => {
+    const value = currentUser();
+    if (value === undefined) {
+      return; // No getuid on this platform (Windows).
+    }
+    expect(value).toBe(`${process.getuid?.()}:0`);
   });
 });
 

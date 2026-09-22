@@ -89,8 +89,15 @@ RUN npm run build && npm prune --omit=dev
 RUN set -eux; \
     mkdir -p /home/builder/.gradle /work/src /work/out; \
     chmod -R a+rwX /home/builder /work; \
-    chmod -R a+rwX "$ANDROID_HOME"
+    chmod -R a+rwX "$ANDROID_HOME"; \
+    # That uid has no passwd entry, which breaks Node's os.userInfo(); the
+    # entrypoint adds one, so group root must be able to write the file.
+    chgrp 0 /etc/passwd; \
+    chmod g+w /etc/passwd
+
+COPY docker-entrypoint.sh /usr/local/bin/html2apk-entrypoint
+RUN chmod 0755 /usr/local/bin/html2apk-entrypoint
 
 WORKDIR /work
-ENTRYPOINT ["node", "/opt/html2apk/dist/cli.js"]
+ENTRYPOINT ["/usr/local/bin/html2apk-entrypoint"]
 CMD ["--help"]
