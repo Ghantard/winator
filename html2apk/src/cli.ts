@@ -5,7 +5,14 @@ import { Command, InvalidArgumentError } from "commander";
 
 import { DEFAULT_APP_ID, selectBuilder } from "./builders";
 import type { BuildOptions } from "./builders";
-import { createLogger, describeSource, detectSource } from "./utils";
+import {
+  buildInDocker,
+  createLogger,
+  DEFAULT_IMAGE,
+  describeSource,
+  detectSource,
+  isInsideContainer,
+} from "./utils";
 import type { LogLevel } from "./utils";
 
 const DEFAULT_OUTPUT = "./output.apk";
@@ -16,6 +23,9 @@ interface BuildCommandOptions {
   logLevel: LogLevel;
   appId: string;
   appName?: string;
+  /** False when --no-docker was passed. */
+  docker: boolean;
+  dockerImage?: string;
 }
 
 function parseLogLevel(value: string): LogLevel {
@@ -41,6 +51,8 @@ export function createProgram(): Command {
     .option("-o, --output <file>", "path of the generated APK", DEFAULT_OUTPUT)
     .option("--app-id <id>", "reverse-DNS application id", DEFAULT_APP_ID)
     .option("--app-name <name>", "display name of the app (default: the folder name)")
+    .option("--no-docker", "build with the local toolchain instead of Docker")
+    .option("--docker-image <name>", `image to run (default: ${DEFAULT_IMAGE})`)
     .option("--log-level <level>", `one of ${LOG_LEVELS.join(", ")}`, parseLogLevel, "info")
     .action(async (rawSource: string, options: BuildCommandOptions) => {
       const logger = createLogger(options.logLevel);
@@ -49,6 +61,22 @@ export function createProgram(): Command {
 
       logger.info(`Source: ${describeSource(source)}`);
       logger.debug(`Output: ${output}`);
+
+      // Docker is the default; inside the image we always take the local path,
+      // both because --no-docker is passed in and as a guard against recursion.
+      if (options.docker && !isInsideContainer()) {
+        const result = await buildInDocker({
+          source,
+          output,
+          logger,
+          logLevel: options.logLevel,
+          appId: options.appId,
+          ...(options.appName !== undefined ? { appName: options.appName } : {}),
+          ...(options.dockerImage !== undefined ? { image: options.dockerImage } : {}),
+        });
+        logger.info(`APK written to ${result.apkPath}`);
+        return;
+      }
 
       const builder = selectBuilder(source);
       logger.debug(`Builder: ${builder.name}`);
