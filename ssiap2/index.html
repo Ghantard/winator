@@ -1554,29 +1554,32 @@ const EVENTS = [
      {text:'02:58 — Alarme intrusion accès nord. Vérification faite, fausse alarme, porte refermée.', good:false},
      {text:'Intrusion nord 02:58, contrôle OK, acquittée.', good:false}]},
 
-  /* ---------- 13. Effectif incomplet ---------- */
-  {id:'absence', type:'rh', weight:3, sites:['all'],
-   ctx:'Un agent de l’équipe n’est pas arrivé à la prise de poste et prévient qu’il aura une heure de retard.',
-   event:'EFFECTIF INCOMPLET',
-   pcs:'Aucune alarme. Effectif de sécurité incendie sous le nombre prévu par les consignes du site.',
+  /* ---------- 13. Départ imprévu : l'effectif n'est plus tenu ---------- */
+  {id:'absence', type:'rh', weight:3, sites:['all'], urgent:true, delay:18,
+   ctx:'[AGENT] se présente au poste : une urgence familiale, il doit quitter le site tout de suite. Il rend son trousseau et sa radio.',
+   event:'DÉPART IMPRÉVU — EFFECTIF INCOMPLET',
+   pcs:'Aucune alarme. L’effectif de sécurité incendie passe sous le nombre prescrit par les consignes du site.',
    radio:null,
-   phone:'📞 L’agent : « Je suis bloqué, je serai là dans une heure. »',
-   presence:null,
-   dilemma:'L’effectif de sécurité incendie n’est pas une commodité d’organisation : il conditionne l’ouverture au public.',
+   phone:'📞 Direction : « On est en pleine activité, ne me dites pas qu’il faut fermer. »',
+   presence:'[AGENT], au poste, son trousseau à la main.',
+   dilemma:'L’effectif de sécurité incendie n’est pas une commodité d’organisation : il conditionne la présence du public dans l’établissement.',
    choices:[
      {k:'rh_astreinte', label:'Rappeler un agent d’astreinte et informer la direction du sous-effectif',
       hint:'Titulaire formé au site, hiérarchie avertie du créneau découvert',
-      score:7, reg:3, consequence:'Astreinte rappelée, direction informée.'},
+      score:8, reg:4, consequence:'Astreinte rappelée, direction informée.'},
      {k:'rh_presta', label:'Demander un agent à la société prestataire',
-      hint:'Renfort extérieur à accueillir, former aux consignes et doter en matériel',
-      score:4, reg:2, consequence:'Prestataire sollicité, accueil à prévoir.'},
-     {k:'rh_rien', label:'Répartir les rondes entre les agents présents en attendant',
-      hint:'Vacation tenue en sous-effectif, sans information de la hiérarchie',
-      score:-6, reg:-3, consequence:'Sous-effectif absorbé en silence.'}],
+      hint:'Renfort extérieur à accueillir, à former aux consignes et à doter en matériel',
+      score:5, reg:2, consequence:'Prestataire sollicité, accueil à prévoir.'},
+     {k:'rh_stagiaire', label:'Compléter l’effectif avec le stagiaire',
+      hint:'Le stagiaire prend les rondes de l’agent parti',
+      score:-8, reg:-4, consequence:'Stagiaire compté comme un agent de l’effectif.'},
+     {k:'rh_rien', label:'Répartir les rondes entre les agents restants sans prévenir personne',
+      hint:'Vacation tenue en sous-effectif, hiérarchie non informée',
+      score:-7, reg:-3, consequence:'Sous-effectif absorbé en silence.'}],
    mci:[
-     {text:'07:02 — Effectif de sécurité incendie incomplet à la prise de poste : un agent absent, retard annoncé d’une heure. SSIAP 3 et direction informés 07:05. Rappel de l’agent d’astreinte 07:06, arrivée 07:48, accueil, consignes et dotation matériel effectués. Rondes maintenues avec adaptation du parcours entre 07:02 et 07:48, aucun point de contrôle supprimé. Effectif réglementaire rétabli 07:48.', good:true},
-     {text:'07:02 — Un agent absent à la prise de poste. Astreinte rappelée, effectif complété dans la matinée.', good:false},
-     {text:'Agent absent à la prise de poste de 07:02, remplacé dans la matinée, rondes assurées entre-temps.', good:false}]},
+     {text:'15:20 — Départ imprévu de l’agent [AGENT] (urgence familiale), matériel restitué au râtelier. Effectif de sécurité incendie ramené à 1 agent pour 2 prescrits. SSIAP 3 et direction informés 15:22. Rappel de l’agent d’astreinte 15:23, arrivée 16:08, consignes et dotation remises. Rondes R5 et R6 réattribuées, aucun point de contrôle supprimé. Effectif réglementaire rétabli 16:08.', good:true},
+     {text:'15:20 — Départ d’un agent pour raison personnelle. Astreinte rappelée, effectif complété dans l’heure.', good:false},
+     {text:'Agent [AGENT] parti à 15:20, remplacé, rondes assurées entre-temps.', good:false}]},
 
   /* ---------- 14. Conflit dans l'équipe ---------- */
   {id:'conflit', type:'conflit', weight:1, sites:['all'],
@@ -1946,6 +1949,18 @@ function startGame(){
     mcAdd('PC', `🌙 Mode nuit : ${hiddenCount} points cachés à détecter`, 'info');
   }
 
+  /* L'effectif prescrit par les consignes du site, stagiaire non compté. */
+  G.effectifRequis = G.agents.length;
+
+  /* Une vacation sur sept commence avec un agent retardé : l'effectif
+     n'est pas tenu dès la prise de poste, et cela se rattrape ou non. */
+  if(G.agents.length > 1 && Math.random() < 0.14){
+    const tard = pick(G.agents);
+    const retour = G.t + 45 + Math.floor(Math.random() * 45);
+    startAbsence(tard, `retard annoncé, arrivée prévue vers ${fmtTime(retour)}`, retour);
+    mcAdd('PC', `📞 ${tard.name} prévient qu'il sera en retard — l'effectif de sécurité incendie n'est pas tenu à la prise de poste`, 'crit');
+  }
+
   /* Le site rend compte de ce que la vacation précédente a laissé. */
   G.priseDePoste = initPriseDePoste();
   showPassation(applySiteState(G.siteId));
@@ -2240,9 +2255,10 @@ function openPicker(roundId){
   for(const a of [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])]){
     const busy = a.state !== 'idle' && a.state !== 'pause';
     const onRound = a.isRonde || a.currentRoundId;
-    const dis = busy || onRound;
+    const dis = busy || onRound || a.absent;
     let sub = '';
-    if(a.role === 'stagiaire') sub = `<span class="warn">Stagiaire — doit être en binôme</span>`;
+    if(a.absent) sub = `<span class="crit">Absent — ne fait pas partie de l'effectif présent</span>`;
+    else if(a.role === 'stagiaire') sub = `<span class="warn">Stagiaire — doit être en binôme</span>`;
     else if(onRound) sub = `<span class="warn">Déjà en ronde</span>`;
     else if(busy) sub = `<span class="warn">Occupé (${a.state})</span>`;
     else if(a.fatigue > 60) sub = `<span class="warn">Fatigué (${Math.round(a.fatigue)}%)</span>`;
@@ -2624,7 +2640,7 @@ function checkRoundTiming(){
         } else if(a){
           // Agent indispo → essayer réassignation
           mcAdd('PC', `⚠ ${r.id} — ${a.name} indisponible`, 'warn');
-          const other = G.agents.find(x => x.id !== a.id && x.state === 'idle' && !x.isRonde);
+          const other = G.agents.find(x => x.id !== a.id && !x.absent && x.state === 'idle' && !x.isRonde);
           if(other){
             r.assignedAgentId = other.id;
             startRoundForAgent(other, r);
@@ -2689,7 +2705,7 @@ function renderMap(){
   let h = '';
   for(const z of zs){
     const agentsHere = [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])].filter(a =>
-      (a.state==='moving' ? a.targetId : a.pos) === z.id);
+      !a.absent && (a.state==='moving' ? a.targetId : a.pos) === z.id);
     let cls = '';
     const ev = G.events.find(e => !e.resolved && e.zoneId === z.id);
     if(ev){
@@ -2726,7 +2742,8 @@ function renderAgents(){
   for(const a of all){
     let st, cls;
     const round = a.currentRoundId ? G.rounds.find(r => r.id === a.currentRoundId) : null;
-    if(a.state === 'awaiting'){ st = '⏸ Attente ordres'; cls = 'await'; }
+    if(a.absent){ st = '🚫 Hors effectif'; cls = 'crit'; }
+    else if(a.state === 'awaiting'){ st = '⏸ Attente ordres'; cls = 'await'; }
     else if(a.scanning){ st = `📇 Badge — ${zoneName(a.scanningPoint)}`; cls = 'scan'; }
     else if(a.state === 'moving'){
       if(a.isRonde && round){ st = `${ROUND_TYPES[round.type].icon} → ${zoneName(a.targetId)}`; cls = 'ronde'; }
@@ -2866,6 +2883,7 @@ function tick(){
   if(G.t >= G.endT){ endVacation(); return; }
 
   for(const a of [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])]){
+    if(a.absent) continue;
     if(a.state === 'awaiting') continue;
 
     // Gestion spéciale scan de badge
@@ -2905,8 +2923,10 @@ function tick(){
   if(G.t >= G.nextEventAt){
     trySpawnEvent();
     const siteMod = G.shift === 'night' ? G.site.nightMod : G.site.dayMod;
+    /* Le délai est un délai de vacation, pas un délai de lecture : accélérer
+       le temps ne doit pas multiplier le nombre de situations à traiter. */
     const base = (35 + Math.random()*45) * G.weather.mod * siteMod;
-    G.nextEventAt = G.t + base / (G.speed||1);
+    G.nextEventAt = G.t + base;
   }
 
   if(Math.floor(G.t) % 3 === 0) updateDayCycle();
@@ -2944,6 +2964,20 @@ function spawnEvent(evId, forcedZone){
     urgent, delay,
     deadline: G.t + delay,
     autoOpen: true, escalated:false, hidden:false};
+  /* Une situation RH ne se joue pas sur un effectif déjà incomplet. */
+  if(ev.id === 'absence'){
+    const part = G.agents.filter(a => !a.absent);
+    if(part.length < 2 || G.rh.absence) return;
+    const qui = pick(part);
+    instance.agentName = qui.name;
+    for(const f of ['ctx','pcs','presence','dilemma','event']){
+      if(instance[f]) instance[f] = instance[f].split('[AGENT]').join(qui.name);
+    }
+    instance.mci = instance.mci.map(m => ({...m, text:m.text.split('[AGENT]').join(qui.name)}));
+    if(!G.stagiaire) instance.choices = instance.choices.filter(c => c.k !== 'rh_stagiaire');
+    startAbsence(qui, 'urgence familiale, départ immédiat');
+  }
+
   G.events.push(instance);
 
   if(ev.type === 'feu' && !ev.noFire){
@@ -3257,12 +3291,20 @@ function applyEventChoice(ev, c){
 
     case 'rh_astreinte':
     case 'rh_presta':
-      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + (c.k === 'rh_astreinte' ? 45 : 30), kind: c.k === 'rh_astreinte' ? 'astreinte' : 'presta' };
       G.debrief.rh += c.k === 'rh_astreinte' ? 3 : 2;
       mcAdd('PC', c.k === 'rh_astreinte'
         ? `📞 Agent d'astreinte rappelé — arrivée annoncée sous 45 min, direction informée du sous-effectif`
         : `📞 Société prestataire sollicitée — agent extérieur sous 30 min, accueil et consignes à prévoir`, 'action');
+      break;
+
+    case 'rh_stagiaire':
+      if(G.stagiaire){
+        G.stagiaire.stress = Math.min(100, (G.stagiaire.stress || 20) + 20);
+        G.stagiaire.holdAtPcs = false;
+      }
+      mcAdd('S3', `Un stagiaire ne compte pas dans l'effectif de sécurité incendie. Il est en formation, il n'est pas un agent de plus.`, 'crit');
+      logCause(G.site.zones[0].id, `Stagiaire compté dans l'effectif de sécurité incendie pour combler un départ.`);
       break;
 
     case 'rh_rien':
@@ -3380,8 +3422,11 @@ function resolveAnomaly(evId, idx){
   /* Décision prise par l'agent faute d'ordre : aucun point pour le PCS. */
   if(ev.autoDecided) scorePts = 0;
   G.score += scorePts;
-  if(!ev.autoDecided) G.k.ordersGiven = (G.k.ordersGiven || 0) + 1;
-  if(act.k === 'danger') G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
+  if(!ev.autoDecided){
+    G.k.ordersGiven = (G.k.ordersGiven || 0) + 1;
+    if((act.s || 0) >= 6) G.k.ordersGood = (G.k.ordersGood || 0) + 1;
+  }
+  if(act.k === 'danger' || (act.s || 0) < 0) G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
 
   ev.resolved = true;
   a.state = 'idle';
@@ -3827,6 +3872,11 @@ function endVacation(){
   } else if(G.k.dasRearmed){
     mcAdd('PC', `🔧 Relève : ${G.k.dasRearmed} DAS réarmés et contrôlés en position d'attente`, 'ok');
   }
+  if(sousEffectif()){
+    G.score -= 10;
+    mcAdd('PC', `⚠ Relève : effectif de sécurité incendie toujours incomplet (${effectifPresent()}/${effectifRequis()}) — transmission impérative`, 'crit');
+    logCause(G.site.zones[0].id, `Vacation terminée sous l'effectif de sécurité incendie prescrit.`);
+  }
   if(G.rh.datOpen && !G.rh.datDone){
     G.debrief.rh -= 4;
     mcAdd('PC', `⚠ Relève : dossier DAT non constitué`, 'crit');
@@ -3890,9 +3940,11 @@ function endVacation(){
     ]),
     rh: ax([
       {w:3, v:rat((K.ordersGiven || 0) - (K.ordersDangerous || 0), K.ordersAsked || 0)},
+      {w:3, v:rat(K.ordersGood || 0, K.ordersGiven || 0)},
       {w:2, v:G.stagiaire ? rat(K.binomeOk || 0, (K.binomeOk || 0) + (K.stagSolo || 0)) : null},
       {w:2, v:G.rh.datOpen ? (G.rh.datDone ? G.rh.datScore / DAT_STEPS.length : 0) : null},
-      {w:1, v:rat(K.rhCovered || 0, K.rhNeeded || 0)},
+      {w:2, v:rat(K.rhCovered || 0, K.rhNeeded || 0)},
+      {w:2, v:(K.sousEffectifMin || 0) ? Math.max(0, 1 - (K.sousEffectifMin || 0) / 120) : null},
     ]),
     mci: ax([{w:1, v:rat(K.mciGood || 0, K.mciTotal || 0)}]),
     materiel: ax([
@@ -3920,11 +3972,14 @@ function endVacation(){
     ['Messages d’alerte complets', frac(K.alerteOk || 0, K.alerteTotal || 0)],
     ['Attaques menées en binôme', frac(K.binomeAtkOk || 0, (K.binomeAtkOk || 0) + (K.binomeSeul || 0))],
     ['Dispositions prises avant l’arrivée des engins', frac(K.dispoOk || 0, (K.dispoOk || 0) + (K.dispoManquantes || 0))],
-    ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)
-      + ((K.ordersDangerous || 0) ? ` (dont ${K.ordersDangerous} à proscrire)` : '')],
+    ['Ordres donnés aux agents en attente', frac(K.ordersGiven || 0, K.ordersAsked || 0)],
+    ['Conduites à tenir conformes', frac(K.ordersGood || 0, K.ordersGiven || 0)
+      + ((K.ordersDangerous || 0) ? ` · ${K.ordersDangerous} à proscrire` : '')],
     ['Manœuvres SSI justifiées', frac(K.ssiOk || 0, K.ssiTotal || 0)],
     ['Inhibitions levées', frac(K.inhibLifted || 0, K.inhibPosed || 0)],
     ['Modes dégradés traités', frac(K.degHandled || 0, K.degTotal || 0)],
+    ['Effectif rétabli après absence', frac(K.rhCovered || 0, K.rhNeeded || 0)],
+    ['Temps passé sous l’effectif prescrit', (K.sousEffectifMin || 0) >= 1 ? `${Math.round(K.sousEffectifMin)} min` : 'aucun'],
     ['Départs en ronde complets', frac(K.departsComplete || 0, K.departs || 0)],
     ['Points ouverts du premier coup', frac(pointsTried - (G.materiel.wrongKeys || 0), pointsTried)],
     ['Matériel restitué', frac(issued - G.materiel.notReturned, issued)],
@@ -4333,8 +4388,12 @@ function renderActions(){
   h += `<div class="matHead">👥 GESTION RH & LIAISONS</div>`;
   h += `<button class="orderBtn ${G.rh.datOpen && !G.rh.datDone ? 'danger':''}" data-pcs="dat"><div class="oi">🩹</div>
     <div class="ol"><b>Dossier accident du travail</b><span>${G.rh.datDone ? 'DAT complétée' : (G.rh.datOpen ? '⚠ DAT À SAISIR' : 'Aucun AT en cours')}</span></div></button>`;
-  h += `<button class="orderBtn" data-pcs="renfort"><div class="oi">👥</div>
-    <div class="ol"><b>Rappel / remplacement</b><span>${G.rh.incoming ? 'Renfort attendu à ' + fmtTime(G.rh.incoming.at) : 'Astreinte, prestataire ou arbitrage'}</span></div></button>`;
+  h += `<button class="orderBtn ${sousEffectif() && !G.rh.incoming ? 'danger' : ''}" data-pcs="renfort"><div class="oi">👥</div>
+    <div class="ol"><b>Rappel / remplacement</b><span>${G.rh.incoming
+      ? 'Renfort attendu à ' + fmtTime(G.rh.incoming.at)
+      : sousEffectif()
+        ? `⚠ EFFECTIF ${effectifPresent()}/${effectifRequis()} — remplacement à engager`
+        : 'Astreinte, prestataire ou arbitrage'}</span></div></button>`;
   h += `<button class="orderBtn" data-pcs="test_radio"><div class="oi">${ICON_VHF}</div>
     <div class="ol"><b>Test radio général</b><span>Vérifier la liaison des agents</span></div></button>`;
   h += `<button class="orderBtn" data-pcs="appel_s3"><div class="oi">🎖</div>
@@ -4705,7 +4764,11 @@ function openMateriel(){ if(!G) return; renderMateriel(); $('materielScreen').cl
 /* Tableau de bord humain : ce que l'équipe retient de votre commandement. */
 function renderTeamState(){
   if(!G) return;
-  let h = `<div class="matHint">Un agent se souvient d'une vacation à l'autre. Laissé sans instruction, envoyé épuisé ou sans talkie, signalement classé sans suite : le moral baisse, l'agent traîne, puis cesse de remonter les anomalies mineures — et finit par refuser une ronde.</div>`;
+  let h = `<div class="matHint" style="${sousEffectif() ? 'border-color:rgba(255,59,48,.45);background:rgba(255,59,48,.08);color:#ff8b7e' : ''}">
+    <b>Effectif de sécurité incendie : ${effectifPresent()}/${effectifRequis()}</b>${sousEffectif()
+      ? ' — l\'établissement reçoit du public sous l\'effectif prescrit. Le stagiaire n\'y compte pas.'
+      : ' — conforme aux consignes du site. Le stagiaire n\'y compte pas.'}</div>
+  <div class="matHint">Un agent se souvient d'une vacation à l'autre. Laissé sans instruction, envoyé épuisé ou sans talkie, signalement classé sans suite : le moral baisse, l'agent traîne, puis cesse de remonter les anomalies mineures — et finit par refuser une ronde.</div>`;
   for(const a of G.agents){
     const m = Math.round(a.moral === undefined ? 60 : a.moral);
     const lab = moralLabel(m);
@@ -5078,7 +5141,7 @@ const DAS_TYPES = {
 
 /* ---------- Désignation de l'agent ---------- */
 function missionAvailable(){
-  return G.agents.filter(a => !a.mission && a.state !== 'awaiting');
+  return G.agents.filter(a => !a.absent && !a.mission && a.state !== 'awaiting');
 }
 function missionHint(a, kind, zoneId){
   const bits = [];
@@ -5433,6 +5496,8 @@ function resolveMissionAct(missionId, idx){
   G.score += act.s || 0;
   if(act.r) G.debrief.rh += 0;
   mcAdd('PC', `⚡ Ordre à ${a ? a.name : 'l’agent'} : ${act.l}`, (act.s || 0) < 0 ? 'crit' : 'action');
+  G.k.ordersGiven = (G.k.ordersGiven || 0) + 1;
+  if((act.s || 0) >= 6) G.k.ordersGood = (G.k.ordersGood || 0) + 1;
   if((act.s || 0) < 0){
     G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
     logCause(m.zoneId, `Conduite à tenir inadaptée après compte-rendu en ${zn} : « ${act.l} ».`);
@@ -5708,9 +5773,118 @@ function tickMissions(){
 }
 
 /* ==========================================================
+   ============ EFFECTIF DE SÉCURITÉ INCENDIE ===============
+   L'effectif n'est pas une commodité d'organisation : il est
+   prescrit, il conditionne la présence du public, et un agent
+   qui manque manque vraiment — sa carte s'éteint, ses rondes
+   retombent au planning, son matériel revient au râtelier.
+   Le stagiaire ne compte jamais dans l'effectif.
+   ========================================================== */
+function effectifRequis(){ return G.effectifRequis || G.agents.length; }
+function effectifPresent(){ return G.agents.filter(a => !a.absent).length; }
+function sousEffectif(){ return effectifPresent() < effectifRequis(); }
+
+/* Un agent quitte l'effectif : départ imprévu ou retard à la prise de poste */
+function startAbsence(agent, motif, retourAt){
+  if(!agent || agent.absent) return;
+  agent.absent = true;
+  agent.absentDepuis = G.t;
+  /* Il lâche ce qu'il tenait : ronde, mission, matériel. */
+  if(agent.isRonde || agent.currentRoundId){
+    const r = G.rounds.find(x => x.id === agent.currentRoundId);
+    if(r){
+      r.status = 'pending';
+      r.assignedAgentId = null;
+      r.startedAt = null;
+      r.pointsVisited = 0;
+      mcAdd('PC', `📋 ${r.id} retombe au planning — ${agent.name} n'est plus sur le site`, 'warn');
+    }
+  }
+  const m = missionOf(agent);
+  if(m){ m.phase = 'done'; G.missions = G.missions.filter(x => x.phase !== 'done'); }
+  for(const r of G.rounds){
+    if(r.assignedAgentId === agent.id && r.status !== 'done' && r.status !== 'missed') r.assignedAgentId = null;
+  }
+  agent.isRonde = false; agent.currentRoundId = null; agent.suspendedRound = null;
+  agent.mission = null; agent.missionReport = null; agent.currentAnomaly = null;
+  agent.scanning = false; agent.scanningPoint = null;
+  agent.state = 'absent';
+  if(G.materiel){
+    for(const kind of ['keys','radios','badges']){
+      const it = matHolderItem(kind, agent.id);
+      if(it){ it.holder = null; matLog(`Restitution ${it.id} (départ de ${agent.name})`); }
+    }
+  }
+  /* Le stagiaire ne reste pas sans maître de stage. */
+  if(G.stagiaire && G.stagiaire.tutorId === agent.id){
+    const autre = G.agents.find(a => !a.absent && a.id !== agent.id);
+    if(autre){
+      G.stagiaire.tutorId = autre.id;
+      mcAdd('PC', `🎓 ${G.stagiaire.name} confié à ${autre.name} — son maître de stage a quitté le poste`, 'info');
+    }
+    if(G.stagiaire.state === 'binome'){ G.stagiaire.state = 'idle'; G.stagiaire.pos = 'pcs'; }
+  }
+  G.rh.absence = { agentId:agent.id, since:G.t, motif, retourAt: retourAt || null,
+                   couverte:false, informe:false, penalites:0 };
+  G.k.rhNeeded = (G.k.rhNeeded || 0) + 1;
+  mcAdd('PC', `👥 ${agent.name} ne fait plus partie de l'effectif — ${motif}. Effectif de sécurité incendie : ${effectifPresent()}/${effectifRequis()}`, 'crit');
+  toast(`${agent.name} manque à l'effectif`, 'bad');
+  renderAll();
+  renderPlanningStrip();
+}
+
+/* Retour de l'agent retardé, ou intégration du remplaçant */
+function finAbsence(agent, txt){
+  if(!agent || !agent.absent) return;
+  agent.absent = false;
+  agent.state = 'idle';
+  agent.pos = 'pcs';
+  agent.fatigue = Math.max(0, agent.fatigue - 10);
+  mcAdd('PC', txt || `👥 ${agent.name} rejoint l'effectif — ${effectifPresent()}/${effectifRequis()}`, 'ok');
+  renderAll();
+}
+
+function tickEffectif(){
+  const ab = G.rh.absence;
+  if(!ab) return;
+  const agent = G.agents.find(a => a.id === ab.agentId);
+
+  /* L'agent annoncé en retard finit par arriver. */
+  if(ab.retourAt && agent && agent.absent && G.t >= ab.retourAt){
+    finAbsence(agent, `👥 ${agent.name} a pris son poste avec ${Math.round(G.t - ab.since)} min de retard — dotation et consignes à jour`);
+    return;
+  }
+  if(!sousEffectif()){
+    if(!ab.couverte){
+      ab.couverte = true;
+      if(G.rh.incoming || G.rh.reinforced) G.k.rhCovered = (G.k.rhCovered || 0) + 1;
+    }
+    return;
+  }
+
+  /* Tant que l'effectif prescrit n'est pas tenu, l'établissement reçoit du
+     public avec moins d'agents que ce que prévoient les consignes. */
+  const ecoule = G.t - ab.since;
+  G.k.sousEffectifMin = (G.k.sousEffectifMin || 0) + 0.3 * (G.speed || 1);
+  if(ecoule > 20 * (ab.penalites + 1)){
+    ab.penalites++;
+    G.score -= 4;
+    G.debrief.rh -= 1;
+    if(ab.penalites === 1){
+      mcAdd('S3', `Tu tiens le poste à ${effectifPresent()} au lieu de ${effectifRequis()}. Qu'est-ce que tu as engagé pour le rétablir ?`, 'warn');
+    } else {
+      mcAdd('PC', `⚠ Effectif de sécurité incendie incomplet depuis ${Math.round(ecoule)} min — établissement ouvert sous l'effectif prescrit`, 'crit');
+    }
+    if(ab.penalites === 2 && !G.rh.incoming && !G.rh.reinforced){
+      logCause(G.site.zones[0].id, `Effectif de sécurité incendie maintenu sous le nombre prescrit pendant plus de ${Math.round(ecoule)} min sans renfort demandé.`);
+    }
+  }
+}
+
+/* ==========================================================
    5. RH DE CRISE — renfort & DAT
    ========================================================== */
-function initRH(){ return { incoming:null, reinforced:false, datOpen:false, datDone:false, datStep:0, datScore:0, datLockStep:-1 }; }
+function initRH(){ return { incoming:null, reinforced:false, absence:null, datOpen:false, datDone:false, datStep:0, datScore:0, datLockStep:-1 }; }
 function execRenfort(){
   if(G.rh.incoming){ toast('Renfort déjà en route', 'info'); return; }
   if(G.rh.reinforced){ toast('Renfort déjà intégré', 'info'); return; }
@@ -5720,18 +5894,15 @@ function execRenfort(){
     {icon:'🎖', label:'Arbitrage SSIAP 3', hint:'Le chef de service tranche · délai variable', cls:'warning'},
   ], i => {
     if(i === 0){
-      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + 45, kind:'astreinte' };
       mcAdd('PC', `📞 Appel agent d'astreinte ${fmtTime(G.t)} — arrivée annoncée sous 45 min`, 'action');
       G.debrief.rh += 3; G.score += 4;
     } else if(i === 1){
-      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + 30, kind:'presta' };
       mcAdd('PC', `📞 Appel société prestataire ${fmtTime(G.t)} — agent extérieur sous 30 min, accueil et consignes à prévoir`, 'action');
       G.debrief.rh += 2; G.score += 2;
     } else {
       G.s3.present = true;
-      G.k.rhCovered = (G.k.rhCovered || 0) + 1;
       G.rh.incoming = { at:G.t + 60, kind:'astreinte' };
       mcAdd('S3', `Je valide le rappel d'un titulaire. Trace-le en main courante.`, 'info');
       G.debrief.rh += 1; G.score += 1;
@@ -5751,7 +5922,19 @@ function tickRH(){
       const na = mkAgent(base, 'ssiap1');
       if(kind === 'presta'){ na.trait = 'EXTÉRIEUR'; na.level = 1; }
       G.agents.push(na);
-      mcAdd('PC', `👥 Arrivée du renfort ${na.name} (${kind === 'astreinte' ? 'astreinte' : 'prestataire'}) ${fmtTime(G.t)} — accueil, consignes et dotation matériel`, 'ok');
+      const ab = G.rh.absence;
+      const remplace = ab && !ab.couverte;
+      if(remplace){
+        ab.couverte = true;
+        G.k.rhCovered = (G.k.rhCovered || 0) + 1;
+        const abs = G.agents.find(a => a.id === ab.agentId);
+        mcAdd('PC', `👥 ${na.name} (${kind === 'astreinte' ? 'astreinte' : 'prestataire'}) prend le poste de ${abs ? abs.name : 'l\'agent absent'} ${fmtTime(G.t)} — effectif rétabli à ${effectifPresent()}/${effectifRequis()}`, 'ok');
+      } else {
+        mcAdd('PC', `👥 Arrivée du renfort ${na.name} (${kind === 'astreinte' ? 'astreinte' : 'prestataire'}) ${fmtTime(G.t)} — accueil, consignes et dotation matériel`, 'ok');
+      }
+      if(kind === 'presta'){
+        mcAdd('PC', `📋 ${na.name} vient de l'extérieur : consignes du site, plan et dotation à lui remettre avant tout envoi`, 'warn');
+      }
       toast(`Renfort arrivé : ${na.name}`, 'good');
       G.debrief.rh += 2;
     }
@@ -6081,7 +6264,7 @@ function tickFireAttack(){
   for(const id in G.zones){
     const z = G.zones[id];
     if(!z.feu || z.feu.controlled || !z.feu.detected) continue;
-    const equipe = G.agents.filter(a => a.pos === id && a.state !== 'moving' && a.state !== 'awaiting');
+    const equipe = G.agents.filter(a => !a.absent && a.pos === id && a.state !== 'moving' && a.state !== 'awaiting');
     const sur = equipe[0];
     if(!sur) continue;
     if(z.feu.stage >= 3){
@@ -7051,7 +7234,7 @@ function renderEvac(){
   }
 
   h += `<div class="matHead">⚡ CONDUITE DE L'ÉVACUATION</div>`;
-  const libres = allStaff().filter(a => !a.guideFile && a.role !== 'stagiaire');
+  const libres = allStaff().filter(a => !a.absent && !a.guideFile && a.role !== 'stagiaire');
   h += `<button class="orderBtn ${e.guides.length ? '' : 'warning'}" data-evac="guide" ${libres.length ? '' : 'style="opacity:.35;pointer-events:none"'}>
     <div class="oi">🦺</div><div class="ol"><b>Désigner un guide-file</b><span>${libres.length ? `${libres.length} agent(s) disponible(s) — accélère fortement le flux` : 'Tous les agents sont engagés'}</span></div></button>`;
   h += `<button class="orderBtn ${e.comptageAt ? '' : 'primary'}" data-evac="comptage" ${e.comptageAt ? 'style="opacity:.35;pointer-events:none"' : ''}>
@@ -7073,7 +7256,7 @@ function renderEvac(){
    Un agent qui attend bloque sa ronde : il relance, puis il tranche seul.
    ========================================================== */
 function awaitingAgents(){
-  return [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])].filter(a => a.state === 'awaiting' && a.currentAnomaly);
+  return [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])].filter(a => !a.absent && a.state === 'awaiting' && a.currentAnomaly);
 }
 function tickAwaiting(){
   for(const a of awaitingAgents()){
@@ -7266,6 +7449,7 @@ function tickV6(){
   tickDegraded();
   tickMissions();
   tickRH();
+  tickEffectif();
   tickBinome();
   tickBinomeAttaque();
   updateAlertStrip();
@@ -7306,6 +7490,7 @@ function updateAlertStrip(){
   if(G.deg.radio) bits.push(G.deg.radio.backup ? ICON_VHF + ' Secours' : ICON_VHF + ' HS');
   if(G.deg.detect) bits.push(G.deg.detect.covered ? '📡 Compensé' : '📡 HS');
   if(G.ssi.inhibited.length) bits.push('🚫 ' + G.ssi.inhibited.length + ' inhib.');
+  if(sousEffectif()) bits.push(`👥 SOUS-EFFECTIF ${effectifPresent()}/${effectifRequis()}`);
   if(G.rh.incoming) bits.push('👥 renfort ' + fmtTime(G.rh.incoming.at));
   if(G.rh.datOpen && !G.rh.datDone) bits.push('🩹 DAT à saisir');
   el.innerHTML = bits.length ? bits.join(' · ') : '✅ Nominal';
@@ -7477,7 +7662,7 @@ function handleTap(e){
     const k = evacBtn.dataset.evac;
     if(k === 'comptage'){ faireComptage(); return; }
     if(k === 'fin'){ finEvacuation(); return; }
-    const dispo = allStaff().filter(a => !a.guideFile && a.role !== 'stagiaire');
+    const dispo = allStaff().filter(a => !a.absent && !a.guideFile && a.role !== 'stagiaire');
     if(!dispo.length){ toast('Aucun agent disponible', 'bad'); return; }
     openMini(k === 'guide' ? '🦺 DÉSIGNER UN GUIDE-FILE' : '🔦 RECONNAISSANCE',
       k === 'guide' ? 'Il prend en charge la circulation vers le point de rassemblement'
