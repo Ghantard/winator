@@ -1,6 +1,6 @@
-# Build environment for html2apk: Node.js 20, JDKs, Android SDK, Gradle and
+# Build environment for html2apk: Node.js 22, JDKs, Android SDK, Gradle and
 # Bubblewrap, so both builders (URL and local folder) can run in a container.
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 # Pinned tool versions. cmdline-tools ships the sdkmanager used below.
 ARG ANDROID_CMDLINE_TOOLS_VERSION=11076708

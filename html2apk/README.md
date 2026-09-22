@@ -40,7 +40,7 @@ au premier lancement. Il vous faut seulement Docker démarré.
 
 Pour builder sans Docker (`--no-docker`), il vous faut en local :
 
-- Node.js 18 ou plus
+- **Node.js 22** ou plus — la CLI Capacitor 8 refuse de démarrer en dessous
 - un **JDK 21** — le template Android de Capacitor 8 compile en `sourceCompatibility 21`
 - le SDK Android avec `platforms;android-36` et `build-tools;36.0.0`, et `ANDROID_HOME` défini
 
