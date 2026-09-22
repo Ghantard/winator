@@ -79,6 +79,16 @@ ratio, pour que la note se lise au lieu de se subir.
 
 ## Conduite de la vacation
 
+- **Répondre à un agent tient en un geste.** Dès qu'un agent trouve une
+  anomalie, une barre rouge apparaît juste au-dessus de ses cartes : nom,
+  anomalie, zone, temps d'attente et un bouton RÉPONDRE pleine hauteur. La
+  feuille d'ordres (traiter, consigner, retour au PC, appeler les secours)
+  s'ouvre aussi bien par cette barre que par la carte d'alerte de la main
+  courante ou par la carte de l'agent — trois chemins, la même feuille.
+- **Le stagiaire suit son maître de stage.** Il part avec lui dès que
+  celui-ci sort en ronde, sans qu'on ait à le demander, et le suit partout :
+  déroutement, rappel au PCS, retour au poste. Il ne reste au PCS que si le
+  chef de poste l'a explicitement détaché, et une commande le remet en binôme.
 - **Un agent en attente d'ordres ne reste pas silencieux.** Le nombre d'agents
   bloqués s'affiche dans le bandeau et sur une pastille du bouton ⚡. L'agent
   relance à 4 puis 8 minutes ; à 12 minutes sans instruction, il tranche seul —

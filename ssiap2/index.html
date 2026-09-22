@@ -420,6 +420,29 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   background:rgba(80,140,220,.12);color:#7ab0ff;font-family:inherit;font-size:9px;font-weight:800}
 .matBtn.back{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.12);color:#4ade80}
 .meta-item.alert{color:#ff8b7e;font-weight:800}
+#alertBar{display:none;align-items:center;gap:9px;padding:9px 11px;flex-shrink:0;
+  border-top:1px solid rgba(168,85,247,.45);
+  background:linear-gradient(90deg,rgba(168,85,247,.22),rgba(255,59,48,.14));
+  animation:urgent-pulse 1.4s infinite;cursor:pointer}
+#alertBar.show{display:flex}
+#alertBar .abIco{font-size:22px;flex-shrink:0}
+#alertBar .abInfo{flex:1;min-width:0}
+#alertBar .abTitle{font-size:11.5px;font-weight:800;color:#e8f0f8;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#alertBar .abSub{font-size:9.5px;color:#d8c2ff;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#alertBar .abBtn{flex-shrink:0;min-height:44px;padding:11px 15px;border-radius:9px;
+  border:1px solid rgba(168,85,247,.6);background:rgba(168,85,247,.28);
+  color:#f0e4ff;font-family:inherit;font-size:11.5px;font-weight:800;letter-spacing:.5px}
+.mcEvBtn.waiting{border-color:rgba(168,85,247,.75)}
+.anoCard{padding:12px;border-radius:10px;margin-bottom:12px;
+  background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.4)}
+.anoCard.major{background:rgba(255,59,48,.1);border-color:rgba(255,59,48,.45)}
+.anoCard .anoTitle{font-size:13.5px;font-weight:800;color:#e8f0f8}
+.anoCard .anoMeta{font-size:10px;color:#8fa4b8;margin-top:4px}
+.anoCard .anoDesc{font-size:11.5px;color:#d8c2ff;margin-top:7px;line-height:1.5;font-style:italic}
+.orderBtn.ano{min-height:58px;border-color:rgba(168,85,247,.45);
+  background:linear-gradient(180deg,rgba(168,85,247,.16),rgba(168,85,247,.05))}
 #coachBox{position:fixed;inset:0;z-index:130;display:none;align-items:flex-end;
   justify-content:center;padding:12px;background:rgba(3,5,9,.55);
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
@@ -680,6 +703,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
   <div id="map"></div>
   <div id="planningStrip"></div>
   <div id="mcPanel"></div>
+  <div id="alertBar"></div>
   <div id="agents"></div>
 </div>
 
@@ -1479,13 +1503,16 @@ function renderMC(force){
   const active = G.events.filter(e => !e.resolved);
   let h = `<div class="mcHead"><span>📋 MAIN COURANTE</span><span>${G.mc.length} entrée(s)</span></div>`;
   for(const ev of active){
-    h += `<div class="mcEvBtn pulse" data-ev="${ev.instId}">
+    const waiting = ev.awaitingOrders;
+    h += `<div class="mcEvBtn pulse${waiting ? ' waiting' : ''}" data-ev="${ev.instId}">
       <div class="mevhead">
-        <span class="mevi">${iconFor(ev.type)}</span>
-        <span class="mevt">${ev.event}</span>
+        <span class="mevi">${waiting ? (ev.emoji || '⏸') : iconFor(ev.type)}</span>
+        <span class="mevt">${waiting ? ev.title : ev.event}</span>
         <span class="mevtime" data-age="${ev.instId}">—</span>
       </div>
-      <div class="mevb">${zoneName(ev.zoneId)} · ${(ev.dilemma||'').substring(0,60)}…</div>
+      <div class="mevb">${waiting
+        ? `<b style="color:#c084fc">${ev.agentName} attend vos ordres</b> — ${zoneName(ev.zoneId)} · toucher pour répondre`
+        : `${zoneName(ev.zoneId)} · ${(ev.dilemma||'').substring(0,60)}…`}</div>
     </div>`;
   }
   const display = G.mc.slice(-60).reverse();
@@ -1807,7 +1834,12 @@ function startRoundForAgent(agent, round){
   round.startedAt = G.t;
   equipForRound(agent, round);
   checkDotation(agent, round);
-  if(round.wantBinome && G.stagiaire && G.stagiaire.state === 'idle') attachBinome(round, agent);
+  /* Le stagiaire accompagne son maître de stage : il part avec lui dès que
+     celui-ci sort, sans qu'on ait à le demander. Il ne reste au poste que si
+     le chef l'en a explicitement retiré. */
+  const stg = G.stagiaire;
+  if(stg && stg.state === 'idle' && !stg.holdAtPcs &&
+     (round.wantBinome || stg.tutorId === agent.id)) attachBinome(round, agent);
 
   const late = (G.t - round.time) > round.tolerance;
   if(late){
@@ -1942,8 +1974,10 @@ function completeBadgeScan(agent){
       addStep(dId, `Zone : ${zoneName(point.zoneId)}`, 'info');
       addStep(dId, incident.desc, incident.severity === 'major' ? 'crit' : 'warn');
 
+      const anoId = G.uid++;
       const ev = {
-        id: G.uid++, kind: 'anomalie',
+        id: anoId, instId: 'ANO-' + anoId, type: 'anomalie', kind: 'anomalie',
+        event: incident.label,
         severity: incident.severity === 'major' ? 3 : 2,
         zone: point.zoneId, zoneId: point.zoneId,
         agentId: agent.id, agentName: agent.name,
@@ -2254,6 +2288,22 @@ function renderAgents(){
   $('agents').innerHTML = h;
 }
 
+function renderAlertBar(){
+  const bar = $('alertBar');
+  const waiting = awaitingAgents();
+  if(!waiting.length){ bar.className = ''; bar.innerHTML = ''; return; }
+  const a = waiting[0];
+  const ev = a.currentAnomaly;
+  const waited = Math.max(0, Math.round(G.t - (ev.askedAt || ev.created || G.t)));
+  bar.className = 'show';
+  bar.innerHTML = `<div class="abIco">${ev.emoji || '⏸'}</div>
+    <div class="abInfo">
+      <div class="abTitle">${a.avatar} ${a.name} attend vos ordres</div>
+      <div class="abSub">${ev.title} · ${zoneName(ev.zone)} · ${waited} min${waiting.length > 1 ? ` · +${waiting.length - 1} autre(s)` : ''}</div>
+    </div>
+    <button class="abBtn" data-answer="${ev.instId}">RÉPONDRE</button>`;
+}
+
 function renderAll(){
   if(!G) return;
   $('clock').textContent = fmtTime(G.t);
@@ -2269,6 +2319,7 @@ function renderAll(){
   btn.innerHTML = '⚡' + ((waiting + alarms) ? `<span class="nbadge">${waiting + alarms}</span>` : '');
   renderMap();
   renderAgents();
+  renderAlertBar();
   renderPlanningStrip();
   updateAges();
 }
@@ -2382,8 +2433,22 @@ function spawnEvent(evId){
 /* ==========================================================
    EVENT MODAL
    ========================================================== */
+/* Répondre à un agent en attente : la même feuille d'ordres, qu'on arrive
+   par la carte d'alerte, par la carte de l'agent ou par la barre de réponse. */
+function openAnomalyResponse(ev){
+  if(!ev || ev.resolved) return;
+  const a = [...G.agents, ...(G.stagiaire ? [G.stagiaire] : [])].find(x => x.id === ev.agentId);
+  orderAgent = a || null;
+  renderAnomalyOrders(ev);
+  $('orderScreen').classList.add('open');
+  A.click();
+}
+
 function openEventModal(instance){
   if(!G || G.paused) return;
+  /* Une anomalie de ronde n'a pas de choix scénarisés : c'est une demande
+     d'ordres, elle ouvre la feuille de réponse. */
+  if(instance.awaitingOrders || !instance.choices){ openAnomalyResponse(instance); return; }
   G.activeModal = instance;
   renderEventModal(instance);
   $('eventScreen').classList.add('open');
@@ -2552,7 +2617,7 @@ function resolveAnomaly(evId, order){
   A.success();
   toast(`Ordre transmis (+${scorePts} pts)`, 'good');
   renderMC(true);
-  renderPlanningStrip();
+  renderAll();
   if($('planningScreen').classList.contains('open')) renderPlanning();
 }
 
@@ -2646,6 +2711,8 @@ function openOrderMenu(agentId){
     if(susp && !curRound) h += orderBtn('resume', a.state === 'idle', '▶', 'Reprendre la ronde', `Repart au point ${a.suspendedRound.index+1}`);
     h += orderBtn('recall', true, '↩', 'Rappeler au PCS', 'Interrompt la ronde — elle sera à réaffecter');
     if(curRound && curRound.binome) h += orderBtn('detach', true, '🎓', 'Détacher le stagiaire', 'Le renvoie au PCS, la ronde continue');
+    else if(curRound && G.stagiaire && G.stagiaire.holdAtPcs && G.stagiaire.state === 'idle' && G.stagiaire.tutorId === a.id)
+      h += orderBtn('attach', true, '🎓', 'Reprendre le stagiaire', 'Il rejoint son maître de stage sur la ronde');
   }
 
   h += `<div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin-bottom:6px;font-weight:800">🎯 RONDES</div>`;
@@ -2677,32 +2744,31 @@ function orderBtn(id, enabled, icon, label, hint){
 }
 
 function renderAnomalyOrders(ev){
-  $('orderSub').textContent = `Compte-rendu en attente`;
-  let h = `<div style="padding:10px 12px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.3);border-radius:8px;margin-bottom:12px">
-    <div style="font-size:11px;font-weight:800;color:#c084fc;margin-bottom:4px">${ev.emoji} ${ev.title}</div>
-    <div style="font-size:9px;color:#8fa4b8;line-height:1.4">${ev.desc}<br>Zone : ${zoneName(ev.zone)}</div>
+  const waited = Math.max(0, Math.round(G.t - (ev.askedAt || ev.created || G.t)));
+  $('orderSub').textContent = `${ev.agentName || 'Agent'} — en attente depuis ${waited} min`;
+  let h = `<div class="anoCard ${ev.severity === 3 ? 'major' : ''}">
+    <div class="anoTitle">${ev.emoji} ${ev.title}</div>
+    <div class="anoMeta">📍 ${zoneName(ev.zone)} · ${ev.severity === 3 ? '<b style="color:#ff8b7e">anomalie majeure</b>' : 'anomalie mineure'}</div>
+    <div class="anoDesc">« ${ev.desc} »</div>
   </div>
-  <div style="font-size:8.5px;color:#5a6b7d;letter-spacing:1px;margin-bottom:6px;font-weight:800">⚡ ORDRES POSSIBLES</div>`;
+  <div class="matHead">⚡ VOTRE ORDRE</div>`;
   const cfg = {
-    traiter: {i:'✔', l:'Traiter sur place', h:'Règle l\'anomalie'},
-    notre: {i:'📝', l:'Consigner au rapport', h:'Noter et poursuivre'},
-    retour: {i:'↩', l:'Retour au PC', h:'Compte-rendu direct'},
-    appel: {i:'📞', l:'Appeler les secours', h:'Intervention externe'},
+    traiter: {i:'✔', l:'Traiter sur place', h:'L\'agent règle et poursuit sa ronde'},
+    notre: {i:'📝', l:'Consigner au rapport', h:'Tracé en main courante, ronde poursuivie'},
+    retour: {i:'↩', l:'Retour au PC', h:'Compte-rendu direct — la ronde s\'arrête là'},
+    appel: {i:'📞', l:'Appeler les secours', h:'Il reste en surveillance jusqu\'à leur arrivée'},
   };
   for(const oid of ev.orders){
     const c = cfg[oid];
     if(!c) continue;
-    h += `<button class="orderBtn" data-resolve-anomaly="${ev.id}" data-order="${oid}"
-      style="display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;border-radius:8px;
-      border:1px solid rgba(168,85,247,.4);background:linear-gradient(180deg,rgba(168,85,247,.15),rgba(168,85,247,.05));
-      color:#d4dde8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;margin-bottom:6px;text-align:left">
-      <div style="font-size:17px;width:22px;text-align:center;flex-shrink:0">${c.i}</div>
-      <div style="flex:1">
-        <div style="color:#e8f0f8;font-size:11px;margin-bottom:2px;font-weight:800">${c.l}</div>
-        <div style="font-size:8.5px;color:#8fa4b8;font-weight:500">${c.h}</div>
-      </div>
+    h += `<button class="orderBtn ano" data-resolve-anomaly="${ev.id}" data-order="${oid}">
+      <div class="oi">${c.i}</div>
+      <div class="ol"><b>${c.l}</b><span>${c.h}</span></div>
     </button>`;
   }
+  /* Le rendu n'était jamais injecté : la feuille d'ordres s'ouvrait vide,
+     et répondre à un agent en attente était impossible. */
+  $('orderContent').innerHTML = h;
 }
 
 function execOrder(o){
@@ -2710,14 +2776,23 @@ function execOrder(o){
   if(!a){ $('orderScreen').classList.remove('open'); return; }
 
   /* Ordres praticables alors que l'agent est déjà en mouvement */
-  if(o === 'recall' || o === 'divert' || o === 'divert-alarm' || o === 'resume' || o === 'detach'){
+  if(o === 'recall' || o === 'divert' || o === 'divert-alarm' || o === 'resume' || o === 'detach' || o === 'attach'){
     $('orderScreen').classList.remove('open');
     A.click();
     if(o === 'recall'){ recallAgent(a); return; }
     if(o === 'resume'){ resumeRound(a); return; }
     if(o === 'detach'){
+      detachBinome(G.rounds.find(x => x.id === a.currentRoundId), 'ordre');
+      renderAll();
+      return;
+    }
+    if(o === 'attach'){
       const r = G.rounds.find(x => x.id === a.currentRoundId);
-      detachBinome(r, 'ordre');
+      if(r && G.stagiaire && G.stagiaire.state === 'idle'){
+        attachBinome(r, a);
+        G.stagiaire.pos = a.pos;
+        mcAdd('PC', `🎓 ${G.stagiaire.name} rejoint ${a.name} sur ${r.id}`, 'ok');
+      }
       renderAll();
       return;
     }
@@ -4092,6 +4167,8 @@ function tutorOf(stag){
 function attachBinome(round, tutor){
   const st = G.stagiaire;
   if(!st) return;
+  st.holdAtPcs = false;
+  st.tutorId = tutor.id;
   round.binome = st.id;
   G.k.binomeOk = (G.k.binomeOk || 0) + 1;
   st.state = 'binome';
@@ -4106,19 +4183,24 @@ function tickBinome(){
   const st = G.stagiaire;
   if(!st) return;
   if(st.state === 'binome'){
-    const r = G.rounds.find(x => x.id === st.currentRoundId);
-    const tut = r ? G.agents.find(a => a.id === r.assignedAgentId) : null;
-    if(!r || !tut || r.status === 'done' || r.status === 'missed' || !tut.isRonde){
+    const tut = G.agents.find(a => a.id === st.tutorId) || G.agents[0];
+    if(!tut){ st.state = 'idle'; st.pos = 'pcs'; st.currentRoundId = null; return; }
+    /* Il colle à son maître de stage : ronde, déroutement, rappel au PCS. */
+    st.pos = tut.pos;
+    st.currentRoundId = tut.currentRoundId;
+    st.fatigue = Math.min(100, st.fatigue + 0.2);
+    const tense = degradedActive() || tut.state === 'awaiting';
+    st.stress = clamp((st.stress || 20) + (tense ? 0.15 : -0.05), 0, 100);
+    /* Fin du binôme : le tuteur est rentré au poste sans ronde en cours. */
+    if(!tut.isRonde && !tut.suspendedRound && tut.state === 'idle' && tut.pos === 'pcs'){
       st.state = 'idle';
-      st.currentRoundId = null;
       st.pos = 'pcs';
+      st.currentRoundId = null;
       st.xp += 2;
       st.stress = Math.max(0, (st.stress || 0) - 10);
-      return;
+      G.debrief.stagiaire += 1;
+      mcAdd('PC', `🎓 ${st.name} de retour au PCS avec ${tut.name} — débriefing de la ronde`, 'ok');
     }
-    st.pos = tut.pos;
-    st.fatigue = Math.min(100, st.fatigue + 0.2);
-    st.stress = clamp((st.stress || 20) + (degradedActive() ? 0.15 : -0.05), 0, 100);
   } else if(st.state === 'idle'){
     st.stress = Math.max(0, (st.stress || 20) - 0.3);
   }
@@ -4187,7 +4269,6 @@ function recallAgent(agent){
   } else {
     mcAdd('PC', `↩ ${agent.name} rappelé au PCS`, 'info');
   }
-  if(r && r.binome) detachBinome(r, 'rappel');
   agent.state = 'moving';
   agent.targetId = 'pcs';
   agent.until = G.t + 3;
@@ -4239,15 +4320,16 @@ function resumeRound(agent){
 
 function detachBinome(round, reason){
   const st = G.stagiaire;
-  if(!st || !round || round.binome !== st.id) return;
-  round.binome = null;
+  if(!st || st.state !== 'binome') return;
+  if(round && round.binome === st.id) round.binome = null;
+  st.holdAtPcs = true;   // il ne repart qu'à la demande du chef de poste
   st.state = 'moving';
   st.targetId = 'pcs';
   st.until = G.t + 3;
   st.workTime = 0.5;
   st.currentRoundId = null;
   st.stress = Math.min(100, (st.stress || 20) + 8);
-  mcAdd('PC', `🎓 ${st.name} détaché du binôme et renvoyé au PCS${reason === 'rappel' ? ' (ronde interrompue)' : ''}`, 'info');
+  mcAdd('PC', `🎓 ${st.name} détaché du binôme et renvoyé au PCS — il y reste jusqu'à nouvel ordre`, 'info');
 }
 
 /* ==========================================================
@@ -4523,7 +4605,17 @@ function handleTap(e){
   const ag = t.closest('[data-agent]');
   if(ag && G){ openOrderMenu(ag.dataset.agent); return; }
   const mcEv = t.closest('[data-ev]');
-  if(mcEv && G){ const ev = G.events.find(x => x.instId === mcEv.dataset.ev && !x.resolved); if(ev) openEventModal(ev); return; }
+  if(mcEv && G){
+    const ev = G.events.find(x => x.instId === mcEv.dataset.ev && !x.resolved);
+    if(ev) openEventModal(ev);
+    return;
+  }
+  const alertBtn = t.closest('[data-answer]');
+  if(alertBtn && G){
+    const ev = G.events.find(x => x.instId === alertBtn.dataset.answer && !x.resolved);
+    if(ev) openAnomalyResponse(ev);
+    return;
+  }
   const choice = t.closest('[data-choice]');
   if(choice){ resolveChoice(+choice.dataset.choice); return; }
   const mciBtn = t.closest('[data-mci]');
