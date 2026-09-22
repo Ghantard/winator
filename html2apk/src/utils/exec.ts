@@ -16,6 +16,44 @@ export interface RunResult {
   stderr: string;
 }
 
+/**
+ * A command that failed, keeping everything needed to explain why: the tool,
+ * its arguments, the exit status and the full captured output. The UI layer
+ * turns this into a readable report instead of dumping hundreds of lines.
+ */
+export class CommandError extends Error {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly exitCode: number | null;
+  readonly signal: NodeJS.Signals | null;
+  readonly stdout: string;
+  readonly stderr: string;
+
+  constructor(details: {
+    command: string;
+    args: readonly string[];
+    exitCode: number | null;
+    signal: NodeJS.Signals | null;
+    stdout: string;
+    stderr: string;
+    message: string;
+  }) {
+    super(details.message);
+    this.name = "CommandError";
+    this.command = details.command;
+    this.args = details.args;
+    this.exitCode = details.exitCode;
+    this.signal = details.signal;
+    this.stdout = details.stdout;
+    this.stderr = details.stderr;
+  }
+
+  /** Everything the tool printed, in the order a terminal would have shown it. */
+  get output(): string {
+    return `${this.stdout}${this.stderr}`;
+  }
+}
+
 /** Injectable command runner, so builds can be tested without spawning anything. */
 export type CommandRunner = (
   command: string,
@@ -67,11 +105,16 @@ export const runCommand: CommandRunner = async (command, args, options) => {
         return;
       }
       const reason = signal !== null ? `interrompu par le signal ${signal}` : `code ${code ?? -1}`;
-      const detail = tail(stderr.trim().length > 0 ? stderr : stdout);
       rejectPromise(
-        new Error(
-          `La commande « ${command} ${args.join(" ")} » a échoué (${reason}).${detail}`,
-        ),
+        new CommandError({
+          command,
+          args: [...args],
+          exitCode: code,
+          signal,
+          stdout,
+          stderr,
+          message: `La commande « ${command} ${args.join(" ")} » a échoué (${reason}).`,
+        }),
       );
     });
   });
@@ -86,15 +129,6 @@ function logLines(logger: Logger | undefined, chunk: string): void {
       logger.debug(`  ${line.trimEnd()}`);
     }
   }
-}
-
-/** Keep the last few lines of output, to make the error message useful but short. */
-function tail(output: string, maxLines = 15): string {
-  const lines = output.trim().split("\n").filter((line) => line.trim().length > 0);
-  if (lines.length === 0) {
-    return "";
-  }
-  return `\n${lines.slice(-maxLines).join("\n")}`;
 }
 
 /** npm and npx are .cmd shims on Windows, which spawn cannot resolve on its own. */

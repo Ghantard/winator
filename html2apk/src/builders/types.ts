@@ -1,4 +1,4 @@
-import type { DetectedSource, Logger } from "../utils";
+import type { DetectedSource, Logger, Progress } from "../utils";
 
 export interface BuildOptions {
   /** Where the generated APK is written. */
@@ -6,6 +6,8 @@ export interface BuildOptions {
   /** Validated source: a reachable URL or a folder containing an index.html. */
   source: DetectedSource;
   logger: Logger;
+  /** Reports each build step to the interface. */
+  progress?: Progress;
   /** Reverse-DNS application id (--app-id). */
   appId?: string;
   /** Display name of the app (--app-name). */

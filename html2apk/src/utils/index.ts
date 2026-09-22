@@ -8,6 +8,7 @@ export {
   CONTAINER_SRC,
   currentUser,
   DEFAULT_IMAGE,
+  DOCKER_BUILD_STEPS,
   dockerRunArgs,
   ensureImage,
   IN_CONTAINER_ENV,
@@ -15,7 +16,7 @@ export {
   projectRoot,
 } from "./docker";
 export type { DockerBuildOptions, DockerBuildResult } from "./docker";
-export { npmExecutable, gradleWrapper, runCommand } from "./exec";
+export { CommandError, npmExecutable, gradleWrapper, runCommand } from "./exec";
 export type { CommandRunner, RunOptions, RunResult } from "./exec";
 export { createLogger } from "./logger";
 export type { Logger, LogLevel } from "./logger";
@@ -40,6 +41,17 @@ export {
   PASSWORD_ENV,
   PASSWORD_INPUT_ENV,
   resolveSigningConfig,
+  SIGN_STEPS,
   signApk,
 } from "./sign";
 export type { ResolveSigningOptions, SigningConfig, SignOptions } from "./sign";
+export {
+  createUi,
+  diagnose,
+  extractRelevantOutput,
+  formatBytes,
+  formatDuration,
+  nullProgress,
+  renderBar,
+} from "./ui";
+export type { BuildSummary, CreateUiOptions, OutputStream, Progress, Ui } from "./ui";

@@ -6,6 +6,8 @@ import { runCommand } from "./exec";
 import type { CommandRunner } from "./exec";
 import { createLogger } from "./logger";
 import type { Logger } from "./logger";
+import { nullProgress } from "./ui";
+import type { Progress } from "./ui";
 
 /** Where the generated debug keystore lives. */
 export const DEBUG_KEYSTORE_DIR = join(homedir(), ".html2apk");
@@ -23,6 +25,8 @@ export const DEBUG_KEY_VALIDITY_DAYS = 10_950;
 export const PASSWORD_ENV = "HTML2APK_KS_PASS";
 /** Fallback source for --keystore-password, so it need not be typed in a shell. */
 export const PASSWORD_INPUT_ENV = "HTML2APK_KEYSTORE_PASSWORD";
+/** Number of steps signApk reports. */
+export const SIGN_STEPS = 1;
 
 export interface SigningConfig {
   /** Absolute path of the keystore. */
@@ -36,6 +40,7 @@ export interface SigningConfig {
 
 export interface SignOptions {
   logger?: Logger;
+  progress?: Progress;
   run?: CommandRunner;
   /** Environment used to look up tools and the password fallback. */
   env?: NodeJS.ProcessEnv;
@@ -146,13 +151,16 @@ export async function signApk(
   }
 
   const logger = options.logger ?? createLogger("info");
+  const progress = options.progress ?? nullProgress(logger);
   const run = options.run ?? runCommand;
   const env = options.env ?? process.env;
   const apksigner = findApksigner(env);
 
   await ensureKeystore(config, options);
 
-  logger.info(`Signature de l'APK avec ${config.isDebug ? "la keystore de debug" : config.keystore}`);
+  progress.step(
+    `Signature de l'APK avec ${config.isDebug ? "la keystore de debug" : config.keystore}`,
+  );
   // The password goes through the environment: an argument would show up in ps
   // and in the command echoed by the logger at debug level.
   const passwordEnv = { [PASSWORD_ENV]: config.password };
@@ -170,7 +178,7 @@ export async function signApk(
   );
 
   await run(apksigner, ["verify", apk], { cwd: process.cwd(), logger });
-  logger.info("Signature vérifiée");
+  logger.debug("Signature vérifiée");
 }
 
 /**

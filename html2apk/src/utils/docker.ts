@@ -7,6 +7,8 @@ import { createLogger } from "./logger";
 import type { Logger, LogLevel } from "./logger";
 import { DEBUG_KEYSTORE_DIR, PASSWORD_INPUT_ENV } from "./sign";
 import type { DetectedSource } from "./source";
+import { nullProgress } from "./ui";
+import type { Progress } from "./ui";
 
 /** Default image tag built from the repository Dockerfile. */
 export const DEFAULT_IMAGE = "html2apk:local";
@@ -19,6 +21,8 @@ export const CONTAINER_HOME = "/home/builder";
 export const CONTAINER_HTML2APK_HOME = `${CONTAINER_HOME}/.html2apk`;
 /** Set in the image, so a build inside the container never recurses into Docker. */
 export const IN_CONTAINER_ENV = "HTML2APK_IN_CONTAINER";
+/** Number of steps buildInDocker reports. */
+export const DOCKER_BUILD_STEPS = 3;
 
 export interface DockerBuildOptions {
   /** Validated source: a URL is passed through, a folder is mounted. */
@@ -40,6 +44,7 @@ export interface DockerBuildOptions {
   /** Build the image when it is missing. Defaults to true. */
   autoBuild?: boolean;
   logger?: Logger;
+  progress?: Progress;
   /** Injectable command runner, mainly for tests. */
   run?: CommandRunner;
 }
@@ -228,11 +233,14 @@ export function currentUser(): string | undefined {
  */
 export async function buildInDocker(options: DockerBuildOptions): Promise<DockerBuildResult> {
   const logger = options.logger ?? createLogger("info");
+  const progress = options.progress ?? nullProgress(logger);
   const run = options.run ?? runCommand;
   const image = options.image ?? DEFAULT_IMAGE;
   const output = resolve(options.output);
 
+  progress.step("Vérification de Docker");
   await assertDockerAvailable({ run, logger });
+  progress.step(`Préparation de l'image ${image}`);
   if (options.autoBuild !== false) {
     await ensureImage(image, { run, logger });
   }
@@ -256,7 +264,7 @@ export async function buildInDocker(options: DockerBuildOptions): Promise<Docker
     ...(currentUser() !== undefined ? { user: currentUser() as string } : {}),
   });
 
-  logger.info(`Build dans le conteneur ${image}`);
+  progress.step(`Build dans le conteneur ${image}`);
   await run("docker", args, {
     cwd: process.cwd(),
     logger,

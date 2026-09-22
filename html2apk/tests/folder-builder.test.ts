@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   buildFromFolder,
+  FOLDER_BUILD_STEPS,
   createCapacitorConfig,
   DEBUG_APK_PATH,
   DEFAULT_APP_ID,
@@ -176,6 +177,27 @@ describe("buildFromFolder", () => {
     expect(calls[3]?.cwd).toBe(join(result.projectPath, "android"));
 
     rmSync(result.projectPath, { recursive: true, force: true });
+  });
+
+  it("reports exactly FOLDER_BUILD_STEPS steps, so the bar cannot drift", async () => {
+    const site = makeSite();
+    const { run } = fakeRunner();
+    const steps: string[] = [];
+
+    await buildFromFolder(site, outputPath(), {
+      run,
+      logger: silentLogger,
+      progress: {
+        plan: () => undefined,
+        step: (label) => steps.push(label),
+        clear: () => undefined,
+        stop: () => undefined,
+      },
+    });
+
+    expect(steps).toHaveLength(FOLDER_BUILD_STEPS);
+    expect(steps[0]).toMatch(/^Préparation du projet Capacitor/);
+    expect(steps.at(-1)).toMatch(/^Build Gradle/);
   });
 
   it("uses the folder name as the default app name", async () => {

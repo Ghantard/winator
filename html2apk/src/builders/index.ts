@@ -10,6 +10,7 @@ export {
   DEFAULT_APP_ID,
   DEFAULT_CAPACITOR_VERSION,
   defaultAppName,
+  FOLDER_BUILD_STEPS,
   folderBuilder,
   normalizeAppId,
   normalizeAppName,

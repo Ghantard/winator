@@ -3,18 +3,20 @@ import { resolve } from "node:path";
 
 import { Command, InvalidArgumentError } from "commander";
 
-import { DEFAULT_APP_ID, selectBuilder } from "./builders";
+import { DEFAULT_APP_ID, FOLDER_BUILD_STEPS, selectBuilder } from "./builders";
 import type { BuildOptions } from "./builders";
 import {
   buildInDocker,
-  createLogger,
+  createUi,
   DEBUG_KEYSTORE_PATH,
   DEFAULT_IMAGE,
   describeSource,
   detectSource,
+  DOCKER_BUILD_STEPS,
   ensureKeystore,
   isInsideContainer,
   resolveSigningConfig,
+  SIGN_STEPS,
   signApk,
 } from "./utils";
 import type { LogLevel } from "./utils";
@@ -33,6 +35,7 @@ interface BuildCommandOptions {
   keystore?: string;
   keystorePassword?: string;
   keyAlias?: string;
+  verbose?: boolean;
 }
 
 function parseLogLevel(value: string): LogLevel {
@@ -63,57 +66,89 @@ export function createProgram(): Command {
     .option("--key-alias <alias>", "alias of the signing key")
     .option("--no-docker", "build with the local toolchain instead of Docker")
     .option("--docker-image <name>", `image to run (default: ${DEFAULT_IMAGE})`)
+    .option("-v, --verbose", "echo every command and all tool output")
     .option("--log-level <level>", `one of ${LOG_LEVELS.join(", ")}`, parseLogLevel, "info")
     .action(async (rawSource: string, options: BuildCommandOptions) => {
-      const logger = createLogger(options.logLevel);
-      const source = await detectSource(rawSource);
-      const output = resolve(process.cwd(), options.output);
+      const ui = createUi({
+        verbose: options.verbose === true,
+        // --verbose implies debug, otherwise --log-level decides.
+        ...(options.verbose === true ? {} : { logLevel: options.logLevel }),
+      });
+      const { logger, progress } = ui;
+      const startedAt = Date.now();
 
-      logger.info(`Source: ${describeSource(source)}`);
-      logger.debug(`Output: ${output}`);
+      try {
+        const source = await detectSource(rawSource);
+        const output = resolve(process.cwd(), options.output);
 
-      // Docker is the default; inside the image we always take the local path,
-      // both because --no-docker is passed in and as a guard against recursion.
-      if (options.docker && !isInsideContainer()) {
-        const result = await buildInDocker({
+        logger.info(`Source : ${describeSource(source)}`);
+        logger.debug(`Sortie : ${output}`);
+
+        // Docker is the default; inside the image we always take the local path,
+        // both because --no-docker is passed in and as a guard against recursion.
+        const useDocker = options.docker && !isInsideContainer();
+
+        if (useDocker) {
+          progress.plan(DOCKER_BUILD_STEPS);
+          const result = await buildInDocker({
+            source,
+            output,
+            logger,
+            progress,
+            logLevel: options.verbose === true ? "debug" : options.logLevel,
+            appId: options.appId,
+            ...(options.appName !== undefined ? { appName: options.appName } : {}),
+            ...(options.dockerImage !== undefined ? { image: options.dockerImage } : {}),
+            ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
+            ...(options.keyAlias !== undefined ? { keyAlias: options.keyAlias } : {}),
+            ...(options.keystorePassword !== undefined
+              ? { keystorePassword: options.keystorePassword }
+              : {}),
+          });
+          ui.summary({ apkPath: result.apkPath, ms: Date.now() - startedAt, viaDocker: true });
+          return;
+        }
+
+        const builder = selectBuilder(source);
+        logger.debug(`Builder : ${builder.name}`);
+
+        // Resolved and prepared before the build so a bad signing setup fails
+        // fast, rather than after a Gradle run that takes minutes.
+        const signing = resolveSigningConfig({
+          ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
+          ...(options.keystorePassword !== undefined ? { password: options.keystorePassword } : {}),
+          ...(options.keyAlias !== undefined ? { alias: options.keyAlias } : {}),
+        });
+        await ensureKeystore(signing, { logger });
+
+        progress.plan(FOLDER_BUILD_STEPS + SIGN_STEPS);
+
+        const buildOptions: BuildOptions = {
           source,
           output,
           logger,
-          logLevel: options.logLevel,
+          progress,
           appId: options.appId,
-          ...(options.appName !== undefined ? { appName: options.appName } : {}),
-          ...(options.dockerImage !== undefined ? { image: options.dockerImage } : {}),
-          ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
-          ...(options.keyAlias !== undefined ? { keyAlias: options.keyAlias } : {}),
-          ...(options.keystorePassword !== undefined
-            ? { keystorePassword: options.keystorePassword }
-            : {}),
+        };
+        if (options.appName !== undefined) {
+          buildOptions.appName = options.appName;
+        }
+
+        const result = await builder.build(buildOptions);
+        await signApk(result.apkPath, signing, { logger, progress });
+
+        ui.summary({
+          apkPath: result.apkPath,
+          ms: Date.now() - startedAt,
+          viaDocker: false,
+          signedWith: signing.isDebug ? "keystore de debug" : signing.keystore,
         });
-        logger.info(`APK written to ${result.apkPath}`);
-        return;
+      } catch (error: unknown) {
+        ui.failure(error);
+        process.exitCode = 1;
+      } finally {
+        progress.stop();
       }
-
-      const builder = selectBuilder(source);
-      logger.debug(`Builder: ${builder.name}`);
-
-      const buildOptions: BuildOptions = { source, output, logger, appId: options.appId };
-      if (options.appName !== undefined) {
-        buildOptions.appName = options.appName;
-      }
-
-      // Resolved and prepared before the build so a bad signing setup fails
-      // fast, rather than after a Gradle run that takes minutes.
-      const signing = resolveSigningConfig({
-        ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
-        ...(options.keystorePassword !== undefined ? { password: options.keystorePassword } : {}),
-        ...(options.keyAlias !== undefined ? { alias: options.keyAlias } : {}),
-      });
-
-      await ensureKeystore(signing, { logger });
-
-      const result = await builder.build(buildOptions);
-      await signApk(result.apkPath, signing, { logger });
-      logger.info(`APK written to ${result.apkPath}`);
     });
 
   return program;
@@ -125,8 +160,8 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
 
 if (require.main === module) {
   main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`✗ ${message}\n`);
+    // The build action reports its own failures; this catches everything else.
+    createUi({}).failure(error);
     process.exitCode = 1;
   });
 }
