@@ -5,6 +5,7 @@ import { runCommand } from "./exec";
 import type { CommandRunner } from "./exec";
 import { createLogger } from "./logger";
 import type { Logger, LogLevel } from "./logger";
+import { DEBUG_KEYSTORE_DIR, PASSWORD_INPUT_ENV } from "./sign";
 import type { DetectedSource } from "./source";
 
 /** Default image tag built from the repository Dockerfile. */
@@ -12,6 +13,10 @@ export const DEFAULT_IMAGE = "html2apk:local";
 /** Mount points used inside the container. */
 export const CONTAINER_SRC = "/work/src";
 export const CONTAINER_OUT = "/work/out";
+export const CONTAINER_KEYSTORE = "/work/keystore";
+/** HOME inside the image; the debug keystore is mounted under it. */
+export const CONTAINER_HOME = "/home/builder";
+export const CONTAINER_HTML2APK_HOME = `${CONTAINER_HOME}/.html2apk`;
 /** Set in the image, so a build inside the container never recurses into Docker. */
 export const IN_CONTAINER_ENV = "HTML2APK_IN_CONTAINER";
 
@@ -23,6 +28,13 @@ export interface DockerBuildOptions {
   appId?: string;
   appName?: string;
   logLevel?: LogLevel;
+  /** Custom keystore to sign with; its directory is mounted read-only. */
+  keystore?: string;
+  keyAlias?: string;
+  /** Keystore password, forwarded through the environment, never as an argument. */
+  keystorePassword?: string;
+  /** Host directory holding the debug keystore. Defaults to ~/.html2apk. */
+  debugKeystoreDir?: string;
   /** Image to run. Defaults to DEFAULT_IMAGE. */
   image?: string;
   /** Build the image when it is missing. Defaults to true. */
@@ -139,6 +151,11 @@ export function dockerRunArgs(options: {
   appName?: string;
   logLevel?: LogLevel;
   user?: string;
+  keystore?: string;
+  keyAlias?: string;
+  /** Forward the password by name only, so its value stays off the argv. */
+  forwardPasswordEnv?: boolean;
+  debugKeystoreDir?: string;
 }): string[] {
   const output = resolve(options.output);
   const outputDir = dirname(output);
@@ -150,11 +167,30 @@ export function dockerRunArgs(options: {
   }
   args.push("-v", `${outputDir}:${CONTAINER_OUT}`);
 
+  // Mounted read-write so a debug keystore generated inside the container
+  // persists on the host; otherwise every build would sign with a new key.
+  args.push(
+    "-v",
+    `${resolve(options.debugKeystoreDir ?? DEBUG_KEYSTORE_DIR)}:${CONTAINER_HTML2APK_HOME}`,
+  );
+
   let innerSource = options.source.path;
   if (options.source.type === "folder") {
     // Read-only: the builder copies the folder into the project, never writes back.
     args.push("-v", `${resolve(options.source.path)}:${CONTAINER_SRC}:ro`);
     innerSource = CONTAINER_SRC;
+  }
+
+  let innerKeystore: string | undefined;
+  if (options.keystore !== undefined) {
+    const keystore = resolve(options.keystore);
+    args.push("-v", `${dirname(keystore)}:${CONTAINER_KEYSTORE}:ro`);
+    innerKeystore = `${CONTAINER_KEYSTORE}/${basename(keystore)}`;
+  }
+
+  if (options.forwardPasswordEnv === true) {
+    // Name without a value: docker takes it from this process's environment.
+    args.push("-e", PASSWORD_INPUT_ENV);
   }
 
   args.push(options.image, "build", innerSource, "--output", containerOutput, "--no-docker");
@@ -163,6 +199,12 @@ export function dockerRunArgs(options: {
   }
   if (options.appName !== undefined) {
     args.push("--app-name", options.appName);
+  }
+  if (innerKeystore !== undefined) {
+    args.push("--keystore", innerKeystore);
+  }
+  if (options.keyAlias !== undefined) {
+    args.push("--key-alias", options.keyAlias);
   }
   if (options.logLevel !== undefined) {
     args.push("--log-level", options.logLevel);
@@ -197,19 +239,31 @@ export async function buildInDocker(options: DockerBuildOptions): Promise<Docker
 
   // Docker would create a missing mount point as a root-owned directory.
   mkdirSync(dirname(output), { recursive: true });
+  const debugKeystoreDir = resolve(options.debugKeystoreDir ?? DEBUG_KEYSTORE_DIR);
+  mkdirSync(debugKeystoreDir, { recursive: true });
 
   const args = dockerRunArgs({
     source: options.source,
     output,
     image,
+    debugKeystoreDir,
     ...(options.appId !== undefined ? { appId: options.appId } : {}),
     ...(options.appName !== undefined ? { appName: options.appName } : {}),
     ...(options.logLevel !== undefined ? { logLevel: options.logLevel } : {}),
+    ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
+    ...(options.keyAlias !== undefined ? { keyAlias: options.keyAlias } : {}),
+    ...(options.keystorePassword !== undefined ? { forwardPasswordEnv: true } : {}),
     ...(currentUser() !== undefined ? { user: currentUser() as string } : {}),
   });
 
   logger.info(`Build dans le conteneur ${image}`);
-  await run("docker", args, { cwd: process.cwd(), logger });
+  await run("docker", args, {
+    cwd: process.cwd(),
+    logger,
+    ...(options.keystorePassword !== undefined
+      ? { env: { [PASSWORD_INPUT_ENV]: options.keystorePassword } }
+      : {}),
+  });
 
   if (!existsSync(output)) {
     throw new Error(

@@ -8,10 +8,14 @@ import type { BuildOptions } from "./builders";
 import {
   buildInDocker,
   createLogger,
+  DEBUG_KEYSTORE_PATH,
   DEFAULT_IMAGE,
   describeSource,
   detectSource,
+  ensureKeystore,
   isInsideContainer,
+  resolveSigningConfig,
+  signApk,
 } from "./utils";
 import type { LogLevel } from "./utils";
 
@@ -26,6 +30,9 @@ interface BuildCommandOptions {
   /** False when --no-docker was passed. */
   docker: boolean;
   dockerImage?: string;
+  keystore?: string;
+  keystorePassword?: string;
+  keyAlias?: string;
 }
 
 function parseLogLevel(value: string): LogLevel {
@@ -51,6 +58,9 @@ export function createProgram(): Command {
     .option("-o, --output <file>", "path of the generated APK", DEFAULT_OUTPUT)
     .option("--app-id <id>", "reverse-DNS application id", DEFAULT_APP_ID)
     .option("--app-name <name>", "display name of the app (default: the folder name)")
+    .option("--keystore <file>", `keystore to sign with (default: ${DEBUG_KEYSTORE_PATH})`)
+    .option("--keystore-password <password>", "keystore password (default: from the environment)")
+    .option("--key-alias <alias>", "alias of the signing key")
     .option("--no-docker", "build with the local toolchain instead of Docker")
     .option("--docker-image <name>", `image to run (default: ${DEFAULT_IMAGE})`)
     .option("--log-level <level>", `one of ${LOG_LEVELS.join(", ")}`, parseLogLevel, "info")
@@ -73,6 +83,11 @@ export function createProgram(): Command {
           appId: options.appId,
           ...(options.appName !== undefined ? { appName: options.appName } : {}),
           ...(options.dockerImage !== undefined ? { image: options.dockerImage } : {}),
+          ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
+          ...(options.keyAlias !== undefined ? { keyAlias: options.keyAlias } : {}),
+          ...(options.keystorePassword !== undefined
+            ? { keystorePassword: options.keystorePassword }
+            : {}),
         });
         logger.info(`APK written to ${result.apkPath}`);
         return;
@@ -86,7 +101,18 @@ export function createProgram(): Command {
         buildOptions.appName = options.appName;
       }
 
+      // Resolved and prepared before the build so a bad signing setup fails
+      // fast, rather than after a Gradle run that takes minutes.
+      const signing = resolveSigningConfig({
+        ...(options.keystore !== undefined ? { keystore: options.keystore } : {}),
+        ...(options.keystorePassword !== undefined ? { password: options.keystorePassword } : {}),
+        ...(options.keyAlias !== undefined ? { alias: options.keyAlias } : {}),
+      });
+
+      await ensureKeystore(signing, { logger });
+
       const result = await builder.build(buildOptions);
+      await signApk(result.apkPath, signing, { logger });
       logger.info(`APK written to ${result.apkPath}`);
     });
 

@@ -1,6 +1,9 @@
 export {
   assertDockerAvailable,
   buildInDocker,
+  CONTAINER_HOME,
+  CONTAINER_HTML2APK_HOME,
+  CONTAINER_KEYSTORE,
   CONTAINER_OUT,
   CONTAINER_SRC,
   currentUser,
@@ -24,3 +27,19 @@ export {
   INDEX_FILE,
 } from "./source";
 export type { DetectedSource, DetectSourceOptions, FetchLike, SourceType } from "./source";
+export {
+  DEBUG_KEY_ALIAS,
+  DEBUG_KEY_DNAME,
+  DEBUG_KEY_VALIDITY_DAYS,
+  DEBUG_KEYSTORE_DIR,
+  DEBUG_KEYSTORE_PASSWORD,
+  DEBUG_KEYSTORE_PATH,
+  ensureKeystore,
+  findApksigner,
+  findTool,
+  PASSWORD_ENV,
+  PASSWORD_INPUT_ENV,
+  resolveSigningConfig,
+  signApk,
+} from "./sign";
+export type { ResolveSigningOptions, SigningConfig, SignOptions } from "./sign";
