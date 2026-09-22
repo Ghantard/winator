@@ -141,6 +141,34 @@ Vérifié par simulation : la vacation négligente termine systématiquement ave
 13 ou 14 causes tracées et la note plafonnée à 45, la vacation soignée avec
 trois causes mineures et 55 à 60.
 
+## L'évacuation
+
+« Alarme générale » n'est plus un bouton sans suite mais une phase entière,
+avec sa fenêtre de conduite.
+
+- **La conduite dépend du type d'établissement.** Évacuation totale en ERP M,
+  O/N et industriel ; **transfert horizontal** en établissement de santé ;
+  **évacuation du compartiment** en IGH. Ordonner la mauvaise conduite coûte
+  cher, vaut une remarque du chef de service et une ligne au registre des
+  causes. L'évacuation par les ascenseurs est proposée — et proscrite.
+- **Le nombre d'occupants dépend du site et de l'heure** : 420 personnes dans
+  un centre commercial en journée, 8 la nuit ; 190 patients la nuit dans un
+  établissement de santé.
+- **Les guides-files font tout.** Sans personne pour prendre la circulation,
+  les occupants sortent seuls et lentement (une vingtaine en six minutes) ; avec
+  deux agents désignés, le flux est dix fois plus rapide. Un agent en ronde
+  rappelé comme guide-file libère sa ronde.
+- **L'état du site freine l'évacuation** : circulation encombrée, issue de
+  secours condamnée, sinistre en cours — chaque obstacle ralentit le flux et
+  augmente le nombre de personnes qui restent en arrière. Ce sont exactement les
+  anomalies que le PCS a laissées passer les heures précédentes.
+- **Comptage au point de rassemblement**, possible à partir de 75 % d'évacués :
+  il révèle les manquants et leur dernier point connu — l'une des zones gênées.
+  Il faut alors envoyer une **reconnaissance**, qui les ramène.
+- **Déclarer l'évacuation terminée** sans avoir compté, ou avec des manquants,
+  coûte lourdement et s'inscrit au registre des causes ; menée conforme, dans
+  les délais et sans manquant, elle rapporte. Puis vient le retour au calme.
+
 ## La prise de poste et l'accueil des secours
 
 **Les 45 premières minutes comptent.** Trois contrôles sont attendus : essai

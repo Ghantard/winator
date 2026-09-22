@@ -236,7 +236,7 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   z-index:100;display:none;align-items:center;justify-content:center;padding:12px}
 .ov.open{display:flex}
 #pickerScreen,#miniScreen,#materielScreen,#datScreen,#siteStateScreen,#teamStateScreen{z-index:110}
-#eventScreen,#mciScreen,#qcmScreen,#auditScreen{z-index:115}
+#eventScreen,#mciScreen,#qcmScreen,#auditScreen,#evacScreen{z-index:115}
 #debriefScreen{z-index:120}
 .cd{background:linear-gradient(180deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
   border:1px solid rgba(80,110,150,.2);border-radius:14px;padding:16px 14px;
@@ -436,6 +436,16 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .zrBar span{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#4ade80,#ffb020,#ff453a)}
 .zrCauses{font-size:10px;color:#8fa4b8;line-height:1.5}
 .griefs{font-size:9.5px;color:#ff8b7e;line-height:1.55;margin-top:5px}
+.evacTop{padding:11px;border-radius:9px;margin-bottom:9px;
+  background:rgba(255,59,48,.12);border:1px solid rgba(255,59,48,.4)}
+.evacTop.bad{background:rgba(255,59,48,.2);border-color:#ff453a}
+.evacMeth{font-size:13px;font-weight:800;color:#ff8b7e}
+.evacSub{font-size:10px;color:#b8c8d8;margin-top:4px}
+.evacStats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:7px}
+.evacStats .es{padding:9px 5px;border-radius:8px;text-align:center;
+  background:linear-gradient(180deg,rgba(22,32,48,.8),rgba(12,18,28,.9));border:1px solid rgba(80,110,150,.2)}
+.evacStats .esv{font-size:15px;font-weight:800;color:#e8f0f8;font-variant-numeric:tabular-nums}
+.evacStats .esl{font-size:8.5px;color:#5a6b7d;font-weight:800;letter-spacing:.5px;margin-top:2px}
 .zrFire{font-size:10.5px;color:#ff8b7e;font-weight:800;margin-top:5px}
 .matHint{font-size:8.5px;color:#7d8fa3;line-height:1.5;padding:8px 10px;border-radius:7px;
   background:rgba(80,140,220,.07);border:1px solid rgba(80,140,220,.18);margin-bottom:8px}
@@ -924,6 +934,15 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <div class="sub">Clés · Badges · Talkies — dotation et restitution</div>
     <div id="materielContent"></div>
     <button class="btn-sec" data-act="close-materiel">FERMER</button>
+  </div>
+</div>
+
+<div class="ov" id="evacScreen">
+  <div class="cd">
+    <h1>🚨 ÉVACUATION EN COURS</h1>
+    <div class="sub">Conduite du PCS</div>
+    <div id="evacContent"></div>
+    <button class="btn-sec" data-act="close-evac">RETOUR AU PCS</button>
   </div>
 </div>
 
@@ -1625,6 +1644,7 @@ function startGame(){
   G.sinistres = [];
   G.demandes = [];
   G.secours = null;
+  G.evac = null;
   G.deg = initDegraded();
   G.ssi = initSSI();
   G.rh = initRH();
@@ -3334,6 +3354,7 @@ function endVacation(){
       {w:1, v:rat(K.ssiOk || 0, K.ssiTotal || 0)},
       {w:1, v:rat(G.s3.auditsGood, G.s3.audits)},
       {w:2, v:K.priseDePoste === undefined ? null : K.priseDePoste / 3},
+      {w:3, v:rat(K.evacReussies || 0, K.evacuations || 0)},
     ]),
     time: ax([
       {w:3, v:rat(K.lddOnTime || 0, K.lddTotal || 0)},
@@ -3382,6 +3403,7 @@ function endVacation(){
     ['Audits SSIAP 3 réussis', frac(G.s3.auditsGood, G.s3.audits)],
     ['Actions de formation', `${G.debrief.training || 0} / ${trainingExpected} attendue(s)`],
     ['Contrôle de prise de poste', `${K.priseDePoste === undefined ? 0 : K.priseDePoste}/3`],
+    ['Évacuations menées à bien', frac(K.evacReussies || 0, K.evacuations || 0)],
     ['Secours accueillis et guidés', frac((K.secoursAccueillis || 0) - (K.secoursSansAccueil || 0), K.secoursAccueillis || 0)],
     ['Zones remises en ordre', `${K.zonesTreated || 0}`],
     ['Départs de feu éteints sur place', `${K.feuxEteints || 0}`],
@@ -3733,6 +3755,10 @@ function renderActions(){
   h += `<div class="matHead">📦 MATÉRIEL & RONDES</div>`;
   const hot = riskiestZone();
   const bas = G.agents.filter(a => (a.moral === undefined ? 60 : a.moral) < 35).length;
+  if(G.evac && !G.evac.termine){
+    h = `<button class="orderBtn danger" data-act="open-evac"><div class="oi">🚨</div>
+      <div class="ol"><b>Évacuation en cours</b><span>${Math.round(G.evac.evacues)}/${G.evac.occupants} évacués · ${G.evac.guides.length} guide(s)-file</span></div></button>` + h;
+  }
   const pdp = G.priseDePoste;
   const faits = [pdp.radio, pdp.cmsi, pdp.cles].filter(Boolean).length;
   if(!pdp.bilan || faits < 3){
@@ -3776,10 +3802,26 @@ function execPcsAction(k){
     case 'desinhib': execDesinhib(); break;
     case 'desenf': execDesenf(); break;
     case 'compart': execCompart(); break;
-    case 'alarme_gen':
-      A.alarm(); G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-      mcAdd('PC','🚨 ALARME GÉNÉRALE — évacuation du public, agents aux points de rassemblement','crit');
-      G.score += 2; toast('🚨 Alarme générale','bad'); break;
+    case 'alarme_gen': {
+      if(G.evac && !G.evac.termine){ openEvacScreen(); break; }
+      const ordres = ['totale','horizontale','compartiment','ascenseur'];
+      openMini('🚨 ALARME GÉNÉRALE', 'Quelle conduite ordonnez-vous ?',
+        ordres.map(m => ({icon:m === 'ascenseur' ? '⛔' : '🚨', label:EVAC_METHODES[m].label,
+                          hint:EVAC_METHODES[m].hint, cls:m === 'ascenseur' ? 'danger' : 'warning'})),
+        i => {
+          if(ordres[i] === 'ascenseur'){
+            G.score -= 20;
+            G.k.ordersDangerous = (G.k.ordersDangerous || 0) + 1;
+            mcAdd('PC', `⛔ Ordre d'évacuation par les ascenseurs — manœuvre proscrite en cas d'incendie`, 'crit');
+            mcAdd('S3', `Jamais les ascenseurs. Jamais.`, 'crit');
+            logCause(G.site.zones[0].id, `Évacuation ordonnée par les ascenseurs, manœuvre proscrite en cas d'incendie.`);
+            toast('Manœuvre proscrite !', 'bad');
+            return;
+          }
+          startEvacuation(ordres[i]);
+        });
+      break;
+    }
     case 'groupe': execGenerator(); break;
     case 'radio_secours': execRadioBackup(); break;
     case 'surv_renf': execSurveillanceRenforcee(); break;
@@ -5403,6 +5445,255 @@ function tickSecours(){
   renderMC(true);
 }
 
+
+/* ==========================================================
+   ================ ÉVACUATION DU PUBLIC ====================
+   Diffusion, guides-files, point de rassemblement, comptage,
+   reconnaissance des manquants, fin d'évacuation. La méthode
+   dépend du type d'établissement : on n'évacue pas un hôpital
+   comme un centre commercial.
+   ========================================================== */
+const EVAC_PROFILS = {
+  erp_m:      { jour:420, nuit:8,   methode:'totale',      rassemblement:'Parking visiteurs' },
+  erp_u:      { jour:260, nuit:190, methode:'horizontale', rassemblement:'Compartiment voisin' },
+  erp_on:     { jour:120, nuit:180, methode:'totale',      rassemblement:'Esplanade' },
+  igh:        { jour:340, nuit:15,  methode:'compartiment',rassemblement:'Niveau de repli' },
+  industriel: { jour:95,  nuit:22,  methode:'totale',      rassemblement:'Parc véhicules' },
+};
+const EVAC_METHODES = {
+  totale:       { label:'Évacuation totale',            hint:'Tout le monde dehors, vers le point de rassemblement' },
+  horizontale:  { label:'Transfert horizontal',         hint:'Mise à l\'abri dans le compartiment voisin, de plain-pied' },
+  compartiment: { label:'Évacuation du compartiment',   hint:'Compartiment sinistré et niveau supérieur, par les escaliers' },
+  ascenseur:    { label:'Évacuation par les ascenseurs', hint:'Interdit en cas d\'incendie' },
+};
+
+function evacProfil(){
+  const p = EVAC_PROFILS[G.siteId] || EVAC_PROFILS.erp_m;
+  return { ...p, occupants: G.shift === 'day' ? p.jour : p.nuit };
+}
+
+/* Ce qui freine l'évacuation vient de l'état du site */
+function evacObstacles(){
+  const obs = [];
+  for(const z of G.site.zones){
+    const s = G.zones[z.id];
+    if(!s) continue;
+    if(s.encombrement >= 2) obs.push(`${z.name} : circulation encombrée`);
+    if(s.defauts.some(d => /issue|extincteur|coupe-feu/i.test(d))) obs.push(`${z.name} : ${s.defauts.find(d => /issue|extincteur|coupe-feu/i.test(d))}`);
+    if(s.feu && s.feu.detected) obs.push(`${z.name} : sinistre en cours`);
+  }
+  return obs;
+}
+
+function startEvacuation(methode, zoneId){
+  if(G.evac && !G.evac.termine) return;
+  const prof = evacProfil();
+  const obstacles = evacObstacles();
+  const conforme = methode === prof.methode;
+  G.evac = {
+    methode, conforme, zoneId: zoneId || (G.zones && Object.keys(G.zones).find(id => G.zones[id].feu)) || G.site.zones[0].id,
+    startedAt: G.t, occupants: prof.occupants, evacues: 0,
+    rassemblement: prof.rassemblement,
+    guides: [], obstacles,
+    manquants: null, comptageAt: null, reconnaissance: null,
+    termine: false, duree: null,
+  };
+  G.ssi.alarmActive = true;
+  G.ssi.buzzer = true;
+  G.ssi.rearmNeeded = true;
+  A.alarm();
+
+  mcAdd('PC', `🚨 ALARME GÉNÉRALE — ${EVAC_METHODES[methode].label} · ${prof.occupants} personne(s) concernée(s)`, 'crit');
+  if(!conforme){
+    G.score -= 15;
+    G.k.evacNonConforme = (G.k.evacNonConforme || 0) + 1;
+    const attendue = EVAC_METHODES[prof.methode].label.toLowerCase();
+    mcAdd('S3', `Ce n'est pas la conduite prévue pour cet établissement : il fallait ordonner ${attendue}.`, 'crit');
+    logCause(G.evac.zoneId, `Évacuation conduite en « ${EVAC_METHODES[methode].label.toLowerCase()} » alors que l'établissement impose ${attendue}.`);
+  } else {
+    mcAdd('PC', `📋 Conduite conforme au type d'établissement · point de rassemblement : ${prof.rassemblement}`, 'ok');
+  }
+  for(const o of obstacles) mcAdd('PC', `⚠ Évacuation gênée — ${o}`, 'warn');
+  toast('🚨 Évacuation en cours', 'bad');
+  openEvacScreen();
+}
+
+/* Les agents désignés guides-files accélèrent nettement le flux */
+function assignGuide(agent){
+  const e = G.evac;
+  if(!e || e.termine || e.guides.includes(agent.id)) return;
+  e.guides.push(agent.id);
+  agent.state = 'working';
+  agent.pos = agent.pos;
+  agent.until = G.t + 999;
+  agent.workTime = 999;
+  agent.guideFile = true;
+  if(agent.isRonde){
+    const r = G.rounds.find(x => x.id === agent.currentRoundId);
+    if(r){ r.status = 'pending'; r.assignedAgentId = null; }
+    agent.isRonde = false;
+    agent.currentRoundId = null;
+  }
+  mcAdd('PC', `🦺 ${agent.name} désigné guide-file`, 'action');
+  radioSay(agent, `Je prends la circulation, je pousse tout le monde vers ${e.rassemblement}.`, 'order');
+  renderEvac();
+}
+
+function evacRate(){
+  const e = G.evac;
+  const base = e.occupants / 60;                 // sorties spontanées
+  const parGuide = e.occupants / 14;             // un guide-file change tout
+  let r = base + e.guides.length * parGuide;
+  r *= Math.max(0.35, 1 - e.obstacles.length * 0.18);
+  if(e.methode === 'horizontale') r *= 1.4;      // de plain-pied, plus rapide
+  return r / 4;                                  // par tick de 0,3 min
+}
+
+function tickEvacuation(){
+  const e = G.evac;
+  if(!e || e.termine) return;
+  if(e.evacues < e.occupants){
+    e.evacues = Math.min(e.occupants, e.evacues + evacRate());
+    if($('evacScreen').classList.contains('open')) renderEvac();
+  }
+  if(e.reconnaissance && !e.reconnaissance.done && G.t >= e.reconnaissance.until){
+    const ag = allStaff().find(a => a.id === e.reconnaissance.agentId);
+    e.reconnaissance.done = true;
+    const z = G.zones[e.reconnaissance.zoneId];
+    const danger = z && z.feu && z.feu.detected;
+    e.manquants = 0;
+    G.k.manquantsRetrouves = (G.k.manquantsRetrouves || 0) + (e.reconnaissance.nb || 0);
+    mcAdd('PC', `🔦 Reconnaissance terminée en ${zoneName(e.reconnaissance.zoneId)} — ${e.reconnaissance.nb} personne(s) retrouvée(s) et évacuée(s)${danger ? ', dans une zone sinistrée' : ''}`, 'ok');
+    if(ag){ ag.state = 'idle'; ag.guideFile = false; }
+    if(danger) G.score += 8;
+    renderEvac();
+  }
+}
+
+function faireComptage(){
+  const e = G.evac;
+  if(!e || e.comptageAt) return;
+  if(e.evacues < e.occupants * 0.75){
+    toast('Le flux est encore trop important pour compter', 'bad');
+    return;
+  }
+  e.comptageAt = G.t;
+  /* Des occupants restent là où l'évacuation a été gênée. */
+  const base = e.obstacles.length ? 0.02 + e.obstacles.length * 0.01 : 0.004;
+  const brut = Math.round(e.occupants * base) - e.guides.length;
+  e.manquants = Math.max(0, brut);
+  if(e.manquants > 0){
+    const zonesGenees = G.site.zones.filter(z => {
+      const s = G.zones[z.id];
+      return s && (s.encombrement >= 2 || s.defauts.length);
+    });
+    e.zoneManquants = (zonesGenees[0] || pick(G.site.zones)).id;
+    mcAdd('PC', `📋 Comptage au point de rassemblement : ${Math.round(e.evacues)} présents, ${e.manquants} MANQUANT(S) — dernier point connu ${zoneName(e.zoneManquants)}`, 'crit');
+    toast(`${e.manquants} personne(s) manquante(s) !`, 'bad');
+  } else {
+    G.score += 10;
+    mcAdd('PC', `📋 Comptage au point de rassemblement : effectif complet, aucun manquant`, 'ok');
+    toast('Comptage : personne ne manque', 'good');
+  }
+  renderEvac();
+}
+
+function lancerReconnaissance(agent){
+  const e = G.evac;
+  if(!e || !e.manquants || e.reconnaissance) return;
+  e.reconnaissance = { agentId:agent.id, zoneId:e.zoneManquants, until:G.t + 7, nb:e.manquants, done:false };
+  agent.state = 'moving';
+  agent.targetId = e.zoneManquants;
+  agent.until = G.t + 3;
+  agent.workTime = 7;
+  agent.guideFile = true;
+  mcAdd('PC', `🔦 ${agent.name} envoyé en reconnaissance sur ${zoneName(e.zoneManquants)} — binôme et liaison radio permanente`, 'action');
+  radioSay(agent, `Je pars en reconnaissance sur ${zoneName(e.zoneManquants)}.`, 'order');
+  renderEvac();
+}
+
+function finEvacuation(){
+  const e = G.evac;
+  if(!e || e.termine) return;
+  e.termine = true;
+  e.duree = G.t - e.startedAt;
+  for(const a of allStaff()){
+    if(a.guideFile){ a.guideFile = false; a.state = 'idle'; }
+  }
+  const objectif = e.methode === 'horizontale' ? 12 : 10;
+  const rapide = e.duree <= objectif;
+  const manquants = e.manquants === null ? null : e.manquants;
+
+  G.k.evacuations = (G.k.evacuations || 0) + 1;
+  if(e.conforme && rapide && manquants === 0){
+    G.score += 25;
+    G.k.evacReussies = (G.k.evacReussies || 0) + 1;
+    mcAdd('PC', `✅ Évacuation terminée en ${e.duree.toFixed(0)} min — effectif complet, conduite conforme`, 'ok');
+  } else {
+    let retard = '';
+    if(!rapide){
+      G.score -= 8;
+      retard = ` — ${e.duree.toFixed(0)} min pour un objectif de ${objectif} min`;
+    }
+    if(manquants === null){
+      G.score -= 12;
+      mcAdd('PC', `⚠ Évacuation close sans comptage au point de rassemblement`, 'crit');
+      logCause(e.zoneId, `Évacuation déclarée terminée sans comptage : impossible de savoir si quelqu'un est resté.`);
+    } else if(manquants > 0){
+      G.score -= 20;
+      mcAdd('PC', `⛔ Évacuation close avec ${manquants} personne(s) non retrouvée(s)`, 'crit');
+      logCause(e.zoneManquants || e.zoneId, `Évacuation close alors que ${manquants} personne(s) manquaient à l'appel.`);
+    } else {
+      G.k.evacReussies = (G.k.evacReussies || 0) + 1;
+      mcAdd('PC', `✅ Évacuation terminée, effectif complet${retard}`, retard ? 'warn' : 'ok');
+    }
+  }
+  mcAdd('PC', `🔁 Retour au calme à préparer : réarmement du SSI et réintégration après accord des secours`, 'info');
+  $('evacScreen').classList.remove('open');
+  renderAll();
+}
+
+/* ---------- Écran d'évacuation ---------- */
+function openEvacScreen(){ renderEvac(); $('evacScreen').classList.add('open'); }
+function renderEvac(){
+  const e = G.evac;
+  if(!e){ $('evacScreen').classList.remove('open'); return; }
+  const pct = Math.min(100, Math.round(e.evacues / e.occupants * 100));
+  const dur = (G.t - e.startedAt).toFixed(0);
+  let h = `<div class="evacTop ${e.conforme ? '' : 'bad'}">
+    <div class="evacMeth">${EVAC_METHODES[e.methode].label}${e.conforme ? '' : ' — NON CONFORME'}</div>
+    <div class="evacSub">Origine : ${zoneName(e.zoneId)} · rassemblement : ${e.rassemblement}</div>
+  </div>
+  <div class="evacStats">
+    <div class="es"><div class="esv">${Math.round(e.evacues)}/${e.occupants}</div><div class="esl">ÉVACUÉS</div></div>
+    <div class="es"><div class="esv">${dur}′</div><div class="esl">DURÉE</div></div>
+    <div class="es"><div class="esv">${e.guides.length}</div><div class="esl">GUIDES-FILES</div></div>
+  </div>
+  <div class="zrBar" style="height:8px"><span style="width:${pct}%"></span></div>`;
+
+  if(e.obstacles.length){
+    h += `<div class="matHead">⚠ CE QUI FREINE L'ÉVACUATION</div>
+      <div class="evContent" style="line-height:1.6">${e.obstacles.map(o => `• ${o}`).join('<br>')}</div>`;
+  }
+
+  h += `<div class="matHead">⚡ CONDUITE DE L'ÉVACUATION</div>`;
+  const libres = allStaff().filter(a => !a.guideFile && a.role !== 'stagiaire');
+  h += `<button class="orderBtn ${e.guides.length ? '' : 'warning'}" data-evac="guide" ${libres.length ? '' : 'style="opacity:.35;pointer-events:none"'}>
+    <div class="oi">🦺</div><div class="ol"><b>Désigner un guide-file</b><span>${libres.length ? `${libres.length} agent(s) disponible(s) — accélère fortement le flux` : 'Tous les agents sont engagés'}</span></div></button>`;
+  h += `<button class="orderBtn ${e.comptageAt ? '' : 'primary'}" data-evac="comptage" ${e.comptageAt ? 'style="opacity:.35;pointer-events:none"' : ''}>
+    <div class="oi">📋</div><div class="ol"><b>Comptage au point de rassemblement</b><span>${e.comptageAt ? `Effectué à ${fmtTime(e.comptageAt)}` : 'Possible à partir de 75 % d’évacués'}</span></div></button>`;
+  if(e.manquants > 0 && !e.reconnaissance){
+    h += `<button class="orderBtn danger" data-evac="reco">
+      <div class="oi">🔦</div><div class="ol"><b>Reconnaissance des manquants</b><span>${e.manquants} personne(s) — dernier point connu ${zoneName(e.zoneManquants)}</span></div></button>`;
+  }
+  if(e.reconnaissance && !e.reconnaissance.done){
+    h += `<div class="evContent" style="color:#ffb020">🔦 Reconnaissance en cours sur ${zoneName(e.reconnaissance.zoneId)}…</div>`;
+  }
+  h += `<button class="orderBtn ${pct >= 100 && e.comptageAt && !e.manquants ? 'primary' : ''}" data-evac="fin">
+    <div class="oi">✅</div><div class="ol"><b>Déclarer l'évacuation terminée</b><span>Rendre compte aux secours et préparer le retour au calme</span></div></button>`;
+  $('evacContent').innerHTML = h;
+}
+
 /* ==========================================================
    6 quater. AGENTS EN ATTENTE D'ORDRES
    Un agent qui attend bloque sa ronde : il relance, puis il tranche seul.
@@ -5591,6 +5882,7 @@ function tickV6(){
   if(!G) return;
   tickCoach();
   tickPriseDePoste();
+  tickEvacuation();
   tickRadioFragile();
   tickSecours();
   tickZones();
@@ -5607,6 +5899,9 @@ function updateAlertStrip(){
   const el = $('metaAlert');
   if(!el) return;
   const bits = [];
+  if(G.evac && !G.evac.termine){
+    bits.push(`🚨 ÉVACUATION ${Math.round(G.evac.evacues)}/${G.evac.occupants}`);
+  }
   const pending = G.events.filter(e => !e.resolved && !e.awaitingOrders).length;
   if(pending) bits.push(`🔔 ${pending} alarme(s)`);
   const waiting = awaitingAgents().length;
@@ -5794,6 +6089,22 @@ function handleTap(e){
   if(miniBtn){ resolveMini(+miniBtn.dataset.mini); return; }
   const datBtn = t.closest('[data-dat]');
   if(datBtn){ resolveDAT(+datBtn.dataset.dat); return; }
+  const evacBtn = t.closest('[data-evac]');
+  if(evacBtn && G && G.evac){
+    const k = evacBtn.dataset.evac;
+    if(k === 'comptage'){ faireComptage(); return; }
+    if(k === 'fin'){ finEvacuation(); return; }
+    const dispo = allStaff().filter(a => !a.guideFile && a.role !== 'stagiaire');
+    if(!dispo.length){ toast('Aucun agent disponible', 'bad'); return; }
+    openMini(k === 'guide' ? '🦺 DÉSIGNER UN GUIDE-FILE' : '🔦 RECONNAISSANCE',
+      k === 'guide' ? 'Il prend en charge la circulation vers le point de rassemblement'
+                    : `${G.evac.manquants} personne(s) à retrouver en ${zoneName(G.evac.zoneManquants)}`,
+      dispo.map(a => ({icon:a.avatar, label:a.name,
+        hint:`${a.isRonde ? 'en ronde — sera rappelé' : a.state === 'idle' ? 'disponible' : a.state} · moral ${Math.round(a.moral === undefined ? 60 : a.moral)}`,
+        cls:'primary'})),
+      i => { k === 'guide' ? assignGuide(dispo[i]) : lancerReconnaissance(dispo[i]); openEvacScreen(); });
+    return;
+  }
   const slotBtn = t.closest('[data-slot]');
   if(slotBtn && G){ const [k, id] = slotBtn.dataset.slot.split(':'); openSlot(k, id); return; }
   const shop = t.closest('[data-shop]');
@@ -5871,7 +6182,9 @@ function handleTap(e){
   if(act === 'open-materiel'){ $('actionsScreen').classList.remove('open'); openMateriel(); return; }
   if(act === 'open-sitestate'){ $('actionsScreen').classList.remove('open'); renderSiteState(); $('siteStateScreen').classList.add('open'); return; }
   if(act === 'open-teamstate'){ $('actionsScreen').classList.remove('open'); renderTeamState(); $('teamStateScreen').classList.add('open'); return; }
+  if(act === 'open-evac'){ $('actionsScreen').classList.remove('open'); openEvacScreen(); return; }
   if(act === 'close-teamstate'){ $('teamStateScreen').classList.remove('open'); return; }
+  if(act === 'close-evac'){ $('evacScreen').classList.remove('open'); return; }
   if(act === 'close-sitestate'){ $('siteStateScreen').classList.remove('open'); return; }
   if(act === 'close-materiel'){ $('materielScreen').classList.remove('open'); return; }
   if(act === 'close-mini'){ closeMini(); return; }
