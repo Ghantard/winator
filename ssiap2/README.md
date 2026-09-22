@@ -108,14 +108,17 @@ ratio, pour que la note se lise au lieu de se subir.
   aucun point pour le PCS et un malus d'encadrement, parce que le manquement
   est celui du chef de poste.
 - **Les alarmes interrompent le PCS.** Un départ de feu, une urgence médicale
-  ou un accident du travail ouvre la modale de décision de lui-même, et **le
-  temps continue de courir pendant que vous lisez** : un délai de traitement
-  s'affiche (5 min pour un feu, 6 pour une victime, 15 pour les autres
-  événements). Passé ce délai, l'événement se solde sans vous — sinistre
-  aggravé, victime non prise en charge, reprise en main par le SSIAP 3 — avec
-  une sanction lourde et un compteur « alarmes non traitées » au débriefing.
-  Une alarme qui survient pendant un autre écran est mise en file et s'ouvre
-  dès que le PCS est libre.
+  ou un accident du travail ouvre la modale de décision de lui-même. **La
+  vacation est figée pendant la lecture** : le temps de jeu défile environ une
+  seconde réelle par minute simulée, un décompte à l'écran ne laissait pas le
+  temps de lire la situation. Le délai ne se consomme donc que lorsque l'alarme
+  est laissée de côté, écran fermé (12 min de jeu pour une alarme urgente,
+  25 pour les autres). Passé ce délai, l'événement se solde sans vous —
+  sinistre aggravé, victime non prise en charge, reprise en main par le
+  SSIAP 3 — avec une sanction lourde et un compteur « alarmes non traitées »
+  au débriefing. Une alarme qui survient pendant un autre écran est mise en
+  file et s'ouvre dès que le PCS est libre ; dans la main courante, la carte
+  d'un agent bloqué en attente d'ordres passe devant les alarmes en cours.
 - **La ronde se pilote en cours de route.** Toucher la carte d'un agent en
   ronde donne : dérouter vers une zone (ou directement vers l'alarme en cours),
   rappeler au PCS, reprendre la ronde là où elle a été laissée, détacher le

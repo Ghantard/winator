@@ -274,10 +274,9 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .siteCard .scDesc{font-size:8.5px;color:#7d8fa3;line-height:1.35}
 .siteCard.sel .scName{color:#ff8b7e}
 
-.evDeadline{text-align:center;font-size:12px;font-weight:800;letter-spacing:.6px;
-  padding:8px;border-radius:8px;margin-bottom:10px;color:#ffb020;
-  background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35);
-  font-variant-numeric:tabular-nums}
+.evDeadline{text-align:center;font-size:11.5px;font-weight:800;letter-spacing:.8px;
+  padding:9px;border-radius:8px;margin-bottom:10px;color:#ff8b7e;
+  background:rgba(255,59,48,.12);border:1px solid rgba(255,59,48,.4)}
 .evDeadline.urgent{color:#ff6b5e;background:rgba(255,59,48,.14);
   border-color:rgba(255,59,48,.45);animation:urgent-pulse 1s infinite}
 .evCtx{padding:8px 10px;background:linear-gradient(90deg,rgba(80,140,220,.08),transparent);
@@ -1617,7 +1616,11 @@ function mcAdd(agentId, txt, cls){
 
 function renderMC(force){
   if(!G) return;
-  const active = G.events.filter(e => !e.resolved);
+  /* Un agent bloqué en attente d'ordres passe avant les alarmes en cours :
+     c'est la carte que le chef de poste doit voir en premier. */
+  const active = G.events.filter(e => !e.resolved)
+    .sort((a, b) => (b.awaitingOrders ? 1 : 0) - (a.awaitingOrders ? 1 : 0)
+                 || (a.spawnedAt || 0) - (b.spawnedAt || 0));
   let h = `<div class="mcHead"><span>📋 MAIN COURANTE</span><span>${G.mc.length} entrée(s)</span></div>`;
   for(const ev of active){
     const waiting = ev.awaitingOrders;
@@ -2468,8 +2471,11 @@ function updateDayCycle(){
 function tick(){
   if(!G || G.paused) return;
   if($('mciScreen').classList.contains('open')) return;
-  /* L'écran d'événement ne met PLUS la vacation en pause : le délai de
-     traitement court pendant que le chef de poste décide. */
+  /* Lecture d'une alarme : la vacation est figée. Le décompte ne courait
+     qu'une seconde réelle par minute de jeu, ce qui ne laissait pas le temps
+     de lire la situation. Le délai ne court donc que quand l'écran est fermé,
+     c'est-à-dire quand l'alarme est vraiment laissée de côté. */
+  if($('eventScreen').classList.contains('open')) return;
   if($('qcmScreen').classList.contains('open')) return;
   if($('auditScreen').classList.contains('open')) return;
   if($('debriefScreen').classList.contains('open')) return;
@@ -2541,8 +2547,8 @@ function spawnEvent(evId){
   const urgent = ['feu','medical','at'].includes(ev.type);
   const instance = {...ev, instId: ev.id + '_' + Date.now(), zoneId: z.id, spawnedAt: G.t,
     resolved:false, awaitingOrders:false,
-    urgent, delay: urgent ? (ev.type === 'feu' ? 5 : 6) : 15,
-    deadline: G.t + (urgent ? (ev.type === 'feu' ? 5 : 6) : 15),
+    urgent, delay: urgent ? 12 : 25,
+    deadline: G.t + (urgent ? 12 : 25),
     autoOpen: true, escalated:false};
   G.events.push(instance);
   if(ev.type === 'feu'){ A.alarm(); G.firesThisVacation++; SAVE.stats.fires++; }
@@ -2578,7 +2584,7 @@ function openEventModal(instance){
 function renderEventModal(ev){
   const ctx = `${G.site.icon} ${G.site.name} — ${fmtTime(G.t)} — ${G.shift==='day'?'JOUR':'NUIT'} — ${G.weather.icon} ${G.weather.label}`;
   let h = `<h1>${iconFor(ev.type)} ÉVÉNEMENT</h1><div class="sub">${(ev.type||'anomalie').toUpperCase()}</div>`;
-  if(ev.deadline) h += `<div class="evDeadline" id="evCountdown">⏱ ${Math.max(0, ev.deadline - G.t).toFixed(1)} min pour décider</div>`;
+  if(ev.urgent) h += `<div class="evDeadline">⚠ ALARME EN COURS — DÉCISION ATTENDUE</div>`;
   h += `<div class="evBlock"><div class="evLabel">CONTEXTUALISATION</div>
     <div class="evCtx">${ctx}<br>${ev.ctx||''}</div></div>`;
   h += `<div class="evBlock"><div class="evLabel">ÉVÉNEMENT</div>
@@ -4504,7 +4510,6 @@ function tickEvents(){
     }
     if(ev.deadline && G.t > ev.deadline) escalateEvent(ev);
   }
-  updateEventCountdown();
 }
 
 /* Ne pas décider est une décision : l'événement se solde sans le PCS. */
@@ -4521,10 +4526,10 @@ function escalateEvent(ev){
 
   if(ev.type === 'feu'){
     G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-    mcAdd('PC', `⛔ ${ev.event} NON TRAITÉE dans le délai (${ev.delay} min) — sinistre non levé, situation aggravée`, 'crit');
+    mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — sinistre non levé, situation aggravée`, 'crit');
     mcAdd('S3', `Aucune décision du PCS sur l'alarme ${zoneName(ev.zoneId)}. Je reprends la main — ce sera au débriefing.`, 'crit');
   } else if(ev.type === 'medical' || ev.type === 'at'){
-    mcAdd('PC', `⛔ ${ev.event} NON TRAITÉE dans le délai (${ev.delay} min) — victime sans prise en charge du PCS`, 'crit');
+    mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — victime sans prise en charge`, 'crit');
     mcAdd('S3', `Une victime a attendu. Explique-moi ça à la relève.`, 'crit');
   } else {
     mcAdd('PC', `⛔ ${ev.event} laissée sans suite (${ev.delay} min) — non-conformité`, 'crit');
@@ -4537,17 +4542,6 @@ function escalateEvent(ev){
     G.activeModal = null;
   }
   renderMC(true);
-}
-
-/* Décompte affiché dans la modale d'événement */
-function updateEventCountdown(){
-  const el = $('evCountdown');
-  if(!el) return;
-  const ev = G.activeModal;
-  if(!ev || !ev.deadline){ el.textContent = ''; return; }
-  const left = ev.deadline - G.t;
-  el.textContent = left > 0 ? `⏱ ${left.toFixed(1)} min pour décider` : '⏱ DÉLAI DÉPASSÉ';
-  el.className = 'evDeadline' + (left <= 2 ? ' urgent' : '');
 }
 
 /* ==========================================================
