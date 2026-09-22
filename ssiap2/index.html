@@ -496,6 +496,126 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .statGrid .sg.good .sgv{color:#4ade80}
 .statGrid .sg.mid .sgv{color:#ffb020}
 .statGrid .sg.bad .sgv{color:#ff6b5e}
+
+/* ==========================================================
+   PASSE MOBILE v6.1 — lisibilité et zones tactiles
+   (déclaré en dernier : prévaut sur les règles ci-dessus)
+   ========================================================== */
+
+/* Cases de dotation par agent (registre matériel) */
+.agentKit{border:1px solid rgba(80,110,150,.2);border-radius:10px;padding:10px;margin-bottom:8px;
+  background:linear-gradient(180deg,rgba(22,32,48,.6),rgba(12,18,28,.85))}
+.akHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.akAv{font-size:22px}
+.akName{font-size:13px;font-weight:800;color:#e8f0f8;flex:1}
+.akSlots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.akSlot{min-height:64px;border-radius:9px;padding:7px 5px;cursor:pointer;font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:1px dashed rgba(80,110,150,.35);background:rgba(8,12,20,.6)}
+.akSlot.filled{border-style:solid;border-color:rgba(48,209,88,.45);background:rgba(48,209,88,.09)}
+.akSlot:active{transform:scale(.97)}
+.akSlot .aksIco{font-size:20px;line-height:1}
+.akSlot .aksLab{font-size:8.5px;color:#7d8fa3;font-weight:700;letter-spacing:.3px}
+.akSlot .aksVal{font-size:10px;font-weight:800;color:#e8f0f8;text-align:center;line-height:1.15}
+.akSlot.empty .aksVal{color:#ff8b7e}
+
+/* En-tête : une seule ligne, aucun bouton repoussé hors écran */
+header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
+.brand-text{display:none}
+.sitetag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:132px;flex-shrink:1}
+.shift,.score-pill,.clock{white-space:nowrap;flex-shrink:0}
+.clock{font-size:14px}
+@media (max-width:400px){
+  .score-pill{display:none}
+  .sitetag{max-width:96px}
+  .hbtn{min-width:33px;height:33px;font-size:13px}
+  header{gap:4px;padding:6px}
+}
+
+/* Zones tactiles : 44 px minimum sur tout ce qui se touche */
+.btn-main,.btn-sec,.orderBtn,.evChoice,.qcmA,.mciOption,.shiftBtn,
+.siteCard,.pickerAgent,.shopItem,.skillRow.canbuy{min-height:48px}
+.psBtn,.roundItem .riActions button,.matBtn{min-height:42px;padding:10px 12px}
+.hbtn{min-width:36px;height:36px;font-size:14px}
+.zm{min-height:46px}
+
+/* Tailles de texte lisibles sur téléphone */
+.cd h1{font-size:17px}
+.cd h2{font-size:12.5px}
+.cd .sub{font-size:10px}
+.cd p,.evContent,.matHint{font-size:11px;line-height:1.55}
+.evChoice b{font-size:12px}.evChoice span{font-size:10px}
+.orderBtn{font-size:12px}
+.orderBtn .ol b{font-size:12.5px}
+.orderBtn .ol span{font-size:10px}
+.orderBtn .oi{font-size:20px;width:26px}
+.qcmQ{font-size:12.5px}
+.qcmA,.mciOption{font-size:11.5px}
+.matHead{font-size:10px}
+.matName{font-size:11.5px}
+.matSub{font-size:9.5px}
+.matZones{font-size:9.5px}
+.matIco{font-size:20px;width:28px}
+.mcRow{grid-template-columns:42px 24px 1fr}
+.mcRow .mcTime{font-size:9.5px}
+.mcRow .mcTxt{font-size:10.5px;line-height:1.45}
+.mcEvBtn .mevt{font-size:11.5px}
+.mcEvBtn .mevb{font-size:10px}
+.agent .an{font-size:11.5px}
+.agent .at{font-size:8px}
+.agent .as{font-size:9.5px;min-height:22px}
+.zm .zn{font-size:9px}
+.zm .zf{font-size:7.5px}
+#metaRow{font-size:9.5px;gap:5px}
+#planningStrip .psLabel{font-size:11.5px}
+#planningStrip .psSub{font-size:9.5px}
+#planningStrip .psBtn{font-size:10.5px}
+.roundItem .riName{font-size:12px}
+.roundItem .riTime{font-size:10px}
+.roundItem .riStatus{font-size:10px;line-height:1.45}
+.roundItem .riZones{font-size:9px}
+.roundItem .riActions button{font-size:10px}
+.pickerAgent .paName{font-size:12px}
+.pickerAgent .paSub{font-size:10px;line-height:1.5}
+.siteCard .scName{font-size:13px}
+.siteCard .scDesc{font-size:9.5px}
+.shiftBtn{font-size:11px}
+.shiftBtn span{font-size:9px}
+.axisRow{font-size:11px}
+.achv .aname,.shopItem .siname,.skillBranch h4{font-size:11.5px}
+.achv .adesc,.shopItem .sidesc{font-size:9.5px}
+.skillRow{font-size:10px}
+.tag{font-size:8.5px;padding:2px 6px}
+
+/* Barre des agents : défilement horizontal dès qu'un renfort arrive */
+#agents{overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+#agents::-webkit-scrollbar{display:none}
+.agent{flex:0 0 auto;min-width:148px;max-width:200px;scroll-snap-align:start}
+.agent .an{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent .at{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent .as{white-space:normal;line-height:1.3;max-height:2.6em;overflow:hidden}
+
+/* Fenêtres : hauteur réelle du viewport mobile et encoches */
+.ov{padding:10px;align-items:flex-start}
+.cd{max-height:none;height:auto;margin:auto 0;-webkit-overflow-scrolling:touch;
+  max-height:calc(100dvh - 20px);
+  padding-bottom:max(16px,env(safe-area-inset-bottom));
+  scrollbar-width:none}
+.cd::-webkit-scrollbar{display:none}
+
+/* Notification : en bas, hors des titres et de l'encoche */
+#toast{top:auto;bottom:max(14px,env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(160%);font-size:11.5px;padding:12px 16px}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Écrans très étroits */
+@media (max-width:360px){
+  .akSlots{grid-template-columns:repeat(3,1fr);gap:4px}
+  .akSlot{min-height:58px}
+  .akSlot .aksVal{font-size:9px}
+  .cd{padding:14px 11px}
+}
 </style>
 </head>
 <body>
@@ -1338,7 +1458,8 @@ function updateAges(){
 
 function zoneName(id){
   const z = G.site.zones.find(z=>z.id===id);
-  return z ? z.name : id;
+  if(z) return z.name;
+  return id === 'pcs' ? 'PCS' : id;
 }
 
 /* ==========================================================
@@ -1400,7 +1521,7 @@ function renderPlanningStrip(){
     btn = `<button class="psBtn assign" data-act="open-picker" data-round="${next.id}">Assigner</button>`;
   }
 
-  const stripKey = G.materiel ? ` · 🔑 ${keyHint(next)}` : '';
+  const stripKey = G.materiel ? ` · ${keyHint(next)}` : '';
 
   strip.innerHTML = `<div class="psInner">
     <div class="psIcon">${ROUND_TYPES[next.type].icon}</div>
@@ -1494,12 +1615,12 @@ function renderPlanning(){
         const held = agentKey(agent);
         const nOut = uncoveredPoints(agent, r).length;
         keyTxt = nOut
-          ? `<span style="color:#ff6b5e">🔑 ${held ? held.id + ' insuffisant' : 'aucun trousseau'} — ${nOut} point(s) non ouvrable(s) · remettre ${hint}</span>`
-          : `<span style="color:#4ade80">🔑 ${held.id} — tous les points ouvrables</span>`;
+          ? `<span style="color:#ff6b5e">${held ? held.icon + ' ' + held.name + ' insuffisant' : '🔑 aucun trousseau'} — ${nOut} point(s) non ouvrable(s) · remettre ${hint}</span>`
+          : `<span style="color:#4ade80">${held.icon} ${held.name} — tous les points ouvrables</span>`;
         const miss = [!agentRadio(agent) ? 'radio' : '', !agentBadge(agent) ? 'badge' : ''].filter(Boolean);
         if(miss.length) keyTxt += `<br><span style="color:#ff6b5e">⚠ ${agent.name} sans ${miss.join(' ni ')}</span>`;
       } else {
-        keyTxt = `<span style="color:#ffb020">🔑 Trousseau à prévoir : ${hint}</span>`;
+        keyTxt = `<span style="color:#ffb020">Trousseau à prévoir : ${hint}</span>`;
       }
     }
 
@@ -1524,7 +1645,7 @@ function openPicker(roundId){
   const r = G.rounds.find(x => x.id === roundId);
   if(!r) return;
   $('pickerSub').textContent = `${r.id} · ${ROUND_TYPES[r.type].name} à ${fmtTime(r.time)} (tol. ±${r.tolerance}min)`;
-  let h = `<div class="matHint">🔑 Trousseau nécessaire pour cette ronde : <b style="color:#e8f0f8">${keyHint(r)}</b> — zones : ${[...new Set(r.points.map(p=>p.zoneId))].map(z=>zoneName(z)).join(' · ')}</div>`;
+  let h = `<div class="matHint">Trousseau de cette ronde : <b style="color:#e8f0f8">${keyHint(r)}</b> — zones : ${[...new Set(r.points.map(p=>p.zoneId))].map(z=>zoneName(z)).join(' · ')}</div>`;
   for(const a of [...G.agents, ...(G.stagiaire?[G.stagiaire]:[])]){
     const busy = a.state !== 'idle' && a.state !== 'pause';
     const onRound = a.isRonde || a.currentRoundId;
@@ -1539,7 +1660,7 @@ function openPicker(roundId){
       const held = agentKey(a);
       const nOut = uncoveredPoints(a, r).length;
       const kit = [agentRadio(a) ? '📻' : '', agentBadge(a) ? '📇' : ''].filter(Boolean).join(' ');
-      sub += `<br><span style="color:${nOut ? '#ff6b5e' : '#4ade80'}">${held ? held.id : 'sans trousseau'}${nOut ? ` · ${nOut} point(s) non ouvrable(s)` : ' · ronde couverte'}</span>`
+      sub += `<br><span style="color:${nOut ? '#ff6b5e' : '#4ade80'}">${held ? held.icon + ' ' + held.name : 'sans trousseau'}${nOut ? ` · ${nOut} point(s) non ouvrable(s)` : ' · ronde couverte'}</span>`
         + `<span style="color:#7d8fa3"> ${kit}${(!agentRadio(a) || !agentBadge(a)) ? ' <b style="color:#ff6b5e">dotation incomplète</b>' : ''}</span>`;
     }
     h += `<div class="pickerAgent ${dis?'disabled':''}" data-pick-agent="${a.id}">
@@ -1574,6 +1695,7 @@ function assignRound(roundId, agentId){
   if(!a) return;
   r.assignedAgentId = agentId;
   mcAdd('PC', `📌 ${r.id} (${ROUND_TYPES[r.type].name}) → ${a.name}`, 'round');
+  equipForRound(a, r);
   toast(`${r.id} → ${a.name}`, 'info');
   renderPlanningStrip();
   if($('planningScreen').classList.contains('open')) renderPlanning();
@@ -1604,6 +1726,7 @@ function startRoundForAgent(agent, round){
   agent.workTime = 2 + Math.random()*2;
   round.status = 'running';
   round.startedAt = G.t;
+  equipForRound(agent, round);
   checkDotation(agent, round);
   if(round.wantBinome && G.stagiaire && G.stagiaire.state === 'idle') attachBinome(round, agent);
 
@@ -1995,7 +2118,8 @@ function renderAgents(){
     if(a.state === 'binome') st = `🎓 Binôme — ${zoneName(a.pos)}`;
     if(G.materiel){
       const kit = [agentRadio(a)?'📻':'', agentBadge(a)?'📇':'', agentKey(a)?agentKey(a).icon:''].filter(Boolean).join('');
-      st += kit ? ' · ' + kit : ' · ⛔ sans dotation';
+      if(kit) st += ' · ' + kit;
+      else if(a.isRonde) st += ' · ⛔ sans dotation';
     }
     const ef = a.fatigue < 30 ? 'ok' : a.fatigue < 60 ? 'warn' : 'crit';
     const eW = 100 - a.fatigue;
@@ -3050,13 +3174,13 @@ function buildKeySets(site){
   const uniq = a => [...new Set(a)];
   const all = site.zones.map(z => z.id);
   return [
-    {id:'TR-A', icon:'🔑', name:'Trousseau A', desc:'Circulations & locaux recevant du public',
-     zones: uniq([...(rz.ssi||[]), 'pcs']), holder:null},
-    {id:'TR-B', icon:'🗝', name:'Trousseau B', desc:'Locaux techniques & gaines',
-     zones: uniq([...(rz.technique||[]), 'pcs']), holder:null},
-    {id:'TR-C', icon:'🔐', name:'Trousseau C', desc:'Accès, extérieurs & parkings',
-     zones: uniq([...(rz.surveillance||[]), 'pcs']), holder:null},
-    {id:'PG', icon:'🧿', name:'Passe général', desc:'Ouvre tout — remise exceptionnelle et tracée',
+    {id:'CLE-SSI', icon:'🔥', name:'Clés SSI', desc:'Pour les rondes SSI',
+     forType:'ssi', zones: uniq([...(rz.ssi||[]), 'pcs']), holder:null},
+    {id:'CLE-TECH', icon:'⚙', name:'Clés techniques', desc:'Pour les rondes techniques',
+     forType:'technique', zones: uniq([...(rz.technique||[]), 'pcs']), holder:null},
+    {id:'CLE-ACCES', icon:'👁', name:'Clés accès', desc:'Pour les rondes de surveillance',
+     forType:'surveillance', zones: uniq([...(rz.surveillance||[]), 'pcs']), holder:null},
+    {id:'PASSE', icon:'🧿', name:'Passe général', desc:'Ouvre tout le site — pour ouverture et fermeture',
      zones: uniq([...all, 'pcs']), holder:null, master:true},
   ];
 }
@@ -3081,24 +3205,80 @@ function matFind(kind, id){ return G.materiel[kind].find(x => x.id === id); }
 function matHolderItem(kind, agentId){ return G.materiel[kind].find(x => x.holder === agentId); }
 function matLog(txt){ G.materiel.log.push({t:G.t, txt}); }
 
+/* Remise élémentaire, sans message : utilisée par la remise manuelle
+   et par la dotation automatique au départ en ronde. */
+function giveItem(kind, it, ag){
+  const prev = matHolderItem(kind, ag.id);
+  if(prev) prev.holder = null;
+  it.holder = ag.id;
+  matLog(`Remise ${it.id} → ${ag.name}`);
+  if(it.master){
+    G.materiel.pgIssues++;
+    G.debrief.materiel -= 1;
+  } else {
+    G.debrief.materiel += 1;
+  }
+}
 function issueItem(kind, itemId, agentId){
   const it = matFind(kind, itemId);
   const ag = allStaff().find(a => a.id === agentId);
   if(!it || !ag) return;
-  if(it.holder){ toast('Déjà en dotation', 'bad'); return; }
-  const prev = matHolderItem(kind, agentId);
-  if(prev) prev.holder = null;
-  it.holder = agentId;
-  matLog(`Remise ${it.id} → ${ag.name}`);
-  mcAdd('PC', `📦 Registre matériel : ${it.icon} ${it.id} remis à ${ag.name}`, 'action');
-  if(it.master){
-    G.materiel.pgIssues++;
-    G.debrief.materiel -= 1;
-    mcAdd('PC', `⚠ Remise du passe général — usage à justifier au SSIAP 3`, 'warn');
-  } else {
-    G.debrief.materiel += 1;
+  if(it.holder && it.holder !== agentId){
+    const other = allStaff().find(a => a.id === it.holder);
+    toast(`${it.name} déjà porté par ${other ? other.name : 'un agent'}`, 'bad');
+    return;
   }
+  giveItem(kind, it, ag);
+  mcAdd('PC', `📦 ${it.icon} ${it.name} remis à ${ag.name}`, 'action');
+  if(it.master) mcAdd('PC', `⚠ Passe général remis à ${ag.name} — usage à justifier au SSIAP 3`, 'warn');
   A.click();
+  renderMateriel();
+}
+
+/* Le trousseau adapté à une ronde : celui de son type, le passe pour
+   les rondes d'ouverture et de fermeture qui balaient tout le site. */
+function keyForRound(round){
+  const keys = G.materiel.keys;
+  const byType = keys.find(k => k.forType === round.type);
+  if(byType) return byType;
+  return keys.find(k => k.master) || null;
+}
+
+/* Dotation automatique au moment d'envoyer un agent en ronde :
+   radio + badge + trousseau adapté, avec repli sur le passe général.
+   Ne retire jamais le matériel d'un autre agent. */
+function equipForRound(agent, round){
+  const given = [], missing = [];
+  if(!agentRadio(agent)){
+    const r = G.materiel.radios.find(x => !x.holder);
+    if(r){ giveItem('radios', r, agent); given.push(`${r.icon} ${r.id}`); }
+    else missing.push('radio VHF');
+  }
+  if(!agentBadge(agent)){
+    const b = G.materiel.badges.find(x => !x.holder);
+    if(b){ giveItem('badges', b, agent); given.push(`${b.icon} ${b.id}`); }
+    else missing.push('badge de pointage');
+  }
+  if(uncoveredPoints(agent, round).length){
+    const want = keyForRound(round);
+    const pass = G.materiel.keys.find(k => k.master);
+    let k = null;
+    if(want && (!want.holder || want.holder === agent.id)) k = want;
+    else if(pass && (!pass.holder || pass.holder === agent.id)) k = pass;
+    if(k){
+      giveItem('keys', k, agent);
+      given.push(`${k.icon} ${k.name}`);
+      if(k.master && want) mcAdd('PC', `🔑 ${want.name} indisponible — ${agent.name} part avec le passe général`, 'warn');
+    } else {
+      missing.push(want ? want.name : 'trousseau');
+    }
+  }
+  if(given.length) mcAdd('PC', `📦 Dotation de ${agent.name} : ${given.join(' + ')}`, 'action');
+  renderAgents();
+  if(missing.length){
+    mcAdd('PC', `⚠ ${agent.name} part sans ${missing.join(' ni ')} — râtelier vide, matériel à récupérer sur un autre agent`, 'crit');
+    toast(`${agent.name} : ${missing.join(', ')} manquant(s)`, 'bad');
+  }
   renderMateriel();
 }
 function returnItem(kind, itemId){
@@ -3143,12 +3323,10 @@ function keysForRound(round){
   }
   return { ids: chosen.map(k => k.id), single:false, missing:rest };
 }
-/* Libellé court du trousseau à remettre pour une ronde */
+/* Libellé du trousseau à remettre pour une ronde */
 function keyHint(round){
-  const need = keysForRound(round);
-  if(need.single) return need.ids.join(' ou ');
-  if(need.missing.length) return 'PG (passe général)';
-  return need.ids.join(' + ') + ' → PG';
+  const k = keyForRound(round);
+  return k ? `${k.icon} ${k.name}` : 'passe général';
 }
 /* Points d'une ronde que le trousseau d'un agent n'ouvre pas */
 function uncoveredPoints(agent, round){
@@ -3163,37 +3341,89 @@ function keyCovers(agent, zoneId){
 function renderMateriel(){
   if(!G) return;
   const staff = allStaff();
-  const line = (kind, it) => {
-    const h = it.holder ? staff.find(a => a.id === it.holder) : null;
-    const zoneList = kind === 'keys'
-      ? it.zones.filter(z => z !== 'pcs').map(z => zoneName(z)).join(' · ')
-      : '';
-    const extra = kind === 'keys'
-      ? `${it.zones.filter(z=>z!=='pcs').length} zones ouvrables`
-      : (kind === 'radios' ? `Batterie ${it.battery}%` : it.desc);
-    return `<div class="matRow ${h?'held':''}">
-      <div class="matIco">${it.icon}</div>
+  const kinds = [
+    {k:'keys',   label:'Trousseau', icon:'🔑'},
+    {k:'radios', label:'Radio VHF', icon:'📻'},
+    {k:'badges', label:'Badge',     icon:'📇'},
+  ];
+
+  let h = `<div class="matHint">Chaque agent part en ronde avec <b style="color:#e8f0f8">une radio, un badge et le trousseau du type de ronde</b>. La dotation est faite automatiquement quand vous affectez une ronde — touchez une case pour la changer.</div>`;
+
+  h += `<div class="matHead">👥 DOTATION DES AGENTS</div>`;
+  for(const a of staff){
+    h += `<div class="agentKit">
+      <div class="akHead"><span class="akAv">${a.avatar}</span>
+        <span class="akName">${a.name}</span>
+        <span class="tag ${a.role === 'stagiaire' ? 'stag' : 'n1'}">${a.role === 'stagiaire' ? 'STAGIAIRE' : 'SSIAP 1'}</span></div>
+      <div class="akSlots">`;
+    for(const kd of kinds){
+      const it = matHolderItem(kd.k, a.id);
+      h += `<button class="akSlot ${it ? 'filled' : 'empty'}" data-slot="${kd.k}:${a.id}">
+        <span class="aksIco">${it ? it.icon : kd.icon}</span>
+        <span class="aksLab">${kd.label}</span>
+        <span class="aksVal">${it ? (kd.k === 'keys' ? it.name : it.id) : 'vide'}</span>
+      </button>`;
+    }
+    h += `</div></div>`;
+  }
+
+  h += `<div class="matHead">🔑 CE QUE CHAQUE TROUSSEAU OUVRE</div>`;
+  for(const k of G.materiel.keys){
+    const holder = k.holder ? staff.find(a => a.id === k.holder) : null;
+    h += `<div class="matRow ${holder ? 'held' : ''}">
+      <div class="matIco">${k.icon}</div>
       <div class="matInfo">
-        <div class="matName">${it.id} — ${it.name}${it.master?' <span class="tag stag">PG</span>':''}</div>
-        <div class="matSub">${it.desc}${kind==='keys'?' · '+extra:''}</div>
-        ${zoneList ? `<div class="matZones">🔓 ${zoneList}</div>` : ''}
-        <div class="matSub">${h ? '👤 En dotation : <b style="color:#ffb020">'+h.name+'</b>' : '<span style="color:#4ade80">Au râtelier PCS</span>'}</div>
-      </div>
-      <div class="matBtns">
-        ${h ? `<button class="matBtn back" data-mat="ret:${kind}:${it.id}">RESTITUER</button>`
-            : staff.map(a => `<button class="matBtn" data-mat="iss:${kind}:${it.id}:${a.id}">${a.avatar}</button>`).join('')}
+        <div class="matName">${k.name}${k.master ? ' <span class="tag stag">EXCEPTIONNEL</span>' : ''}</div>
+        <div class="matSub">${k.desc}</div>
+        <div class="matZones">🔓 ${k.zones.filter(z => z !== 'pcs').map(z => zoneName(z)).join(' · ')}</div>
+        <div class="matSub">${holder ? '👤 Porté par <b style="color:#ffb020">' + holder.name + '</b>' : '<span style="color:#4ade80">Au râtelier PCS</span>'}</div>
       </div>
     </div>`;
-  };
-  let h = `<div class="matHint">Tout départ en ronde impose radio VHF + badge de pointage + trousseau couvrant les zones contrôlées. Une erreur de remise de clé = porte non ouverte et perte de temps terrain.</div>`;
-  h += `<div class="matHead">🔑 TROUSSEAUX</div>` + G.materiel.keys.map(i => line('keys', i)).join('');
-  h += `<div class="matHead">📻 RADIOS VHF</div>` + G.materiel.radios.map(i => line('radios', i)).join('');
-  h += `<div class="matHead">📇 BADGES DE POINTAGE</div>` + G.materiel.badges.map(i => line('badges', i)).join('');
-  h += `<div class="matHead">📒 REGISTRE D'EMPRUNT</div><div class="evContent" style="font-size:8.5px;line-height:1.5;max-height:120px;overflow:auto">`;
-  h += (G.materiel.log.length ? G.materiel.log.slice(-14).map(l => `${fmtTime(l.t)} — ${l.txt}`).join('<br>') : 'Aucun mouvement enregistré.');
+  }
+
+  const freeR = G.materiel.radios.filter(x => !x.holder).length;
+  const freeB = G.materiel.badges.filter(x => !x.holder).length;
+  h += `<div class="matHead">📦 RÂTELIER PCS</div>
+    <div class="evContent" style="line-height:1.6">
+      📻 Radios disponibles : <b style="color:${freeR ? '#4ade80' : '#ff6b5e'}">${freeR}/${G.materiel.radios.length}</b><br>
+      📇 Badges disponibles : <b style="color:${freeB ? '#4ade80' : '#ff6b5e'}">${freeB}/${G.materiel.badges.length}</b>
+    </div>`;
+
+  h += `<div class="matHead">📒 REGISTRE D'EMPRUNT</div>
+    <div class="evContent" style="line-height:1.5;max-height:130px;overflow:auto">`;
+  h += (G.materiel.log.length ? G.materiel.log.slice(-14).reverse().map(l => `${fmtTime(l.t)} — ${l.txt}`).join('<br>') : 'Aucun mouvement enregistré.');
   h += `</div>`;
   $('materielContent').innerHTML = h;
 }
+
+/* Touche sur une case de dotation : choisir un matériel ou le restituer */
+function openSlot(kind, agentId){
+  const ag = allStaff().find(a => a.id === agentId);
+  if(!ag) return;
+  const held = matHolderItem(kind, agentId);
+  const label = kind === 'keys' ? 'TROUSSEAU' : kind === 'radios' ? 'RADIO VHF' : 'BADGE DE POINTAGE';
+  const opts = [];
+  const acts = [];
+  if(held){
+    opts.push({icon:'📥', label:`Restituer ${kind === 'keys' ? held.name : held.id}`, hint:'Retour au râtelier PCS', cls:''});
+    acts.push(() => returnItem(kind, held.id));
+  }
+  for(const it of G.materiel[kind]){
+    if(it.holder === agentId) continue;
+    const other = it.holder ? allStaff().find(a => a.id === it.holder) : null;
+    const zones = kind === 'keys' ? it.zones.filter(z => z !== 'pcs').map(z => zoneName(z)).join(' · ') : it.desc;
+    opts.push({
+      icon: it.icon,
+      label: kind === 'keys' ? it.name : `${it.id} — ${it.name}`,
+      hint: other ? `Porté par ${other.name}` : zones,
+      cls: other ? '' : 'primary',
+      disabled: !!other,
+    });
+    acts.push(() => issueItem(kind, it.id, agentId));
+  }
+  openMini(`${ag.avatar} ${ag.name}`, label, opts, i => { if(acts[i]) acts[i](); setTimeout(renderMateriel, 60); });
+}
+
 function openMateriel(){ if(!G) return; renderMateriel(); $('materielScreen').classList.add('open'); }
 
 /* Contrôle de dotation au départ d'une ronde */
@@ -3681,6 +3911,8 @@ function handleTap(e){
   if(miniBtn){ resolveMini(+miniBtn.dataset.mini); return; }
   const datBtn = t.closest('[data-dat]');
   if(datBtn){ resolveDAT(+datBtn.dataset.dat); return; }
+  const slotBtn = t.closest('[data-slot]');
+  if(slotBtn && G){ const [k, id] = slotBtn.dataset.slot.split(':'); openSlot(k, id); return; }
   const matBtn = t.closest('[data-mat]');
   if(matBtn){
     const p = matBtn.dataset.mat.split(':');

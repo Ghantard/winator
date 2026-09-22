@@ -16,15 +16,18 @@ progression est sauvegardée dans le `localStorage`).
 
 ## Moteur v6 — ce qui a été ajouté
 
-- **Registre matériel PCS** : 4 trousseaux (dont passe général tracé), 3 VHF,
-  3 badges de pointage. Dotation et restitution nominatives, journal d'emprunt.
-  Un trousseau inadapté = porte verrouillée, 6 minutes perdues et point de ronde
-  non contrôlé ; un départ sans radio coupe la liaison terrain ; un départ sans
-  badge rend le pointage quasi impossible ; le matériel non restitué à la relève
-  est sanctionné. Le registre liste les zones ouvertes par chaque trousseau, et
-  le planning, le bandeau de ronde et l'écran d'affectation indiquent le
-  trousseau nécessaire, les points que la dotation de l'agent n'ouvre pas et les
-  radios ou badges manquants.
+- **Registre matériel PCS** : trousseaux nommés par usage (🔥 Clés SSI, ⚙ Clés
+  techniques, 👁 Clés accès, 🧿 Passe général pour l'ouverture et la fermeture),
+  3 VHF et 3 badges de pointage. Le registre se lit par agent : trois cases
+  (trousseau / radio / badge) que l'on touche pour équiper ou restituer, et la
+  liste des zones qu'ouvre chaque trousseau. **La dotation est automatique à
+  l'affectation d'une ronde** : radio, badge et trousseau du type de ronde, avec
+  repli sur le passe général si le trousseau est déjà porté (repli tracé et
+  compté au débriefing). Le jeu reste tendu par la rareté : deux rondes du même
+  type en parallèle, un râtelier vide, et le PCS doit arbitrer. Les conséquences
+  demeurent : trousseau inadapté = porte verrouillée, 6 minutes perdues et point
+  non contrôlé ; départ sans radio = liaison terrain coupée ; sans badge le
+  pointage échoue ; matériel non restitué à la relève = sanction.
 - **Modes dégradés** : coupure secteur (bascule groupe électrogène à confirmer
   sous 3 min), panne du relais VHF (messages brouillés, liaison téléphonique de
   secours à activer), panne de détection sur une zone (mesures compensatoires :
@@ -53,6 +56,15 @@ progression est sauvegardée dans le `localStorage`).
   devenait `NaN` et plus aucun événement ne se déclenchait après le premier.
 - Ajout du CSS manquant de `.orderBtn` et d'un ordre d'empilement explicite des
   overlays.
+
+## Interface mobile
+
+Conçue pour le téléphone : en-tête tenant sur une ligne quelle que soit la
+largeur, zones tactiles d'au moins 42 px, textes agrandis, fenêtres calées sur
+la hauteur réelle du viewport (`dvh`) et les encoches (`safe-area-inset`),
+notifications déplacées en bas hors des titres, barre des agents défilable
+horizontalement dès l'arrivée d'un renfort. Vérifié de 360 à 430 px de large
+sans débordement horizontal.
 
 ## Tests
 
