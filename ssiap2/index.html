@@ -272,6 +272,9 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
 .siteCard .scInfo{flex:1;min-width:0}
 .siteCard .scName{font-size:12px;font-weight:800;color:#e8f0f8;margin-bottom:3px;letter-spacing:.2px}
 .siteCard .scDesc{font-size:8.5px;color:#7d8fa3;line-height:1.35}
+.siteCard .scState{font-size:9.5px;color:#5a6b7d;margin-top:3px;font-weight:700}
+.siteCard .scState.ok{color:#4ade80}
+.siteCard .scState.bad{color:#ffb020}
 .siteCard.sel .scName{color:#ff8b7e}
 
 .evDeadline{text-align:center;font-size:11.5px;font-weight:800;letter-spacing:.8px;
@@ -947,7 +950,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
     <h1 id="miniTitle">—</h1>
     <div class="sub" id="miniSub">—</div>
     <div id="miniContent"></div>
-    <button class="btn-sec" data-act="close-mini">ANNULER</button>
+    <button class="btn-sec" data-act="close-mini" id="miniClose">ANNULER</button>
   </div>
 </div>
 
@@ -1481,6 +1484,12 @@ function renderSiteGrid(){
       <div class="scInfo">
         <div class="scName">${s.name} — ${s.subtitle}</div>
         <div class="scDesc">${s.zones.length} zones · ${s.zones.map(z=>z.floor).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}</div>
+      ${(() => {
+        const sum = siteStateSummary(k);
+        return sum
+          ? `<div class="scState ${sum.sain ? 'ok' : 'bad'}">${sum.sain ? '✅' : '⚠'} ${sum.txt} · ${sum.vacations} vacation(s)</div>`
+          : `<div class="scState">Jamais tenu</div>`;
+      })()}
       </div>
     </div>`;
   }
@@ -1614,6 +1623,7 @@ function startGame(){
   G.zones = initZones(site);
   G.ledger = [];
   G.sinistres = [];
+  G.demandes = [];
   G.deg = initDegraded();
   G.ssi = initSSI();
   G.rh = initRH();
@@ -1642,6 +1652,9 @@ function startGame(){
     const hiddenCount = G.rounds.reduce((sum,r) => sum + r.points.filter(p=>p.hidden).length, 0);
     mcAdd('PC', `🌙 Mode nuit : ${hiddenCount} points cachés à détecter`, 'info');
   }
+
+  /* Le site rend compte de ce que la vacation précédente a laissé. */
+  showPassation(applySiteState(G.siteId));
 
   renderAll();
   timer = setInterval(tick, TICK);
@@ -3398,6 +3411,8 @@ function endVacation(){
     SAVE.stagiaires[G.stagiaire.id] = sd;
   }
 
+  saveSiteState();
+
   SAVE.vacations++;
   SAVE.xp += xpGain;
   SAVE.rhScore += G.debrief.rh;
@@ -3483,6 +3498,10 @@ function endVacation(){
         ? risques.map(x => `<div><b style="color:${x.r >= 60 ? '#ff6b5e' : '#ffb020'}">${x.z.name} (${x.r}/100)</b> — ${x.c.join(', ')}</div>`).join('')
         : 'Aucune zone laissée en situation à risque.'}
       ${(G.k.propagations || 0) ? `<div style="color:#ff6b5e;margin-top:6px"><b>${G.k.propagations} propagation(s) de sinistre</b> — compartimentage non tenu</div>` : ''}
+      <div style="margin-top:7px;color:#7d8fa3;font-size:9.5px">
+        Cet état est transmis à la relève : ${G.ssi.inhibited.length} inhibition(s), ${defautsLaisses} anomalie(s) non traitée(s)
+        et ${(G.demandes || []).length} demande(s) de maintenance en cours seront retrouvées à la prochaine vacation sur ce site.
+      </div>
     </div>`;
 
   h += `<h2>🔧 MODES DÉGRADÉS & SSI</h2>
@@ -3786,8 +3805,9 @@ function togglePause(){
 
 /* ---------- Écran générique (mini-modale à choix) ---------- */
 let miniHandler = null;
-function openMini(title, sub, options, handler){
+function openMini(title, sub, options, handler, closeLabel){
   miniHandler = handler;
+  $('miniClose').textContent = closeLabel || 'ANNULER';
   $('miniTitle').textContent = title;
   $('miniSub').textContent = sub || '';
   $('miniContent').innerHTML = options.map((o,i) =>
@@ -4559,6 +4579,7 @@ function initZones(site){
       compartimentage: 1,     // 1 intact, 0 percé (porte calée non traitée)
       travaux: false,         // permis de feu en cours
       defauts: [],            // anomalies laissées en l'état
+      enAttente: [],          // anomalies dont l'intervention est demandée
       feu: null,              // { stage, since, detected, controlled }
     };
   }
@@ -4575,7 +4596,10 @@ function zoneDetection(id){
 function zoneRisk(id){
   const z = G.zones[id];
   if(!z) return 0;
-  let r = z.charge * 7 + z.encombrement * 12 + z.defauts.length * 13;
+  /* Une anomalie dont l'intervention est demandée pèse moitié moins :
+     le PCS a fait ce qui était de son ressort, mais elle est toujours là. */
+  const enAttente = (z.enAttente || []).filter(d => z.defauts.includes(d)).length;
+  let r = z.charge * 7 + z.encombrement * 12 + (z.defauts.length - enAttente) * 13 + enAttente * 6;
   if(z.travaux) r += 26;
   if(zoneDetection(id) !== 'service') r += 16;
   if(!z.compartimentage) r += 13;
@@ -4594,7 +4618,9 @@ function zoneRiskCauses(id){
   if(z.encombrement >= 2) c.push('accès très encombré');
   else if(z.encombrement === 1) c.push('accès encombré');
   if(z.charge >= 2) c.push('forte charge calorifique');
-  for(const d of z.defauts) c.push(`« ${d} » non traité`);
+  for(const d of z.defauts){
+    c.push((z.enAttente || []).includes(d) ? `« ${d} » en attente d'intervention` : `« ${d} » non traité`);
+  }
   return c;
 }
 
@@ -4613,8 +4639,19 @@ function applyZoneEffect(ev, act){
   const z = G.zones[ev.zone];
   if(!z) return;
   const good = (act.s || 0) >= 6 && act.k !== 'danger';
-  if(good){
+  /* Faire intervenir un tiers n'est pas réparer : l'anomalie reste jusqu'à
+     la venue de la maintenance, mais le PCS a fait sa part. */
+  const delegue = /maintenance|astreinte|repère|prestataire/i.test(act.l);
+  if(good && delegue){
+    zoneAddDefect(ev.zone, ev.title);
+    if(!z.enAttente.includes(ev.title)) z.enAttente.push(ev.title);
+    if(!G.demandes.some(d => d.zone === ev.zone && d.label === ev.title)){
+      G.demandes.push({ zone:ev.zone, label:ev.title, reste:2 });
+      mcAdd('PC', `🛠 Demande d'intervention déposée : « ${ev.title} » en ${zoneName(ev.zone)} — sous 2 vacations`, 'info');
+    }
+  } else if(good){
     zoneClearDefect(ev.zone, ev.title);
+    z.enAttente = z.enAttente.filter(d => d !== ev.title);
     if(/dégager|désobstru/i.test(act.l)) z.encombrement = Math.max(0, z.encombrement - 1);
     if(/cale/i.test(act.l)) z.compartimentage = 1;
   } else {
@@ -4835,8 +4872,8 @@ function declareSinistre(zoneId, motif){
   mcAdd('PC', `⛔ SINISTRE MAJEUR — ${zoneName(zoneId)} : ${motif}`, 'crit');
   mcAdd('S3', `Le sinistre est hors de notre capacité d'intervention. La commission de sécurité sera saisie.`, 'crit');
   openMini('⛔ SINISTRE MAJEUR', `${zoneName(zoneId)} — ${motif}`, [
-    {icon:'📋', label:'Prendre acte', hint:'La chronologie sera examinée à la relève', cls:'danger'},
-  ], () => {});
+    {icon:'📋', label:'La chronologie sera examinée à la relève', hint:'', cls:'danger'},
+  ], () => {}, 'PRENDRE ACTE');
   renderMC(true);
 }
 
@@ -4993,6 +5030,130 @@ function stagiaireVerdict(){
       : { ok:false, txt:`${st.name} n'est pas prêt : ${total}/100 après ${vac} vacations. L'encadrement n'a pas suivi.` };
   }
   return { total, vac, stressMoyen, verdict };
+}
+
+
+/* ==========================================================
+   ======= PERSISTANCE DU SITE ENTRE LES VACATIONS ==========
+   Ce que la vacation laisse derrière elle, la suivante le trouve :
+   anomalies non traitées, zones inhibées, demandes de maintenance
+   en cours. Un site se dégrade ou se redresse d'un poste à l'autre.
+   ========================================================== */
+function siteState(siteId){
+  if(!SAVE.sites) SAVE.sites = {};
+  if(!SAVE.sites[siteId]) SAVE.sites[siteId] = { vacations:0, zones:{}, inhibitions:[], demandes:[], dernierSinistre:null };
+  return SAVE.sites[siteId];
+}
+
+/* Résumé court pour l'écran de choix du site */
+function siteStateSummary(siteId){
+  const st = SAVE.sites && SAVE.sites[siteId];
+  if(!st || !st.vacations) return null;
+  const defauts = Object.values(st.zones).reduce((n, z) => n + (z.defauts ? z.defauts.length : 0), 0);
+  const bits = [];
+  if(st.inhibitions.length) bits.push(`${st.inhibitions.length} zone(s) inhibée(s)`);
+  if(defauts) bits.push(`${defauts} anomalie(s) non traitée(s)`);
+  if(st.demandes.length) bits.push(`${st.demandes.length} maintenance(s) attendue(s)`);
+  return { vacations:st.vacations, txt: bits.length ? bits.join(' · ') : 'site en ordre', sain: !bits.length };
+}
+
+/* Entre deux vacations, la maintenance passe — si elle a été demandée */
+function runMaintenance(siteId){
+  const st = siteState(siteId);
+  const faites = [];
+  st.demandes = st.demandes.filter(d => {
+    d.reste--;
+    if(d.reste > 0) return true;
+    const z = st.zones[d.zone];
+    if(z && z.defauts){
+      z.defauts = z.defauts.filter(x => x !== d.label);
+      z.enAttente = (z.enAttente || []).filter(x => x !== d.label);
+    }
+    faites.push(d);
+    return false;
+  });
+  return faites;
+}
+
+/* Reprise de l'état du site au début de la vacation */
+function applySiteState(siteId){
+  const st = siteState(siteId);
+  const faites = runMaintenance(siteId);
+  const repris = { inhibitions:[], defauts:[], maintenance:faites };
+
+  for(const zid in st.zones){
+    if(!G.zones[zid]) continue;
+    const src = st.zones[zid];
+    G.zones[zid].encombrement = src.encombrement || 0;
+    G.zones[zid].compartimentage = src.compartimentage === 0 ? 0 : 1;
+    G.zones[zid].defauts = (src.defauts || []).slice();
+    G.zones[zid].enAttente = (src.enAttente || []).slice();
+    for(const d of G.zones[zid].defauts){
+      repris.defauts.push({ zid, label:d, attente: G.zones[zid].enAttente.includes(d) });
+    }
+  }
+  for(const zid of st.inhibitions){
+    if(G.site.zones.some(z => z.id === zid) && !G.ssi.inhibited.includes(zid)){
+      G.ssi.inhibited.push(zid);
+      repris.inhibitions.push(zid);
+    }
+  }
+  return repris;
+}
+
+/* Écriture de l'état à la relève */
+function saveSiteState(){
+  const st = siteState(G.siteId);
+  st.vacations++;
+  st.zones = {};
+  for(const zid in G.zones){
+    const z = G.zones[zid];
+    if(!z.defauts.length && !z.encombrement && z.compartimentage === 1) continue;
+    st.zones[zid] = {
+      encombrement: z.encombrement,
+      compartimentage: z.compartimentage,
+      defauts: z.defauts.slice(),
+      enAttente: (z.enAttente || []).slice(),
+    };
+  }
+  st.inhibitions = G.ssi.inhibited.slice();
+  /* Les demandes de maintenance posées pendant la vacation */
+  for(const d of (G.demandes || [])){
+    if(!st.demandes.some(x => x.zone === d.zone && x.label === d.label)) st.demandes.push(d);
+  }
+  if(G.sinistres.length){
+    const s = G.sinistres[G.sinistres.length - 1];
+    st.dernierSinistre = { zone: zoneName(s.zoneId), at: fmtTime(s.at), date: G.date };
+  }
+  writeSave();
+}
+
+/* Consignes de la relève : ce qu'on hérite en prenant le poste */
+function showPassation(repris){
+  const st = siteState(G.siteId);
+  const lignes = [];
+  for(const f of repris.maintenance) lignes.push(`🔧 Maintenance passée sur « ${f.label} » en ${zoneName(f.zone)}.`);
+  for(const zid of repris.inhibitions) lignes.push(`🚫 ${zoneName(zid)} : détection laissée INHIBÉE par la vacation précédente.`);
+  for(const d of repris.defauts){
+    lignes.push(d.attente
+      ? `🛠 ${zoneName(d.zid)} : « ${d.label} » en attente d'intervention extérieure.`
+      : `⚠ ${zoneName(d.zid)} : « ${d.label} » toujours non traité.`);
+  }
+  for(const d of st.demandes) lignes.push(`🛠 Maintenance demandée sur « ${d.label} » (${zoneName(d.zone)}) — intervention sous ${d.reste} vacation(s).`);
+  if(st.dernierSinistre) lignes.push(`🔥 Dernier sinistre : ${st.dernierSinistre.zone}, le ${st.dernierSinistre.date} à ${st.dernierSinistre.at}.`);
+
+  for(const l of lignes) mcAdd('PC', l, /INHIBÉE|non traité|sinistre/.test(l) ? 'warn' : 'info');
+  if(!lignes.length){
+    mcAdd('PC', `📋 Relève : rien à signaler par la vacation précédente`, 'ok');
+    return;
+  }
+  openMini('📋 CONSIGNES DE LA RELÈVE', `${G.site.name} — vacation n°${st.vacations + 1} sur ce site`,
+    lignes.map(l => {
+      const i = l.indexOf(' ');
+      return { icon:l.slice(0, i), label:l.slice(i + 1), hint:'',
+               cls:/INHIBÉE|non traité/.test(l) ? 'danger' : '' };
+    }),
+    () => {}, 'PRENDRE LE POSTE');
 }
 
 /* ==========================================================
@@ -5261,6 +5422,7 @@ function resumeShift(){
   G.zones = G.zones || initZones(G.site);
   G.ledger = G.ledger || [];
   G.sinistres = G.sinistres || [];
+  G.demandes = G.demandes || [];
   G.deg = G.deg || initDegraded();
   G.ssi = G.ssi || initSSI();
   G.rh = G.rh || initRH();

@@ -141,6 +141,29 @@ Vérifié par simulation : la vacation négligente termine systématiquement ave
 13 ou 14 causes tracées et la note plafonnée à 45, la vacation soignée avec
 trois causes mineures et 55 à 60.
 
+## Le site garde la trace des vacations précédentes
+
+Ce qu'une vacation laisse derrière elle, la suivante le trouve. Chaque site
+conserve, d'un poste à l'autre : les anomalies non traitées zone par zone,
+l'encombrement et le compartimentage abîmés, **les zones laissées inhibées**
+et les demandes d'intervention en cours.
+
+- À la prise de poste, un écran **CONSIGNES DE LA RELÈVE** énumère ce dont on
+  hérite : « Cinéma : détection laissée INHIBÉE par la vacation précédente »,
+  « Réserves : porte coupe-feu calée toujours non traitée », « Food-court :
+  bloc de secours en attente d'intervention », le dernier sinistre du site.
+  Une zone inhibée reste inhibée : il faudra la lever soi-même.
+- **Faire intervenir un tiers n'est pas réparer.** Demander la maintenance
+  ou l'astreinte laisse l'anomalie en place, mais compte pour moitié dans le
+  risque : le PCS a fait sa part. L'intervention arrive **deux vacations plus
+  tard**, et la main courante l'enregistre : « Maintenance passée sur « Bloc de
+  secours HS » en Food-court ». Consigner sans rien demander, en revanche,
+  laisse l'anomalie indéfiniment.
+- L'écran de choix du site affiche l'état de chacun — « 1 zone inhibée ·
+  3 anomalies non traitées · 1 maintenance attendue · 4 vacations » ou
+  « site en ordre ». On peut fuir un site qu'on a laissé se dégrader, ou y
+  retourner pour le remettre d'aplomb.
+
 ## Les agents se souviennent
 
 Chaque SSIAP 1 porte un **moral** qui survit d'une vacation à l'autre, avec la
