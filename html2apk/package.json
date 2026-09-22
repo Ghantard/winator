@@ -18,8 +18,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "ts-node src/cli.ts",
-    "clean": "rimraf dist",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "commander": "^12.1.0"
@@ -28,6 +30,7 @@
     "@types/node": "^22.7.4",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.9"
   }
 }

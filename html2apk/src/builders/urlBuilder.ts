@@ -6,11 +6,11 @@ export const urlBuilder: Builder = {
 
   async build(options: BuildOptions): Promise<BuildResult> {
     const { source, logger } = options;
-    if (source.kind !== "url") {
-      throw new Error(`urlBuilder cannot handle a "${source.kind}" source.`);
+    if (source.type !== "url") {
+      throw new Error(`urlBuilder cannot handle a "${source.type}" source.`);
     }
 
-    logger.info(`Preparing a WebView APK for ${source.url}`);
+    logger.info(`Preparing a WebView APK for ${source.path}`);
     throw new Error("URL builds are not implemented yet.");
   },
 };

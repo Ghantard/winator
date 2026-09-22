@@ -1,10 +1,10 @@
-import type { Logger, Source } from "../utils";
+import type { DetectedSource, Logger } from "../utils";
 
 export interface BuildOptions {
   /** Where the generated APK is written. */
   output: string;
-  /** Resolved source: a remote URL or a local folder. */
-  source: Source;
+  /** Validated source: a reachable URL or a folder containing an index.html. */
+  source: DetectedSource;
   logger: Logger;
 }
 
@@ -14,7 +14,7 @@ export interface BuildResult {
 }
 
 export interface Builder {
-  /** Identifier used in logs, e.g. "url" or "directory". */
+  /** Identifier used in logs, e.g. "url" or "folder". */
   readonly name: string;
   build(options: BuildOptions): Promise<BuildResult>;
 }

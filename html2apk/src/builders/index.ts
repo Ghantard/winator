@@ -1,4 +1,4 @@
-import type { Source } from "../utils";
+import type { DetectedSource } from "../utils";
 import { directoryBuilder } from "./directoryBuilder";
 import type { Builder } from "./types";
 import { urlBuilder } from "./urlBuilder";
@@ -8,11 +8,11 @@ export { urlBuilder } from "./urlBuilder";
 export type { Builder, BuildOptions, BuildResult } from "./types";
 
 /** Pick the builder that knows how to package this kind of source. */
-export function selectBuilder(source: Source): Builder {
-  switch (source.kind) {
+export function selectBuilder(source: DetectedSource): Builder {
+  switch (source.type) {
     case "url":
       return urlBuilder;
-    case "directory":
+    case "folder":
       return directoryBuilder;
   }
 }

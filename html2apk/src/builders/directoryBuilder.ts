@@ -2,12 +2,12 @@ import type { Builder, BuildOptions, BuildResult } from "./types";
 
 /** Bundles a local HTML folder into the APK assets. */
 export const directoryBuilder: Builder = {
-  name: "directory",
+  name: "folder",
 
   async build(options: BuildOptions): Promise<BuildResult> {
     const { source, logger } = options;
-    if (source.kind !== "directory") {
-      throw new Error(`directoryBuilder cannot handle a "${source.kind}" source.`);
+    if (source.type !== "folder") {
+      throw new Error(`directoryBuilder cannot handle a "${source.type}" source.`);
     }
 
     logger.info(`Preparing an offline APK from ${source.path}`);

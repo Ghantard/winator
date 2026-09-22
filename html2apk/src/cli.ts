@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { Command, InvalidArgumentError } from "commander";
 
 import { selectBuilder } from "./builders";
-import { createLogger, describeSource, resolveSource } from "./utils";
+import { createLogger, describeSource, detectSource } from "./utils";
 import type { LogLevel } from "./utils";
 
 const DEFAULT_OUTPUT = "./output.apk";
@@ -39,7 +39,7 @@ export function createProgram(): Command {
     .option("--log-level <level>", `one of ${LOG_LEVELS.join(", ")}`, parseLogLevel, "info")
     .action(async (rawSource: string, options: BuildCommandOptions) => {
       const logger = createLogger(options.logLevel);
-      const source = resolveSource(rawSource);
+      const source = await detectSource(rawSource);
       const output = resolve(process.cwd(), options.output);
 
       logger.info(`Source: ${describeSource(source)}`);
