@@ -236,7 +236,8 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;
   z-index:100;display:none;align-items:center;justify-content:center;padding:12px}
 .ov.open{display:flex}
 #pickerScreen,#miniScreen,#materielScreen,#datScreen,#siteStateScreen,#teamStateScreen{z-index:110}
-#eventScreen,#mciScreen,#qcmScreen,#auditScreen,#evacScreen{z-index:115}
+#sitScreen{z-index:108}
+#mciScreen,#qcmScreen,#auditScreen,#evacScreen{z-index:115}
 #debriefScreen{z-index:120}
 .cd{background:linear-gradient(180deg,rgba(22,32,48,.98),rgba(12,18,28,.98));
   border:1px solid rgba(80,110,150,.2);border-radius:14px;padding:16px 14px;
@@ -726,6 +727,48 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
 #agents{position:relative}
 
 
+/* Tableau des situations en cours : le vrai fil de la vacation */
+#sitBar{display:none;gap:6px;padding:6px 7px;flex-shrink:0;overflow-x:auto;
+  background:rgba(5,8,12,.55);border-bottom:1px solid rgba(80,110,150,.12);
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#sitBar::-webkit-scrollbar{display:none}
+#sitBar.show{display:flex}
+.sitCard{flex:0 0 auto;max-width:74vw;display:flex;align-items:center;gap:8px;
+  padding:9px 11px;border-radius:10px;cursor:pointer;font-family:inherit;text-align:left;
+  border:1px solid rgba(168,85,247,.45);
+  background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(168,85,247,.06));min-height:52px}
+.sitCard.urgent{border-color:rgba(255,59,48,.55);
+  background:linear-gradient(135deg,rgba(255,59,48,.2),rgba(255,59,48,.06))}
+.sitCard.vierge{animation:pulse-ring 1.6s infinite}
+.sitCard:active{transform:scale(.97)}
+.sitCard .scIco{font-size:20px;flex-shrink:0}
+.sitCard .scTxt{min-width:0;display:block}
+.sitCard .scTxt b{display:block;font-size:11px;font-weight:800;color:#e8f0f8;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.sitCard .scTxt span{display:block;font-size:9.5px;color:#b8c8d8;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.actTabs{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:8px}
+.actTab{min-height:46px;border-radius:9px;cursor:pointer;font-family:inherit;
+  font-size:9px;font-weight:800;letter-spacing:0;padding:6px 1px;position:relative;
+  border:1px solid rgba(80,110,150,.25);color:#8fa4b8;
+  background:linear-gradient(180deg,rgba(22,32,48,.7),rgba(12,18,28,.9));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
+.actTab span{display:block;font-size:12px;line-height:1}
+.actTab.sel{border-color:rgba(80,140,220,.55);color:#e8f0f8;
+  background:linear-gradient(180deg,rgba(80,140,220,.2),rgba(80,140,220,.05))}
+.actTab i{position:absolute;top:-5px;right:-4px;font-style:normal;background:#30d158;color:#04140a;
+  font-size:8.5px;font-weight:800;min-width:15px;height:15px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;padding:0 3px}
+.actGrp{font-size:9.5px;font-weight:800;letter-spacing:1.2px;color:#5a6b7d;
+  margin:12px 0 6px;padding-bottom:3px;border-bottom:1px solid rgba(80,110,150,.15)}
+.sitAct{margin-bottom:5px}
+.sitAct.fait{opacity:.45;border-color:rgba(48,209,88,.4)}
+.sitLog{line-height:1.7;font-size:10.5px}
+.sitLog.vide{color:#7d8fa3;font-style:italic}
+.sitLog.manque{border-left:3px solid #ffb020}
+.sitLog.manque span{display:block;font-size:9.5px;color:#7d8fa3}
+.sitLog.interdit{border-left:3px solid #ff453a;color:#ff8b7e}
+
 /* Écrans très étroits */
 @media (max-width:360px){
   .akSlots{grid-template-columns:repeat(3,1fr);gap:4px}
@@ -763,6 +806,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
   </div>
   <div id="map"></div>
   <div id="planningStrip"></div>
+  <div id="sitBar"></div>
   <div id="mcPanel"></div>
   <div id="alertBar"></div>
   <div id="agents"></div>
@@ -865,7 +909,7 @@ header{gap:5px;padding:7px 8px;flex-wrap:nowrap}
   </div>
 </div>
 
-<div class="ov" id="eventScreen"><div class="cd" id="eventContent"></div></div>
+<div class="ov" id="sitScreen"><div class="cd" id="sitContent"></div></div>
 
 <div class="ov" id="orderScreen">
   <div class="cd">
@@ -1243,13 +1287,16 @@ const ROUND_INCIDENTS = {
    SCÉNARIOS — SITUATIONS RÉELLES DU POSTE DE SÉCURITÉ
    Chaque situation arrive au PCS comme dans la réalité : ce que
    montre le tableau de signalisation, ce que dit la radio, ce que
-   dit le téléphone, qui se présente au poste. Les conduites
-   proposées décrivent une action, jamais son mérite : aucune
-   n'est annoncée comme « la bonne », et l'ordre d'affichage est
-   tiré au sort à chaque fois.
-   k     : effet appliqué par applyEventChoice()
-   urgent / delay : temps laissé au PCS avant que la situation se
-                    solde sans lui.
+   dit le téléphone, qui se présente au poste. Aucune réponse n'est
+   proposée : le chef d'équipe conduit la situation avec ses
+   instruments, dans l'ordre qu'il juge bon, et il la clôt quand il
+   estime en avoir fini.
+   conduite.requis    : les actes attendus dans cette situation
+   conduite.interdits : les manœuvres à proscrire
+   conduite.ordre     : les couples d'actes dont l'ordre compte
+   urgent / delay     : délai au-delà duquel ne rien avoir engagé est
+                        une faute ; au triple, la situation se clôt
+                        d'office sans le PCS.
    ========================================================== */
 const EVENTS = [
 
@@ -1260,19 +1307,10 @@ const EVENTS = [
    pcs:'Voyant rouge « feu » fixe, signal sonore en cours. La zone de détection est identifiée au tableau, le détecteur aussi. Aucun autre point en alarme.',
    radio:null, phone:null, presence:null,
    dilemma:'Le signal sonore couvre les communications et personne, à cet instant, ne sait ce qui se passe réellement sur la zone.',
-   choices:[
-     {k:'ldd', label:'Arrêter le signal sonore, relever la zone et envoyer un agent en levée de doute',
-      hint:'Le tableau reste en alarme, l’agent part avec un moyen d’extinction et sa radio',
-      score:6, reg:3, consequence:'Agent désigné, délai de levée de doute engagé.'},
-     {k:'ag', label:'Déclencher l’alarme générale immédiatement',
-      hint:'Évacuation du public sur la foi d’une seule détection non vérifiée',
-      score:-3, reg:-2, consequence:'Évacuation engagée sans connaître la cause.'},
-     {k:'call18', label:'Alerter les sapeurs-pompiers avant toute reconnaissance',
-      hint:'Engins engagés sur une alarme dont personne n’a encore vérifié l’origine',
-      score:-2, reg:-1, consequence:'Secours sollicités sans levée de doute.'},
-     {k:'inhib', label:'Inhiber la zone de détection pour faire cesser l’alarme',
-      hint:'Le tableau se tait, la zone cesse d’être surveillée',
-      score:-9, reg:-4, consequence:'Détection neutralisée sans aucune vérification.'}],
+   conduite:{
+     requis:['bps','lecture','ldd','registre'],
+     interdits:['inhib','ag','tempo'],
+     ordre:[['bps','ldd'],['lecture','ldd'],['ldd','alerte18'],['ldd','rearm']]},
    mci:[
      {text:'Alarme feu ZD 3 à 14:12, signal sonore arrêté, zone relevée au tableau. Levée de doute confiée à l’agent de ronde, départ 14:13, compte rendu 14:16 : corbeille en combustion, extinction par extincteur à eau pulvérisée. Contrôle post-incendie effectué, cause supprimée, détecteur réarmé à 14:31. Exploitant informé.', good:true},
      {text:'Alarme feu à 14:12 au tableau. Levée de doute effectuée par un agent, tout est rentré dans l’ordre, installation réarmée.', good:false},
@@ -1287,19 +1325,10 @@ const EVENTS = [
    phone:'📞 Standard : « Il y a de la fumée partout, les gens commencent à sortir. »',
    presence:null,
    dilemma:'Le doute est levé par les faits : le sinistre est confirmé avant même qu’un agent soit sur place.',
-   choices:[
-     {k:'feu_total', label:'Alarme générale, alerte des secours et engagement d’un binôme sur le foyer',
-      hint:'Évacuation, message d’alerte au 18, attaque à deux avec liaison radio',
-      score:10, reg:4, consequence:'Chaîne complète engagée.'},
-     {k:'ldd', label:'Envoyer d’abord un agent en levée de doute',
-      hint:'Reconnaissance d’un sinistre déjà confirmé par trois détecteurs et des témoins',
-      score:-4, reg:-2, consequence:'Minutes perdues à vérifier ce qui est établi.'},
-     {k:'ag', label:'Déclencher l’alarme générale et attendre d’y voir plus clair',
-      hint:'Public évacué, aucun secours prévenu à ce stade',
-      score:-3, reg:-2, consequence:'Évacuation sans alerte des secours.'},
-     {k:'call18', label:'Alerter le 18 et attendre son arrivée sans évacuer',
-      hint:'Secours en route, public maintenu à l’intérieur',
-      score:-9, reg:-4, consequence:'Public laissé dans un établissement en feu.'}],
+   conduite:{
+     requis:['ag','alerte18','attaque','dispo','accueil','registre'],
+     interdits:['inhib'],
+     ordre:[['ag','attaque'],['alerte18','accueil']]},
    mci:[
      {text:'21:03 — Alarme feu, trois détecteurs ZD 5 (galerie niveau 1), confirmée par appels du public. Alarme générale diffusée 21:04, évacuation totale vers le point de rassemblement. 18 alerté 21:05, message complet, accueil désigné. Binôme engagé sur le foyer avec deux extincteurs. Feu éteint 21:11, 214 personnes évacuées, comptage sans manquant. SSIAP 3 informé 21:06.', good:true},
      {text:'21:03 — Feu confirmé galerie, évacuation générale et appel des pompiers. Sinistre maîtrisé par l’équipe.', good:false},
@@ -1313,16 +1342,10 @@ const EVENTS = [
    radio:null,
    phone:null, presence:null,
    dilemma:'Un déclencheur manuel est actionné par quelqu’un qui a vu quelque chose. L’information est vraie jusqu’à preuve du contraire, et la temporisation ne dure pas.',
-   choices:[
-     {k:'ldd', label:'Envoyer un agent au déclencheur pendant que la temporisation court',
-      hint:'Reconnaissance sur le lieu du déclenchement sans interrompre le processus d’alarme',
-      score:7, reg:3, consequence:'Agent envoyé au DM, temporisation maintenue.'},
-     {k:'ag', label:'Diffuser l’alarme générale sans attendre la fin de la temporisation',
-      hint:'Évacuation engagée sur la foi de la personne qui a actionné le déclencheur',
-      score:3, reg:2, consequence:'Évacuation engagée par précaution.'},
-     {k:'stop_tempo', label:'Interrompre la temporisation et remettre le tableau en veille',
-      hint:'Le processus d’alarme est arrêté avant toute vérification sur place',
-      score:-10, reg:-4, consequence:'Ordre d’évacuation annulé sans savoir pourquoi il a été donné.'}],
+   conduite:{
+     requis:['lecture','ldd','registre'],
+     interdits:['tempo','inhib'],
+     ordre:[['ldd','rearm']]},
    mci:[
      {text:'03:22 — Alarme feu, origine DM n° 12 (circulation ouest, niveau 1). Temporisation maintenue, agent envoyé sur place 03:22, compte rendu 03:25 : vitre brisée, aucun feu ni fumée, personne dans le secteur. Vitre remplacée, DM réarmé, installation remise en veille 03:34. Fait signalé à la direction, images de vidéoprotection à exploiter.', good:true},
      {text:'03:22 — Déclencheur manuel actionné circulation ouest. Vérification faite, pas de feu, réarmement du système.', good:false},
@@ -1336,19 +1359,10 @@ const EVENTS = [
    radio:'« Chef, le bac de friture est en feu, les flammes montent dans la hotte ! »',
    phone:null, presence:null,
    dilemma:'Un feu d’huile ne se traite pas comme un feu de matériaux courants, et le conduit d’extraction propage vite.',
-   choices:[
-     {k:'feu_cuisson_ok', label:'Couper l’énergie de l’appareil, étouffer le foyer et faire évacuer la cuisine',
-      hint:'Coupure, couverture ou extincteur adapté aux feux d’huile, personnel écarté',
-      score:9, reg:4, consequence:'Coupure faite, foyer étouffé, local dégagé.'},
-     {k:'danger_eau', label:'Faire attaquer au robinet d’incendie armé',
-      hint:'Jet d’eau sur un bac d’huile enflammée',
-      score:-12, reg:-5, consequence:'Projection d’huile enflammée, le feu se répand.'},
-     {k:'ag', label:'Déclencher l’alarme générale et attendre les secours',
-      hint:'Évacuation immédiate, aucun moyen engagé sur un foyer encore petit',
-      score:1, reg:1, consequence:'Public évacué, le foyer prospère.'},
-     {k:'call18', label:'Alerter le 18 et laisser le personnel de cuisine gérer',
-      hint:'Secours prévenus, intervention laissée à des personnes non formées',
-      score:-6, reg:-3, consequence:'Personnel de cuisine laissé seul face au feu.'}],
+   conduite:{
+     requis:['couper','attaque','registre'],
+     interdits:['ria'],
+     ordre:[['couper','attaque']]},
    mci:[
      {text:'12:47 — Feu sur bac de friture, cuisine niveau 0. Énergie de l’appareil coupée, foyer étouffé par couverture anti-feu, extraction arrêtée, personnel écarté. Aucune victime. Contrôle du conduit d’extraction effectué, aucune propagation. Exploitant informé, appareil consigné dans l’attente du contrôle de l’installateur. Registre de sécurité renseigné.', good:true},
      {text:'12:47 — Départ de feu en cuisine sur friteuse. Feu éteint par nos soins, pas de dégâts.', good:false},
@@ -1363,16 +1377,10 @@ const EVENTS = [
    phone:'📞 Standard : « Une personne vient de s’effondrer, elle ne réagit pas bien, venez vite. »',
    presence:null,
    dilemma:'Personne n’a encore fait de bilan : on ne sait ni ce qu’elle a, ni si elle respire.',
-   choices:[
-     {k:'sst', label:'Envoyer un agent secouriste avec le sac de premiers secours et le défibrillateur',
-      hint:'Bilan sur place avant toute alerte, le PCS reste en liaison radio',
-      score:7, reg:3, consequence:'Agent secouriste en route, bilan attendu.'},
-     {k:'call15', label:'Appeler le 15 immédiatement et transmettre ce que dit le standard',
-      hint:'Régulation alertée à partir d’une information de seconde main',
-      score:-1, reg:0, consequence:'15 alerté sans bilan, aucun agent sur place.'},
-     {k:'attendre', label:'Demander au standard de rappeler si l’état empire',
-      hint:'Aucun agent envoyé, aucune alerte donnée',
-      score:-9, reg:-4, consequence:'Victime laissée sans prise en charge.'}],
+   conduite:{
+     requis:['sst','alerte15','accueil','registre'],
+     interdits:[],
+     ordre:[['sst','alerte15']]},
    mci:[
      {text:'16:08 — Appel du standard : personne au sol, galerie niveau 0. Agent SST dépêché 16:08 avec sac de premiers secours et DAE, sur place 16:11. Bilan : victime inconsciente, ventilation présente, mise en position latérale de sécurité. 15 alerté 16:12, consignes suivies, surveillance continue. Accueil des secours désigné, SAMU sur place 16:23, victime transportée. Famille prévenue par l’exploitant.', good:true},
      {text:'16:08 — Malaise d’un client galerie niveau 0, agent SST sur place, 15 appelé, victime prise en charge par le SAMU.', good:false},
@@ -1386,16 +1394,10 @@ const EVENTS = [
    radio:'« Chef, elle ne réagit pas, elle ne respire pas ! »',
    phone:null, presence:null,
    dilemma:'Chaque minute sans massage ni défibrillateur diminue les chances de survie. Le PCS n’a pas le temps d’un deuxième avis.',
-   choices:[
-     {k:'sst_acr', label:'Faire commencer la réanimation, envoyer le défibrillateur en renfort et alerter le 15',
-      hint:'Massage sans délai, DAE apporté par un second agent, régulation en ligne',
-      score:12, reg:4, consequence:'Réanimation engagée, DAE en route, 15 alerté.'},
-     {k:'sst', label:'Envoyer un second agent secouriste faire le bilan',
-      hint:'Renfort sur place, alerte différée au bilan',
-      score:1, reg:0, consequence:'Renfort envoyé, alerte retardée.'},
-     {k:'call15', label:'Appeler le 15 et attendre ses instructions avant d’agir',
-      hint:'Aucun geste engagé tant que la régulation n’a pas répondu',
-      score:-8, reg:-4, consequence:'Aucun geste pendant l’attente.'}],
+   conduite:{
+     requis:['sst','dae','alerte15','accueil','registre'],
+     interdits:[],
+     ordre:[['sst','dae']]},
    mci:[
      {text:'02:41 — Agent en ronde signale victime inconsciente sans ventilation, parking niveau -1. Réanimation cardio-pulmonaire débutée 02:41 par l’agent SST. DAE apporté par un second agent 02:43, un choc délivré sur indication de l’appareil. 15 alerté 02:42, consignes du médecin régulateur appliquées. Relais par le SMUR 02:52. Matériel de secours remis en état, DAE réarmé, électrodes remplacées.', good:true},
      {text:'02:41 — Arrêt cardiaque parking, massage cardiaque et DAE par les agents, SMUR sur place, victime transportée.', good:false},
@@ -1410,16 +1412,10 @@ const EVENTS = [
    phone:'📞 Chef d’atelier : « On le relève et on l’amène à l’infirmerie ? »',
    presence:null,
    dilemma:'La zone est encore dangereuse pour la victime comme pour les secouristes, et les lieux devront être préservés.',
-   choices:[
-     {k:'at_ok', label:'Faire consigner la machine et baliser, puis envoyer un secouriste sans mobiliser la victime',
-      hint:'Protection avant secours, victime laissée en place, lieux préservés',
-      score:10, reg:4, consequence:'Zone sécurisée, bilan en cours, lieux préservés.'},
-     {k:'at_bouger', label:'Faire relever la victime et la conduire à l’infirmerie',
-      hint:'Victime mobilisée après une chute de hauteur',
-      score:-12, reg:-5, consequence:'Victime mobilisée malgré le risque de lésion.'},
-     {k:'call15', label:'Alerter le 15 et laisser l’atelier s’organiser',
-      hint:'Secours prévenus, aucune protection de la zone',
-      score:-4, reg:-2, consequence:'Machine en marche, attroupement maintenu.'}],
+   conduite:{
+     requis:['consigner','sst','alerte15','direction','registre'],
+     interdits:[],
+     ordre:[['consigner','sst']]},
    mci:[
      {text:'09:34 — Chute de hauteur depuis la passerelle, atelier. Machine consignée et zone balisée 09:35, agent SST sur place 09:36. Bilan : victime consciente, douleur rachidienne, non mobilisée. 15 alerté 09:37, immobilisation maintenue jusqu’à l’arrivée du SMUR 09:52. Lieux préservés en l’état, témoins identifiés, direction et responsable HSE informés. Déclaration d’accident du travail en cours.', good:true},
      {text:'09:34 — Accident du travail, chute d’un opérateur, secours appelés, victime évacuée par le SAMU, DAT à faire.', good:false},
@@ -1434,16 +1430,10 @@ const EVENTS = [
    phone:'📞 Société de maintenance SSI : « On peut passer demain matin, ça vous va ? »',
    presence:null,
    dilemma:'Un dérangement n’est pas une alarme, mais une ligne en défaut, c’est une zone qui n’est plus surveillée.',
-   choices:[
-     {k:'acquit_ssi', label:'Acquitter le dérangement, le consigner au registre et demander l’intervention de la maintenance',
-      hint:'Défaut pris en compte et tracé, organe identifié, intervention demandée',
-      score:7, reg:3, consequence:'Dérangement tracé, maintenance sollicitée.'},
-     {k:'compens', label:'Mettre en place une surveillance humaine renforcée sur la zone en défaut',
-      hint:'Rondes rapprochées tant que la détection n’est pas rétablie',
-      score:8, reg:4, consequence:'Mesures compensatoires engagées sur la zone.'},
-     {k:'masquer', label:'Couper le signal sonore et reprendre la vacation',
-      hint:'Le bruit cesse, le défaut reste et n’est écrit nulle part',
-      score:-7, reg:-4, consequence:'Défaut masqué, aucune trace, zone non surveillée.'}],
+   conduite:{
+     requis:['acquit','maintenance','compens','registre'],
+     interdits:['inhib'],
+     ordre:[['acquit','maintenance']]},
    mci:[
      {text:'23:05 — Dérangement au tableau : ligne de détection ZD 7 (local technique) en défaut. Défaut acquitté et consigné au registre de sécurité. Société de maintenance SSI avisée 23:10, intervention annoncée sous 24 h. Surveillance humaine renforcée mise en place sur la zone : ronde toutes les heures jusqu’à rétablissement. SSIAP 3 informé, consigne transmise à la relève.', good:true},
      {text:'23:05 — Défaut SSI sur une zone. Maintenance prévenue, surveillance renforcée mise en place.', good:false},
@@ -1458,19 +1448,10 @@ const EVENTS = [
    phone:'📞 Services techniques : « Ils sont attendus, il faut que ça avance aujourd’hui. »',
    presence:'Deux soudeurs au poste, permis de feu à la main, non signé par la direction.',
    dilemma:'La majorité des sinistres par travaux se déclarent après le départ des ouvriers, pas pendant les travaux.',
-   choices:[
-     {k:'permis_ok', label:'Contrôler la zone, écarter les matières combustibles, poser un extincteur et prévoir la surveillance après travaux',
-      hint:'Contrôle avant, surveillance pendant, puis deux heures de surveillance après la fin du chantier',
-      score:9, reg:4, consequence:'Travaux encadrés, surveillance après travaux programmée.'},
-     {k:'permis_signe', label:'Signer le permis et laisser les travaux commencer',
-      hint:'Chantier lancé sans contrôle des abords ni moyens de secours sur place',
-      score:-8, reg:-4, consequence:'Travaux par point chaud engagés sans contrôle.'},
-     {k:'permis_inhib', label:'Inhiber la détection de la zone et laisser travailler',
-      hint:'Plus de déclenchement intempestif, plus de détection non plus',
-      score:-5, reg:-3, consequence:'Zone en travaux sans détection ni compensation.'},
-     {k:'permis_refus', label:'Refuser les travaux tant que le permis n’est pas signé par la direction',
-      hint:'Chantier reporté, l’exploitant devra arbitrer',
-      score:2, reg:2, consequence:'Travaux différés, direction saisie.'}],
+   conduite:{
+     requis:['controle','permis_del','compens','registre'],
+     interdits:[],
+     ordre:[['controle','permis_del']]},
    mci:[
      {text:'14:00 — Travaux par point chaud (soudure) en local technique, entreprise extérieure, permis de feu n° 27 complété et signé. Zone contrôlée avant travaux : matières combustibles écartées, écran de protection posé, extincteur à eau pulvérisée et extincteur CO2 mis à disposition. Détection de la zone inhibée pendant les travaux avec surveillance humaine permanente. Fin des travaux 16:10, détection remise en service 16:12, essai concluant. Surveillance de la zone maintenue jusqu’à 18:10, aucun point chaud résiduel.', good:true},
      {text:'14:00 — Permis de feu délivré pour soudure en local technique. Zone contrôlée, surveillance assurée, travaux terminés à 16:10 sans incident.', good:false},
@@ -1485,19 +1466,10 @@ const EVENTS = [
    phone:'📞 Cabine : « Je suis coincée, il fait chaud, ça fait dix minutes, sortez-moi de là ! »',
    presence:null,
    dilemma:'Le dégagement des occupants est le métier de l’ascensoriste. Une manœuvre improvisée sur une cabine à l’arrêt peut tuer.',
-   choices:[
-     {k:'ascenseur_ok', label:'Maintenir le contact par l’interphone, envoyer un agent à l’étage et appeler l’ascensoriste',
-      hint:'Personne rassurée et surveillée en permanence, dégagement laissé au professionnel',
-      score:9, reg:4, consequence:'Contact maintenu, ascensoriste en route.'},
-     {k:'ascenseur_forcer', label:'Faire ouvrir les portes palières par les agents pour la sortir',
-      hint:'Ouverture d’une cabine arrêtée entre deux niveaux par du personnel non habilité',
-      score:-11, reg:-5, consequence:'Manœuvre engagée sur une cabine entre deux niveaux.'},
-     {k:'call18', label:'Demander l’intervention des sapeurs-pompiers',
-      hint:'Moyens de secours publics engagés pour un blocage sans détresse signalée',
-      score:0, reg:1, consequence:'Secours sollicités pour un dégagement technique.'},
-     {k:'attendre', label:'Rassurer la personne et attendre la prochaine visite de maintenance',
-      hint:'Personne laissée en cabine sans intervention programmée',
-      score:-10, reg:-4, consequence:'Personne abandonnée dans la cabine.'}],
+   conduite:{
+     requis:['assist','ascensoriste','registre'],
+     interdits:['forcer'],
+     ordre:[['assist','ascensoriste']]},
    mci:[
      {text:'18:52 — Alarme cabine ascenseur A, une personne bloquée entre les niveaux 1 et 2. Contact établi et maintenu par interphone, personne rassurée, aucun signe de détresse. Agent dépêché à l’étage 18:53, liaison permanente avec le PCS. Société d’ascenseurs appelée 18:54, intervention annoncée sous 45 min, arrivée 19:28, dégagement 19:35. Personne indemne, refus d’examen médical noté. Ascenseur consigné dans l’attente du contrôle.', good:true},
      {text:'18:52 — Personne bloquée dans l’ascenseur A. Ascensoriste appelé, personne dégagée vers 19:35, tout s’est bien passé.', good:false},
@@ -1511,19 +1483,10 @@ const EVENTS = [
    radio:'« Chef, ça sent très fort le gaz devant le local, je n’entre pas. »',
    phone:null, presence:null,
    dilemma:'Toute étincelle est une source d’inflammation : un interrupteur, une lampe, un moteur d’extraction.',
-   choices:[
-     {k:'gaz_ok', label:'Interdire l’accès, faire couper l’arrivée depuis l’extérieur, ventiler naturellement et alerter le 18',
-      hint:'Aucune manœuvre électrique, coupure au robinet extérieur, secteur évacué',
-      score:11, reg:5, consequence:'Secteur évacué, arrivée coupée, secours alertés.'},
-     {k:'gaz_danger', label:'Faire entrer l’agent avec une lampe pour localiser la fuite',
-      hint:'Recherche d’une fuite de gaz avec un appareil électrique en atmosphère explosive',
-      score:-14, reg:-5, consequence:'Agent envoyé avec une source d’énergie en atmosphère gazeuse.'},
-     {k:'gaz_ventil', label:'Mettre l’extraction mécanique du local en marche',
-      hint:'Démarrage d’un moteur pour ventiler un local chargé en gaz',
-      score:-9, reg:-4, consequence:'Moteur démarré en atmosphère explosive.'},
-     {k:'call18', label:'Alerter le 18 et maintenir l’agent en surveillance à distance',
-      hint:'Secours alertés, arrivée de gaz laissée en service',
-      score:4, reg:2, consequence:'Secours alertés, fuite toujours alimentée.'}],
+   conduite:{
+     requis:['consigner','couper','alerte18','registre'],
+     interdits:['ldd','desenf','ria'],
+     ordre:[['consigner','couper'],['couper','alerte18']]},
    mci:[
      {text:'05:15 — Forte odeur de gaz signalée devant le local technique -1. Accès interdit et balisé, aucune manœuvre électrique effectuée. Arrivée de gaz coupée au robinet extérieur 05:17. Ventilation naturelle par ouverture des accès extérieurs, secteur évacué. 18 alerté 05:16, message complet, accueil désigné, sapeurs-pompiers sur place 05:26, contrôle d’explosimétrie négatif à 05:41. Distributeur de gaz avisé, local consigné.', good:true},
      {text:'05:15 — Odeur de gaz local technique. Gaz coupé, local ventilé, pompiers prévenus, plus rien à signaler.', good:false},
@@ -1536,19 +1499,10 @@ const EVENTS = [
    pcs:'Report d’alarme intrusion, aucune détection incendie. Vidéoprotection disponible sur ce secteur.',
    radio:null, phone:null, presence:null,
    dilemma:'Un agent de sécurité incendie n’est pas un policier, et un agent isolé face à une intrusion est un agent en danger.',
-   choices:[
-     {k:'surete_ok', label:'Lever le doute par la vidéoprotection avant d’envoyer qui que ce soit',
-      hint:'Image du secteur consultée depuis le poste, engagement décidé ensuite',
-      score:8, reg:3, consequence:'Doute levé depuis le poste, décision prise sur image.'},
-     {k:'police', label:'Demander l’intervention de la police et maintenir les agents en observation',
-      hint:'Forces de l’ordre requises, personnel maintenu à distance',
-      score:6, reg:3, consequence:'Police requise, agents à distance.'},
-     {k:'surete_solo', label:'Envoyer un agent seul faire le tour du secteur',
-      hint:'Agent isolé engagé sur une intrusion possible, de nuit',
-      score:-8, reg:-4, consequence:'Agent seul envoyé au contact.'},
-     {k:'rien', label:'Acquitter l’alarme et poursuivre la vacation',
-      hint:'Alarme effacée sans vérification',
-      score:-6, reg:-3, consequence:'Alarme intrusion effacée sans contrôle.'}],
+   conduite:{
+     requis:['video','registre'],
+     interdits:[],
+     ordre:[['video','ldd'],['video','police']]},
    mci:[
      {text:'02:58 — Alarme intrusion accès de service nord. Levée de doute par vidéoprotection depuis le PCS : porte ouverte par le vent, aucune présence. Contrôle sur place par deux agents en binôme 03:02, porte refermée et verrouillée, secteur contrôlé, rien à signaler. Alarme acquittée 03:09, fait consigné, consigne de contrôle du dispositif de fermeture transmise aux services techniques.', good:true},
      {text:'02:58 — Alarme intrusion accès nord. Vérification faite, fausse alarme, porte refermée.', good:false},
@@ -1563,19 +1517,10 @@ const EVENTS = [
    phone:'📞 Direction : « On est en pleine activité, ne me dites pas qu’il faut fermer. »',
    presence:'[AGENT], au poste, son trousseau à la main.',
    dilemma:'L’effectif de sécurité incendie n’est pas une commodité d’organisation : il conditionne la présence du public dans l’établissement.',
-   choices:[
-     {k:'rh_astreinte', label:'Rappeler un agent d’astreinte et informer la direction du sous-effectif',
-      hint:'Titulaire formé au site, hiérarchie avertie du créneau découvert',
-      score:8, reg:4, consequence:'Astreinte rappelée, direction informée.'},
-     {k:'rh_presta', label:'Demander un agent à la société prestataire',
-      hint:'Renfort extérieur à accueillir, à former aux consignes et à doter en matériel',
-      score:5, reg:2, consequence:'Prestataire sollicité, accueil à prévoir.'},
-     {k:'rh_stagiaire', label:'Compléter l’effectif avec le stagiaire',
-      hint:'Le stagiaire prend les rondes de l’agent parti',
-      score:-8, reg:-4, consequence:'Stagiaire compté comme un agent de l’effectif.'},
-     {k:'rh_rien', label:'Répartir les rondes entre les agents restants sans prévenir personne',
-      hint:'Vacation tenue en sous-effectif, hiérarchie non informée',
-      score:-7, reg:-3, consequence:'Sous-effectif absorbé en silence.'}],
+   conduite:{
+     requis:['renfort','direction','registre'],
+     interdits:['stagiaire'],
+     ordre:[]},
    mci:[
      {text:'15:20 — Départ imprévu de l’agent [AGENT] (urgence familiale), matériel restitué au râtelier. Effectif de sécurité incendie ramené à 1 agent pour 2 prescrits. SSIAP 3 et direction informés 15:22. Rappel de l’agent d’astreinte 15:23, arrivée 16:08, consignes et dotation remises. Rondes R5 et R6 réattribuées, aucun point de contrôle supprimé. Effectif réglementaire rétabli 16:08.', good:true},
      {text:'15:20 — Départ d’un agent pour raison personnelle. Astreinte rappelée, effectif complété dans l’heure.', good:false},
@@ -1589,16 +1534,10 @@ const EVENTS = [
    radio:null, phone:null,
    presence:'Les deux agents concernés, devant le tableau de signalisation.',
    dilemma:'Le chef d’équipe est responsable de la répartition de la charge. Ce qui se règle mal au poste se paiera en ronde.',
-   choices:[
-     {k:'rh_ecoute', label:'Recevoir chacun séparément, rappeler la règle de répartition et tracer l’entretien',
-      hint:'Chacun entendu, décision annoncée aux deux, trace écrite',
-      score:7, reg:2, consequence:'Entretiens menés, répartition arbitrée et tracée.'},
-     {k:'rh_autorite', label:'Trancher immédiatement devant tout le monde',
-      hint:'Décision imposée sans avoir entendu les deux versions',
-      score:-3, reg:-1, consequence:'Décision imposée, rancune installée.'},
-     {k:'rh_laisser', label:'Les renvoyer à leur poste et voir plus tard',
-      hint:'Différend laissé en l’état pendant la vacation',
-      score:-5, reg:-2, consequence:'Tension laissée sans traitement.'}],
+   conduite:{
+     requis:['entretien','registre'],
+     interdits:[],
+     ordre:[]},
    mci:[
      {text:'20:40 — Différend entre deux agents sur la répartition des rondes de nuit. Entretien individuel avec chacun au poste, rappel de la règle de répartition et du planning affiché. Rondes R5 et R6 réattribuées pour équilibrer la charge, décision annoncée aux deux agents. Aucun incident d’exploitation. SSIAP 3 informé à la relève.', good:true},
      {text:'20:40 — Tension entre deux agents, entretien mené, situation apaisée.', good:false},
@@ -1999,9 +1938,8 @@ function renderMC(force){
   if(!G) return;
   /* Un agent bloqué en attente d'ordres passe avant les alarmes en cours :
      c'est la carte que le chef de poste doit voir en premier. */
-  const active = G.events.filter(e => !e.resolved)
-    .sort((a, b) => (b.awaitingOrders ? 1 : 0) - (a.awaitingOrders ? 1 : 0)
-                 || (a.spawnedAt || 0) - (b.spawnedAt || 0));
+  const active = G.events.filter(e => !e.resolved && e.awaitingOrders)
+    .sort((a, b) => (a.spawnedAt || 0) - (b.spawnedAt || 0));
   let h = `<div class="mcHead"><span>📋 MAIN COURANTE</span><span>${G.mc.length} entrée(s)</span></div>`;
   for(const ev of active){
     const waiting = ev.awaitingOrders;
@@ -2013,7 +1951,7 @@ function renderMC(force){
       </div>
       <div class="mevb">${waiting
         ? `<b style="color:#c084fc">${ev.agentName} attend vos ordres</b> — ${zoneName(ev.zoneId)} · toucher pour répondre`
-        : `${zoneName(ev.zoneId)} · ${(ev.dilemma||'').substring(0,60)}…`}</div>
+        : `${zoneName(ev.zoneId)} · ${(ev.actes || []).length} acte(s) engagé(s) · toucher pour conduire`}</div>
     </div>`;
   }
   const display = G.mc.slice(-60).reverse();
@@ -2834,13 +2772,14 @@ function renderAll(){
     .sort((a,b) => a.time - b.time)[0];
   $('metaRound').textContent = nextR ? `${nextR.id} ${fmtTime(nextR.time)}` : '—';
   const waiting = awaitingAgents().length;
-  const alarms = G.events.filter(e => !e.resolved && !e.awaitingOrders).length;
+  const alarms = G.events.filter(e => e.conduite && !e.closed).length;
   const btn = $('actionsBtn');
   btn.className = 'hbtn' + (alarms ? ' urgent' : waiting ? ' hot' : '');
   btn.innerHTML = '⚡' + ((waiting + alarms) ? `<span class="nbadge">${waiting + alarms}</span>` : '');
   renderMap();
   renderAgents();
   renderAlertBar();
+  renderSitBar();
   renderPlanningStrip();
   updateAges();
 }
@@ -2872,7 +2811,7 @@ function tick(){
      qu'une seconde réelle par minute de jeu, ce qui ne laissait pas le temps
      de lire la situation. Le délai ne court donc que quand l'écran est fermé,
      c'est-à-dire quand l'alarme est vraiment laissée de côté. */
-  if($('eventScreen').classList.contains('open')) return;
+  if($('sitScreen').classList.contains('open')) return;
   if($('miniScreen').classList.contains('open')) return;
   if($('qcmScreen').classList.contains('open')) return;
   if($('auditScreen').classList.contains('open')) return;
@@ -2935,8 +2874,8 @@ function tick(){
 }
 
 function trySpawnEvent(){
-  const activeCount = G.events.filter(e=>!e.resolved).length;
-  if(activeCount >= 2) return;
+  const activeCount = G.events.filter(e => !e.resolved).length;
+  if(activeCount >= 3) return;
   const valid = EVENTS.filter(e => (e.sites.includes('all') || e.sites.includes(G.siteId))
                                 && (!e.shift || e.shift === G.shift));
   if(!valid.length) return;
@@ -2974,8 +2913,12 @@ function spawnEvent(evId, forcedZone){
       if(instance[f]) instance[f] = instance[f].split('[AGENT]').join(qui.name);
     }
     instance.mci = instance.mci.map(m => ({...m, text:m.text.split('[AGENT]').join(qui.name)}));
-    if(!G.stagiaire) instance.choices = instance.choices.filter(c => c.k !== 'rh_stagiaire');
     startAbsence(qui, 'urgence familiale, départ immédiat');
+  }
+
+  if(ev.type === 'at' && !G.rh.datOpen){
+    G.rh.datOpen = true;
+    mcAdd('PC', `🩹 Accident du travail — dossier DAT à constituer (voir ACTIONS PCS)`, 'warn');
   }
 
   G.events.push(instance);
@@ -3006,340 +2949,9 @@ function openAnomalyResponse(ev){
   A.click();
 }
 
-function openEventModal(instance){
-  if(!G || G.paused) return;
-  /* Une anomalie de ronde n'a pas de choix scénarisés : c'est une demande
-     d'ordres, elle ouvre la feuille de réponse. */
-  if(instance.awaitingOrders || !instance.choices){ openAnomalyResponse(instance); return; }
-  G.activeModal = instance;
-  renderEventModal(instance);
-  $('eventScreen').classList.add('open');
-}
-
-function renderEventModal(ev){
-  const ctx = `${G.site.icon} ${G.site.name} — ${fmtTime(G.t)} — ${G.shift==='day'?'JOUR':'NUIT'} — ${G.weather.icon} ${G.weather.label}`;
-  let h = `<h1>${iconFor(ev.type)} ÉVÉNEMENT</h1><div class="sub">${(ev.type||'anomalie').toUpperCase()}</div>`;
-  if(ev.urgent) h += `<div class="evDeadline">⚠ ALARME EN COURS — DÉCISION ATTENDUE</div>`;
-  h += `<div class="evBlock"><div class="evLabel">CONTEXTUALISATION</div>
-    <div class="evCtx">${ctx}<br>${ev.ctx||''}</div></div>`;
-  h += `<div class="evBlock"><div class="evLabel">ÉVÉNEMENT</div>
-    <div class="evContent">${ev.event||ev.title}</div></div>`;
-  h += `<div class="evBlock"><div class="evLabel">SITUATION PCS & TERRAIN</div>
-    <div class="evContent pcs">${ev.pcs||ev.desc}<br><b style="color:#7d8fa3">Zone :</b> ${zoneName(ev.zoneId || ev.zone)}</div></div>`;
-  h += `<h2>RÉSEAU D'INTERACTIONS</h2>`;
-  if(ev.radio) h += `<div class="evBlock"><div class="evLabel">${ICON_VHF} RADIO</div>
-    <div class="evContent radio">${ev.radio}</div></div>`;
-  if(ev.phone) h += `<div class="evBlock"><div class="evLabel">📞 TÉLÉPHONE</div>
-    <div class="evContent phone">${ev.phone}</div></div>`;
-  if(ev.presence) h += `<div class="evBlock"><div class="evLabel">👤 PRÉSENCE PCS</div>
-    <div class="evContent presence">${ev.presence}</div></div>`;
-  h += `<h2>ÉTAT DE L'ÉQUIPE</h2><div class="evTeam">`;
-  for(const a of G.agents){
-    h += `<div class="agentTag"><b>${a.avatar} ${a.name}</b><br>Niv.${a.level} · Fat.${Math.round(a.fatigue)}%</div>`;
-  }
-  if(G.stagiaire) h += `<div class="agentTag"><b>${G.stagiaire.avatar} ${G.stagiaire.name}</b><br>Stagiaire · Tuteur : ${G.agents[0].name}</div>`;
-  h += `</div>`;
-  h += `<h2>DILEMME</h2><div class="evContent">${ev.dilemma||'Quelle décision prendre ?'}</div>`;
-  h += `<h2>CONDUITE À TENIR</h2><div class="evChoices">`;
-  /* L'ordre d'affichage est tiré au sort à la première ouverture : la
-     bonne conduite n'est jamais à la même place. */
-  if(!ev.ordre) ev.ordre = ev.choices.map((x, i) => i).sort(() => Math.random() - 0.5);
-  for(let k=0;k<ev.ordre.length;k++){
-    const i = ev.ordre[k];
-    const c = ev.choices[i];
-    h += `<button class="evChoice" data-choice="${i}">
-      <b>${String.fromCharCode(65+k)} — ${c.label}</b>
-      <span>${c.hint}</span></button>`;
-  }
-  h += `</div>`;
-  $('eventContent').innerHTML = h;
-}
 function iconFor(t){
   return {feu:'🔥',medical:'🚑',at:'🩹',rh:'👥',ssi:'⚙',permis:'📝',conflit:'💬',
           tech:'🛗',surete:'🔓',anomalie:'⚠'}[t] || '⚠';
-}
-
-function resolveChoice(idx){
-  const ev = G.activeModal;
-  if(!ev){ $('eventScreen').classList.remove('open'); return; }
-  const c = ev.choices[idx];
-  if(!c) return;
-  A.click();
-  /* La décision est prise : le délai de traitement ne court plus
-     (la rédaction de la main courante n'est pas chronométrée). */
-  ev.deadline = null;
-  ev.decidedAt = G.t;
-  G.score += c.score || 0;
-
-  mcAdd('PC', `Décision : ${c.label} — ${c.consequence}`, 'action');
-
-  applyEventChoice(ev, c);
-
-  $('eventScreen').classList.remove('open');
-  G.activeModal = null;
-
-  if(ev.mci){
-    /* Horodatage plutôt qu'un drapeau : si le minuteur ne part pas
-       (onglet en arrière-plan), le verrou se libère de lui-même. */
-    G.mciPending = Date.now();
-    setTimeout(() => { G.mciPending = 0; openMCI(ev); }, 350);
-  } else {
-    ev.resolved = true;
-    renderMC(true);
-  }
-  toast(`Choix validé · ${c.score>0?'+':''}${c.score} pts`, c.score>0?'good':c.score<0?'bad':'info');
-}
-
-/* ----------------------------------------------------------
-   Ce qu'une conduite déclenche réellement. Chaque situation
-   porte une clé d'effet : le moteur n'interprète plus le
-   libellé du bouton, il applique la procédure choisie.
-   ---------------------------------------------------------- */
-function applyEventChoice(ev, c){
-  const zid = ev.zoneId;
-  const zn = zoneName(zid);
-  const z = G.zones[zid];
-  /* Une alarme feu laisse le tableau en alarme et envoie les
-     asservissements de la zone : c'est vrai quelle que soit la suite. */
-  const alarmeFeu = () => {
-    G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-    dasOpen(zid, 'clapet', 'asservissement de la détection incendie');
-  };
-  const envoyer = (kind, extra) => laterMini(() => {
-    if(!(G.missions || []).some(m => m.kind === kind && m.zoneId === zid)){
-      openDispatch(kind, zid, Object.assign({evId:ev.instId}, extra || {}));
-    }
-  });
-
-  switch(c.k){
-    case 'ldd':
-      alarmeFeu();
-      if(!G.ld) envoyer('ldd');
-      break;
-
-    case 'ag':
-      alarmeFeu();
-      laterMini(openAlarmeGenerale);
-      break;
-
-    case 'feu_total':
-      alarmeFeu();
-      callSecours('18', zid);
-      laterMini(openAlarmeGenerale);
-      laterMini(() => {
-        const a = missionAvailable()[0];
-        if(a){ sendMission(a, 'extinction', zid, {}); askBinome(zid, a); }
-      });
-      break;
-
-    case 'feu_cuisson_ok':
-      alarmeFeu();
-      mcAdd('PC', `⚡ Énergie de l'appareil coupée et extraction arrêtée en ${zn} — le conduit ne propage plus`, 'action');
-      envoyer('extinction');
-      break;
-
-    case 'danger_eau':
-      alarmeFeu();
-      if(z && z.feu){ z.feu.stage = Math.min(3, z.feu.stage + 1); z.feu.lastGrow = G.t; }
-      mcAdd('PC', `⛔ Eau projetée sur un feu d'huile — projections enflammées, le foyer s'étend`, 'crit');
-      logCause(zid, `Attaque à l'eau ordonnée sur un feu d'huile en ${zn}.`);
-      envoyer('ldd');
-      break;
-
-    case 'call18':
-      if(ev.type === 'feu') alarmeFeu();
-      callSecours('18', zid);
-      if(ev.type === 'feu' && !G.ld) envoyer('ldd');
-      break;
-
-    case 'call15':
-      callSecours('15', zid);
-      break;
-
-    case 'inhib':
-      if(!G.ssi.inhibited.includes(zid)){
-        G.ssi.inhibited.push(zid);
-        G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
-      }
-      mcAdd('PC', `🚫 Zone ${zn} inhibée alors qu'une alarme feu n'a pas été levée — détection neutralisée`, 'crit');
-      logCause(zid, `Zone ${zn} inhibée pour faire cesser une alarme feu sans levée de doute.`);
-      break;
-
-    case 'stop_tempo':
-      G.ssi.alarmActive = false; G.ssi.buzzer = false;
-      mcAdd('PC', `⛔ Temporisation interrompue et tableau remis en veille sans reconnaissance du déclencheur`, 'crit');
-      logCause(zid, `Processus d'alarme interrompu après action d'un déclencheur manuel, sans vérification sur place.`);
-      break;
-
-    case 'sst':
-      envoyer('sst', {cas: ev.type === 'at' ? 'trauma' : undefined});
-      break;
-
-    case 'sst_acr':
-      callSecours('15', zid);
-      envoyer('sst', {cas:'acr'});
-      break;
-
-    case 'at_ok':
-      mcAdd('PC', `🔒 Machine consignée et zone balisée en ${zn} — lieux préservés pour l'enquête`, 'ok');
-      envoyer('sst', {cas:'trauma'});
-      break;
-
-    case 'at_bouger':
-      mcAdd('PC', `⛔ Victime de chute de hauteur relevée et déplacée — aggravation possible des lésions`, 'crit');
-      logCause(zid, `Victime d'une chute de hauteur mobilisée en ${zn} avant tout bilan.`);
-      callSecours('15', zid);
-      break;
-
-    case 'acquit_ssi':
-      mcAdd('PC', `📒 Dérangement acquitté, organe identifié et consigné au registre de sécurité`, 'ok');
-      if(!G.demandes.some(d => d.zone === zid && d.label === 'Dérangement de zone')){
-        G.demandes.push({ zone:zid, label:'Dérangement de zone', reste:1 });
-        mcAdd('PC', `🛠 Intervention de la société de maintenance SSI demandée pour ${zn}`, 'info');
-      }
-      G.k.degHandled = (G.k.degHandled || 0) + 1;
-      break;
-
-    case 'compens':
-      mcAdd('PC', `📡 Surveillance humaine renforcée sur ${zn} — rondes rapprochées jusqu'au rétablissement`, 'ok');
-      if(G.deg.detect && G.deg.detect.zoneId === zid) G.deg.detect.covered = true;
-      G.k.degHandled = (G.k.degHandled || 0) + 1;
-      if(!G.demandes.some(d => d.zone === zid && d.label === 'Dérangement de zone')){
-        G.demandes.push({ zone:zid, label:'Dérangement de zone', reste:1 });
-      }
-      break;
-
-    case 'masquer':
-      G.ssi.buzzer = false;
-      mcAdd('PC', `⚠ Signal de dérangement coupé sans prise en compte — le défaut n'est écrit nulle part`, 'crit');
-      logCause(zid, `Dérangement du SSI masqué sans consignation ni demande d'intervention : ${zn} sans détection fiable.`);
-      break;
-
-    case 'permis_ok':
-      if(z){
-        z.travaux = true;
-        z.travauxUntil = G.t + 90;
-        z.surveillancePost = true;
-        mcAdd('PC', `🔧 Travaux par point chaud en ${zn} jusqu'à ${fmtTime(z.travauxUntil)} — abords dégagés, extincteurs en place`, 'info');
-        mcAdd('PC', `⏱ Surveillance après travaux programmée deux heures après la fin du chantier`, 'ok');
-      }
-      break;
-
-    case 'permis_signe':
-      if(z){
-        z.travaux = true;
-        z.travauxUntil = G.t + 90;
-        z.encombrement = Math.min(3, z.encombrement + 1);
-        mcAdd('PC', `🔧 Travaux par point chaud engagés en ${zn} sans contrôle préalable des abords`, 'warn');
-        logCause(zid, `Permis de feu signé sans contrôle des abords ni moyens de secours sur place en ${zn}.`);
-      }
-      break;
-
-    case 'permis_inhib':
-      if(z){ z.travaux = true; z.travauxUntil = G.t + 90; }
-      if(!G.ssi.inhibited.includes(zid)){
-        G.ssi.inhibited.push(zid);
-        G.k.inhibPosed = (G.k.inhibPosed || 0) + 1;
-      }
-      mcAdd('PC', `🚫 Détection de ${zn} inhibée pour la durée des travaux — aucune surveillance compensatoire prévue`, 'warn');
-      logCause(zid, `Détection inhibée pour des travaux par point chaud en ${zn} sans surveillance humaine.`);
-      break;
-
-    case 'permis_refus':
-      mcAdd('PC', `⛔ Travaux refusés : permis de feu non signé par la direction — arbitrage renvoyé à l'exploitant`, 'info');
-      break;
-
-    case 'ascenseur_ok':
-      mcAdd('PC', `📞 Contact permanent établi avec la cabine — société d'ascenseurs appelée, intervention en route`, 'ok');
-      envoyer('ascenseur');
-      break;
-
-    case 'ascenseur_forcer':
-      mcAdd('PC', `⛔ Ouverture des portes palières engagée par du personnel non habilité sur une cabine entre deux niveaux`, 'crit');
-      logCause(zid, `Dégagement d'un ascenseur bloqué tenté par les agents, hors habilitation, cabine entre deux niveaux.`);
-      break;
-
-    case 'gaz_ok':
-      mcAdd('PC', `🚷 Accès interdit et balisé en ${zn}, arrivée de gaz coupée à l'extérieur, ventilation naturelle`, 'ok');
-      callSecours('18', zid);
-      break;
-
-    case 'gaz_danger':
-      mcAdd('PC', `⛔ Agent envoyé avec une source d'énergie dans une atmosphère chargée en gaz`, 'crit');
-      logCause(zid, `Recherche de fuite de gaz engagée avec un appareil électrique en ${zn}.`);
-      callSecours('18', zid);
-      break;
-
-    case 'gaz_ventil':
-      mcAdd('PC', `⛔ Extraction mécanique démarrée dans un local chargé en gaz — moteur en atmosphère explosive`, 'crit');
-      logCause(zid, `Ventilation mécanique mise en marche dans une atmosphère gazeuse en ${zn}.`);
-      callSecours('18', zid);
-      break;
-
-    case 'surete_ok':
-      mcAdd('PC', `📹 Levée de doute par vidéoprotection sur ${zn} avant tout engagement d'agent`, 'ok');
-      break;
-
-    case 'police':
-      mcAdd('PC', `👮 Intervention de la police demandée sur ${zn} — agents maintenus en observation à distance`, 'action');
-      break;
-
-    case 'surete_solo':
-      mcAdd('PC', `⚠ Agent envoyé seul de nuit sur une intrusion possible — aucun binôme, aucune couverture`, 'crit');
-      logCause(zid, `Agent isolé engagé de nuit sur une alarme intrusion en ${zn}.`);
-      break;
-
-    case 'rh_astreinte':
-    case 'rh_presta':
-      G.rh.incoming = { at:G.t + (c.k === 'rh_astreinte' ? 45 : 30), kind: c.k === 'rh_astreinte' ? 'astreinte' : 'presta' };
-      G.debrief.rh += c.k === 'rh_astreinte' ? 3 : 2;
-      mcAdd('PC', c.k === 'rh_astreinte'
-        ? `📞 Agent d'astreinte rappelé — arrivée annoncée sous 45 min, direction informée du sous-effectif`
-        : `📞 Société prestataire sollicitée — agent extérieur sous 30 min, accueil et consignes à prévoir`, 'action');
-      break;
-
-    case 'rh_stagiaire':
-      if(G.stagiaire){
-        G.stagiaire.stress = Math.min(100, (G.stagiaire.stress || 20) + 20);
-        G.stagiaire.holdAtPcs = false;
-      }
-      mcAdd('S3', `Un stagiaire ne compte pas dans l'effectif de sécurité incendie. Il est en formation, il n'est pas un agent de plus.`, 'crit');
-      logCause(G.site.zones[0].id, `Stagiaire compté dans l'effectif de sécurité incendie pour combler un départ.`);
-      break;
-
-    case 'rh_rien':
-      G.debrief.rh -= 2;
-      mcAdd('PC', `⚠ Vacation tenue en sous-effectif sans information de la hiérarchie`, 'warn');
-      logCause(G.site.zones[0].id, `Effectif de sécurité incendie incomplet assumé sans information de la direction.`);
-      break;
-
-    case 'rh_ecoute':
-      G.debrief.rh += 3;
-      for(const a of G.agents) moralChange(a, 2, null);
-      mcAdd('PC', `🗣 Entretiens individuels menés au poste, répartition des rondes arbitrée et tracée`, 'ok');
-      break;
-
-    case 'rh_autorite':
-      G.debrief.rh -= 1;
-      if(G.agents[0]) moralChange(G.agents[0], -3, 'arbitrage imposé sans avoir été entendu');
-      break;
-
-    case 'rh_laisser':
-      G.debrief.rh -= 3;
-      for(const a of G.agents) moralChange(a, -3, 'différend laissé sans arbitrage par le chef d\'équipe');
-      break;
-
-    case 'attendre':
-    case 'rien':
-      break;
-  }
-
-  if(ev.type === 'at' && !G.rh.datOpen){
-    G.rh.datOpen = true;
-    mcAdd('PC', `🩹 Dossier d'accident du travail à constituer — voir ACTIONS PCS`, 'warn');
-    toast('DAT à saisir', 'bad');
-  }
-  if(ev.type === 'rh') G.k.rhNeeded = (G.k.rhNeeded || 0) + 1;
 }
 
 /* L'alarme générale : la méthode d'évacuation dépend de l'établissement,
@@ -3477,6 +3089,431 @@ function resolveAnomaly(evId, idx){
 }
 
 /* ==========================================================
+   ============ LA CONDUITE DES SITUATIONS ==================
+   Un chef d'équipe ne choisit pas une réponse dans une liste :
+   il conduit une situation avec les instruments dont il dispose,
+   dans un ordre qui a un sens, et il en répond.
+   Une situation s'ouvre, on l'instruit acte par acte, on la clôt,
+   et la conduite tenue est évaluée : ce qui a été fait, ce qui a
+   été omis, ce qui n'aurait pas dû être fait, et dans quel ordre.
+   ========================================================== */
+const ACTES = {
+  /* ---------- Au tableau de signalisation ---------- */
+  bps:        {g:'CMSI', i:'🔇', n:'Arrêt du signal sonore',
+               s:'Le tableau reste en alarme, les communications redeviennent audibles',
+               run:() => execBPS()},
+  lecture:    {g:'CMSI', i:'📖', n:'Lecture du tableau et localisation',
+               s:'Zone de détection, adresse du point, nature du déclenchement',
+               run:sit => {
+                 sit.lu = true;
+                 mcAdd('PC', `📖 Tableau relevé : ${sit.event.toLowerCase()} — ${zoneName(sit.zoneId)}`, 'info');
+                 G.score += 2;
+               }},
+  tempo:      {g:'CMSI', i:'⏹', n:'Interrompre la temporisation',
+               s:'Le processus d’alarme générale est arrêté avant son terme',
+               run:sit => {
+                 G.ssi.alarmActive = false; G.ssi.buzzer = false;
+                 mcAdd('PC', `⏹ Temporisation interrompue, tableau remis en veille — ${zoneName(sit.zoneId)}`, 'warn');
+               }},
+  ag:         {g:'CMSI', i:'🚨', n:'Alarme générale',
+               s:'Diffusion de l’ordre d’évacuation, méthode à ordonner',
+               run:() => openAlarmeGenerale()},
+  desenf:     {g:'CMSI', i:'🌬', n:'Désenfumage',
+               s:'Commande des volets et exutoires, contrôle de position',
+               run:() => execDesenf()},
+  compart:    {g:'CMSI', i:'🧱', n:'Compartimentage',
+               s:'Isolement du compartiment sinistré — IGH',
+               run:() => execCompart()},
+  inhib:      {g:'CMSI', i:'🚫', n:'Inhiber une zone de détection',
+               s:'La zone cesse d’être surveillée par le SDI',
+               run:() => execInhib()},
+  acquit:     {g:'CMSI', i:'🟡', n:'Acquitter un dérangement',
+               s:'Prise en compte du défaut au tableau',
+               run:sit => {
+                 mcAdd('PC', `🟡 Dérangement acquitté et organe identifié — ${zoneName(sit.zoneId)}`, 'info');
+                 G.k.degHandled = (G.k.degHandled || 0) + 1;
+               }},
+  rearm:      {g:'CMSI', i:'♻', n:'Réarmement SDI / CMSI',
+               s:'Remise en veille de l’installation après suppression de la cause',
+               run:() => execRearm()},
+
+  /* ---------- Ce qu'on demande à l'équipe ---------- */
+  ldd:        {g:'ÉQUIPE', i:'🔎', n:'Envoyer en levée de doute',
+               s:'Reconnaissance sur place, compte rendu radio attendu',
+               run:sit => openDispatch('ldd', sit.zoneId, {evId:sit.instId})},
+  attaque:    {g:'ÉQUIPE', i:'🧯', n:'Engager un binôme sur le foyer',
+               s:'Extincteur adapté, second équipier, liaison radio',
+               run:sit => {
+                 const a = missionAvailable()[0];
+                 if(!a){ toast('Aucun agent disponible', 'bad'); return false; }
+                 sendMission(a, 'extinction', sit.zoneId, {});
+                 askBinome(sit.zoneId, a);
+               }},
+  ria:        {g:'ÉQUIPE', i:'🚿', n:'Engager le robinet d’incendie armé',
+               s:'Attaque à l’eau, débit important',
+               run:sit => {
+                 const z = G.zones[sit.zoneId];
+                 mcAdd('PC', `🚿 RIA engagé en ${zoneName(sit.zoneId)}`, 'action');
+                 if(sit.id === 'feu_cuisson' && z && z.feu){
+                   z.feu.stage = Math.min(3, z.feu.stage + 1);
+                   z.feu.lastGrow = G.t;
+                   mcAdd('PC', `⛔ Eau sur un feu d’huile — projections enflammées, le foyer s’étend`, 'crit');
+                 }
+               }},
+  sst:        {g:'ÉQUIPE', i:'🚑', n:'Envoyer un secouriste',
+               s:'Sac de premiers secours et DAE, bilan attendu',
+               run:sit => openDispatch('sst', sit.zoneId, {evId:sit.instId, cas:sit.cas})},
+  dae:        {g:'ÉQUIPE', i:'🫀', n:'Envoyer le défibrillateur en renfort',
+               s:'Un second agent apporte le DAE et relaie le massage',
+               run:sit => {
+                 const a = missionAvailable()[0];
+                 if(!a){ toast('Aucun agent disponible', 'bad'); return false; }
+                 sendMission(a, 'sst', sit.zoneId, {cas:'inconscient'});
+                 mcAdd('PC', `🫀 ${a.name} envoyé avec le défibrillateur — relais du massage`, 'crit');
+               }},
+  rearm_das:  {g:'ÉQUIPE', i:'🔧', n:'Envoyer réarmer les DAS',
+               s:'Clapets, volets et portes remis en position d’attente',
+               run:() => openRearmDispatch()},
+  dispo:      {g:'ÉQUIPE', i:'🛗', n:'Dispositions pour les secours',
+               s:'Ascenseurs, fluides, voie engins',
+               run:() => openDispatch('dispo', G.site.zones[0].id, {})},
+  stagiaire:  {g:'ÉQUIPE', i:'🎓', n:'Compléter l’effectif avec le stagiaire',
+               s:'Le stagiaire prend les rondes d’un agent de l’effectif',
+               run:() => {
+                 if(!G.stagiaire){ toast('Aucun stagiaire dans l’équipe', 'info'); return false; }
+                 G.stagiaire.stress = Math.min(100, (G.stagiaire.stress || 20) + 20);
+                 G.stagiaire.holdAtPcs = false;
+                 mcAdd('S3', `Un stagiaire ne compte pas dans l'effectif de sécurité incendie. Il est en formation, pas un agent de plus.`, 'crit');
+                 logCause(G.site.zones[0].id, `Stagiaire compté dans l'effectif de sécurité incendie.`);
+               }},
+  accueil:    {g:'ÉQUIPE', i:'🚒', n:'Désigner l’accueil des secours',
+               s:'Plan, trousseau, guidage jusqu’au sinistre',
+               run:() => openDispatch('accueil', G.site.zones[0].id, {})},
+  assist:     {g:'ÉQUIPE', i:'🛗', n:'Assistance à personne bloquée',
+               s:'Contact permanent, agent à l’étage',
+               run:sit => openDispatch('ascenseur', sit.zoneId, {})},
+  forcer:     {g:'ÉQUIPE', i:'🔨', n:'Faire ouvrir les portes palières',
+               s:'Dégagement de la cabine par les agents',
+               run:sit => mcAdd('PC', `🔨 Ouverture des portes palières engagée par les agents — ${zoneName(sit.zoneId)}`, 'crit')},
+  consigner:  {g:'SITE', i:'⛔', n:'Faire baliser et interdire l’accès',
+               s:'Périmètre établi, énergie consignée, lieux préservés',
+               run:sit => mcAdd('PC', `⛔ Accès interdit et balisé en ${zoneName(sit.zoneId)} — lieux préservés`, 'ok')},
+  couper:     {g:'SITE', i:'⚡', n:'Faire couper l’énergie ou les fluides',
+               s:'Coupure du secteur concerné, depuis l’extérieur du local',
+               run:sit => mcAdd('PC', `⚡ Énergie et fluides du secteur ${zoneName(sit.zoneId)} coupés sur ordre du PCS`, 'action')},
+  compens:    {g:'SITE', i:'📡', n:'Surveillance humaine renforcée',
+               s:'Rondes rapprochées là où la détection manque ou pendant des travaux',
+               run:sit => {
+                 const a = missionAvailable().find(x => x.state === 'idle') || missionAvailable()[0];
+                 if(!a){ toast('Aucun agent disponible', 'bad'); return false; }
+                 const zid = sit.zoneId;
+                 if(G.deg.detect && G.deg.detect.zoneId === zid){
+                   G.deg.detect.covered = true;
+                   G.k.degHandled = (G.k.degHandled || 0) + 1;
+                 }
+                 const adhoc = {
+                   id:'SC-' + (G.uid++), time:G.t, type:'surveillance', label:'Surveillance renforcée',
+                   tolerance:10, points:[{zoneId:zid, hasBadge:true, hidden:false},
+                                         {zoneId:zid, hasBadge:true, hidden:false}],
+                   status:'running', assignedAgentId:a.id, startedAt:G.t, doneAt:null,
+                   pointsVisited:0, pointsMissed:0, incidents:0, adhoc:true, preAlerted:true,
+                 };
+                 G.rounds.push(adhoc);
+                 startRoundForAgent(a, adhoc);
+                 mcAdd('PC', `📡 Surveillance humaine renforcée sur ${zoneName(zid)} — rondes rapprochées`, 'ok');
+               }},
+  video:      {g:'SITE', i:'📹', n:'Lever le doute par la vidéoprotection',
+               s:'Image du secteur depuis le poste, avant d’engager quiconque',
+               run:sit => {
+                 mcAdd('PC', `📹 Levée de doute par vidéoprotection sur ${zoneName(sit.zoneId)}`, 'ok');
+                 G.score += 3;
+               }},
+  controle:   {g:'SITE', i:'🔍', n:'Contrôler la zone avant travaux',
+               s:'Abords dégagés, écran de protection, extincteurs en place',
+               run:sit => {
+                 const z = G.zones[sit.zoneId];
+                 if(z) z.controleAvantTravaux = true;
+                 mcAdd('PC', `🔍 Zone ${zoneName(sit.zoneId)} contrôlée avant travaux — matières écartées, moyens de secours en place`, 'ok');
+               }},
+  permis_del: {g:'SITE', i:'📝', n:'Délivrer le permis de feu',
+               s:'Travaux autorisés, surveillance pendant et après',
+               run:sit => {
+                 const z = G.zones[sit.zoneId];
+                 if(!z) return;
+                 z.travaux = true;
+                 z.travauxUntil = G.t + 90;
+                 z.surveillancePost = !!z.controleAvantTravaux;
+                 mcAdd('PC', `📝 Permis de feu délivré pour ${zoneName(sit.zoneId)} jusqu’à ${fmtTime(z.travauxUntil)}`
+                   + (z.surveillancePost ? ' — surveillance après travaux programmée' : ' — sans contrôle préalable des abords'),
+                   z.surveillancePost ? 'ok' : 'warn');
+                 if(!z.surveillancePost) logCause(sit.zoneId, `Permis de feu délivré en ${zoneName(sit.zoneId)} sans contrôle préalable des abords.`);
+               }},
+  entretien:  {g:'SITE', i:'🗣', n:'Recevoir les agents séparément',
+               s:'Chacun entendu, règle rappelée, décision annoncée',
+               run:() => {
+                 for(const a of G.agents) moralChange(a, 2, null);
+                 mcAdd('PC', `🗣 Entretiens individuels menés au poste, répartition arbitrée`, 'ok');
+               }},
+
+  /* ---------- Ce qu'on demande à l'extérieur ---------- */
+  alerte18:   {g:'APPELS', i:'🚒', n:'Alerter les sapeurs-pompiers',
+               s:'Message d’alerte à composer',
+               run:sit => callSecours('18', sit.zoneId)},
+  alerte15:   {g:'APPELS', i:'🚑', n:'Alerter le SAMU',
+               s:'Message d’alerte à composer',
+               run:sit => callSecours('15', sit.zoneId)},
+  police:     {g:'APPELS', i:'👮', n:'Requérir la police',
+               s:'Agents maintenus en observation à distance',
+               run:sit => mcAdd('PC', `👮 Police requise sur ${zoneName(sit.zoneId)}`, 'action')},
+  ascensoriste:{g:'APPELS', i:'🔧', n:'Appeler la société d’ascenseurs',
+               s:'Seul habilité à dégager une cabine',
+               run:() => mcAdd('PC', `🔧 Société d’ascenseurs appelée — intervention annoncée sous 45 min`, 'action')},
+  maintenance:{g:'APPELS', i:'🛠', n:'Demander l’intervention de la maintenance',
+               s:'Organe en défaut à remettre en service',
+               run:sit => {
+                 if(!G.demandes.some(d => d.zone === sit.zoneId && d.label === 'Dérangement de zone')){
+                   G.demandes.push({ zone:sit.zoneId, label:'Dérangement de zone', reste:1 });
+                 }
+                 mcAdd('PC', `🛠 Intervention de la maintenance demandée pour ${zoneName(sit.zoneId)}`, 'info');
+               }},
+  renfort:    {g:'APPELS', i:'👥', n:'Rappel d’astreinte ou prestataire',
+               s:'Remplacement pour tenir l’effectif prescrit',
+               run:() => execRenfort()},
+  direction:  {g:'APPELS', i:'🎖', n:'Informer la direction et le SSIAP 3',
+               s:'Compte rendu de la situation à la hiérarchie',
+               run:sit => {
+                 G.s3.present = true;
+                 mcAdd('S3', `Compte rendu reçu sur ${zoneName(sit.zoneId)}. Continue, je suis en route.`, 'info');
+               }},
+
+  /* ---------- L'écrit ---------- */
+  registre:   {g:'REGISTRE', i:'📒', n:'Consigner au registre de sécurité',
+               s:'Qui, quand, où, quoi, conséquences, mesures prises',
+               run:sit => { openMCI(sit); return 'modal'; }},
+};
+
+const ACTE_GROUPES = ['CMSI', 'ÉQUIPE', 'SITE', 'APPELS', 'REGISTRE'];
+const ACTE_GRP_ICO = {'CMSI':'🖥', 'ÉQUIPE':'👥', 'SITE':'🏢', 'APPELS':'📞', 'REGISTRE':'📒'};
+
+/* Un acte est joué : il s'inscrit dans le journal de la situation. */
+function faireActe(sitId, k){
+  const sit = G.events.find(e => e.instId === sitId);
+  const acte = ACTES[k];
+  if(!sit || !acte || sit.closed) return;
+  const rejouable = k === 'ldd' || k === 'registre' || k === 'rearm' || k === 'rearm_das';
+  if(!rejouable && (sit.actes || []).some(a => a.k === k)){
+    toast('Déjà engagé sur cette situation', 'info');
+    return;
+  }
+  if(!sit.actes) sit.actes = [];
+  const res = acte.run(sit);
+  if(res === false) return;                 // l'acte n'a pas pu être engagé
+  if(!(sit.actes || []).some(a => a.k === k)) sit.actes.push({ k, t:G.t });
+  if(!sit.premierActe) sit.premierActe = G.t;
+  A.click();
+  if(res === 'modal'){ $('sitScreen').classList.remove('open'); return; }
+  renderSituation(sit);
+  renderSitBar();
+  renderAll();
+}
+
+/* ---------- Évaluation de la conduite tenue ---------- */
+function evaluerConduite(sit){
+  const cond = sit.conduite || {};
+  const faits = (sit.actes || []).map(a => a.k);
+  const rang = k => faits.indexOf(k);
+  const tenus = (cond.requis || []).filter(k => faits.includes(k));
+  const omis = (cond.requis || []).filter(k => !faits.includes(k));
+  const proscrits = (cond.interdits || []).filter(k => faits.includes(k));
+  const desordre = (cond.ordre || []).filter(([a, b]) =>
+    faits.includes(a) && faits.includes(b) && rang(a) > rang(b));
+  const delai = sit.premierActe ? sit.premierActe - sit.spawnedAt : null;
+  return { tenus, omis, proscrits, desordre, delai,
+           conforme: !omis.length && !proscrits.length && !desordre.length };
+}
+
+/* ---------- Clôture ---------- */
+function cloreSituation(sit, auto){
+  if(!sit || sit.closed) return;
+  sit.closed = true;
+  sit.resolved = true;
+  sit.deadline = null;
+  const ev = evaluerConduite(sit);
+  sit.verdict = ev;
+  const zn = zoneName(sit.zoneId);
+  let pts = 0;
+
+  G.k.sitTotal = (G.k.sitTotal || 0) + 1;
+  G.k.actesRequis = (G.k.actesRequis || 0) + (sit.conduite.requis || []).length;
+  G.k.actesTenus = (G.k.actesTenus || 0) + ev.tenus.length;
+
+  pts += ev.tenus.length * 6;
+  for(const k of ev.omis){
+    pts -= 6;
+    mcAdd('S3', `Conduite incomplète sur ${zn} : « ${ACTES[k] ? ACTES[k].n.toLowerCase() : k} » n'a pas été fait.`, 'warn');
+  }
+  for(const k of ev.proscrits){
+    pts -= 10;
+    G.k.actesProscrits = (G.k.actesProscrits || 0) + 1;
+    mcAdd('S3', `Manœuvre à proscrire sur ${zn} : « ${ACTES[k] ? ACTES[k].n.toLowerCase() : k} ».`, 'crit');
+    logCause(sit.zoneId, `Manœuvre à proscrire engagée sur ${zn} : ${ACTES[k] ? ACTES[k].n.toLowerCase() : k}.`);
+  }
+  for(const [a, b] of ev.desordre){
+    pts -= 4;
+    mcAdd('S3', `Ordre des actes non tenu sur ${zn} : « ${ACTES[a].n.toLowerCase()} » vient avant « ${ACTES[b].n.toLowerCase()} ».`, 'warn');
+  }
+  if(ev.delai !== null && ev.delai <= 3) pts += 4;
+  if(!(sit.actes || []).length){
+    pts -= 10;
+    mcAdd('PC', `⛔ ${sit.event} — ${zn} : aucune conduite engagée par le PCS`, 'crit');
+    logCause(sit.zoneId, `${sit.event} en ${zn} laissée sans aucune conduite du poste de sécurité.`);
+  } else if(ev.conforme){
+    pts += 10;
+    G.k.sitTenues = (G.k.sitTenues || 0) + 1;
+    mcAdd('PC', `✅ ${sit.event} — ${zn} : conduite tenue (${ev.tenus.length} acte(s), ordre respecté)`, 'ok');
+  } else {
+    mcAdd('PC', `📋 ${sit.event} — ${zn} : situation close, ${ev.tenus.length}/${(sit.conduite.requis||[]).length} acte(s) attendus tenus`, 'warn');
+  }
+  if(auto && (sit.actes || []).length) mcAdd('PC', `⏱ ${sit.event} close d'office — le PCS n'a pas rendu compte de la fin de situation`, 'warn');
+
+  G.score += pts;
+  sit.points = pts;
+  A.success && pts > 0 ? A.success() : A.click();
+  toast(`Situation close · ${pts > 0 ? '+' : ''}${pts} pts`, pts > 0 ? 'good' : 'bad');
+  /* Le verdict s'affiche là où la situation a été conduite : c'est le
+     moment où l'on apprend quelque chose. */
+  if(!auto && $('sitScreen').classList.contains('open')) renderSituation(sit);
+  else $('sitScreen').classList.remove('open');
+  renderSitBar();
+  renderMC(true);
+  renderAll();
+}
+
+/* Une situation qu'on n'engage pas, puis qu'on ne clôt pas, se solde sans le PCS. */
+function tickSituations(){
+  for(const sit of G.events){
+    if(sit.closed || sit.awaitingOrders || !sit.conduite) continue;
+    const age = G.t - sit.spawnedAt;
+    const delai = sit.delay || 20;
+    if(!sit.relance && age > delai && !(sit.actes || []).length){
+      sit.relance = true;
+      G.score -= 6;
+      G.debrief.ignored = (G.debrief.ignored || 0) + 1;
+      mcAdd('S3', `${sit.event} en ${zoneName(sit.zoneId)} depuis ${Math.round(age)} min et rien d'engagé. Qu'est-ce que tu attends ?`, 'crit');
+      toast('Situation non engagée !', 'bad');
+      A.fail();
+    }
+    if(age > delai * 3) cloreSituation(sit, true);
+  }
+}
+
+/* ---------- Le tableau des situations en cours ---------- */
+function situationsOuvertes(){
+  return G.events.filter(e => e.conduite && !e.closed);
+}
+function renderSitBar(){
+  const bar = $('sitBar');
+  if(!bar || !G) return;
+  const list = situationsOuvertes();
+  if(!list.length){ bar.className = ''; bar.innerHTML = ''; return; }
+  bar.className = 'show';
+  bar.innerHTML = list.map(sit => {
+    const age = Math.max(0, Math.round(G.t - sit.spawnedAt));
+    const n = (sit.actes || []).length;
+    const reste = (sit.conduite.requis || []).filter(k => !(sit.actes || []).some(a => a.k === k)).length;
+    return `<button class="sitCard ${sit.urgent ? 'urgent' : ''} ${n ? '' : 'vierge'}" data-sit="${sit.instId}">
+      <span class="scIco">${iconFor(sit.type)}</span>
+      <span class="scTxt">
+        <b>${sit.event}</b>
+        <span>${zoneName(sit.zoneId)} · ${age} min · ${n ? `${n} acte(s), ${reste} attendu(s)` : 'aucune conduite engagée'}</span>
+      </span>
+    </button>`;
+  }).join('');
+}
+
+function openSituation(instId){
+  const sit = G.events.find(e => e.instId === instId);
+  if(!sit) return;
+  sit.vue = true;
+  renderSituation(sit);
+  $('sitScreen').classList.add('open');
+  A.click();
+}
+
+function renderSituation(sit){
+  const age = Math.max(0, Math.round(G.t - sit.spawnedAt));
+  let h = `<h1>${iconFor(sit.type)} ${sit.event}</h1>
+    <div class="sub">${zoneName(sit.zoneId)} · ouverte depuis ${age} min</div>`;
+
+  /* --- Situation close : le verdict de la conduite --- */
+  if(sit.closed){
+    const v = sit.verdict || evaluerConduite(sit);
+    const lab = k => ACTES[k] ? `${ACTES[k].i} ${ACTES[k].n}` : k;
+    h += `<div class="anoCard ${v.conforme ? '' : 'major'}">
+      <div class="anoTitle">${v.conforme ? '✅ Conduite tenue' : '📋 Conduite incomplète'}</div>
+      <div class="anoMeta">${v.tenus.length}/${(sit.conduite.requis || []).length} acte(s) attendus · ${sit.points > 0 ? '+' : ''}${sit.points} pts</div>
+    </div>`;
+    if(v.tenus.length){
+      h += `<div class="matHead">✅ CE QUE VOUS AVEZ TENU</div>
+        <div class="evContent sitLog">${v.tenus.map(k => `<div>${lab(k)}</div>`).join('')}</div>`;
+    }
+    if(v.omis.length){
+      h += `<div class="matHead">⚠ CE QUI MANQUAIT</div>
+        <div class="evContent sitLog manque">${v.omis.map(k => `<div>${lab(k)}<span>${ACTES[k] ? ACTES[k].s : ''}</span></div>`).join('')}</div>`;
+    }
+    if(v.proscrits.length){
+      h += `<div class="matHead">⛔ CE QUI N'AURAIT PAS DÛ ÊTRE FAIT</div>
+        <div class="evContent sitLog interdit">${v.proscrits.map(k => `<div>${lab(k)}</div>`).join('')}</div>`;
+    }
+    if(v.desordre.length){
+      h += `<div class="matHead">🔀 ORDRE DES ACTES</div>
+        <div class="evContent sitLog manque">${v.desordre.map(([a, b]) =>
+          `<div>${ACTES[a].n} devait venir avant ${ACTES[b].n.toLowerCase()}</div>`).join('')}</div>`;
+    }
+    h += `<button class="btn-sec" data-act="close-sit">RETOUR AU POSTE</button>`;
+    $('sitContent').innerHTML = h;
+    return;
+  }
+
+  /* --- Situation en cours --- */
+  h += `<div class="evCtx">${sit.ctx}</div>`;
+  const bloc = (label, cls, txt) => txt
+    ? `<div class="evBlock"><div class="evLabel">${label}</div><div class="evContent ${cls}">${txt}</div></div>` : '';
+  h += bloc('TABLEAU DE SIGNALISATION', 'pcs', sit.pcs);
+  h += bloc(`${ICON_VHF} RADIO`, 'radio', sit.radio);
+  h += bloc('📞 TÉLÉPHONE', 'phone', sit.phone);
+  h += bloc('👤 AU POSTE', 'presence', sit.presence);
+  if(sit.dilemma) h += `<div class="evBlock"><div class="evLabel">CE QUI SE JOUE</div><div class="evContent">${sit.dilemma}</div></div>`;
+
+  const faits = sit.actes || [];
+  h += `<div class="matHead">📋 CONDUITE TENUE — ${faits.length} ACTE(S)</div>`;
+  h += faits.length
+    ? `<div class="evContent sitLog">${faits.map((a, i) =>
+        `<div><b>${i + 1}.</b> ${fmtTime(a.t)} — ${ACTES[a.k] ? ACTES[a.k].i + ' ' + ACTES[a.k].n : a.k}</div>`).join('')}</div>`
+    : `<div class="evContent sitLog vide">Rien n'a encore été engagé sur cette situation.</div>`;
+
+  const onglet = sit.tab || ACTE_GROUPES[0];
+  h += `<div class="matHead">⚡ VOS INSTRUMENTS</div>
+    <div class="actTabs">${ACTE_GROUPES.map(g => {
+      const n = (sit.actes || []).filter(a => ACTES[a.k] && ACTES[a.k].g === g).length;
+      return `<button class="actTab ${g === onglet ? 'sel' : ''}" data-tab="${g}" data-sit="${sit.instId}">
+        <span>${ACTE_GRP_ICO[g]}</span>${g}${n ? `<i>${n}</i>` : ''}</button>`;
+    }).join('')}</div>`;
+  for(const k of Object.keys(ACTES)){
+    const acte = ACTES[k];
+    if(acte.g !== onglet) continue;
+    const done = faits.some(a => a.k === k);
+    h += `<button class="orderBtn sitAct ${done ? 'fait' : ''}" data-acte="${k}" data-sit="${sit.instId}">
+      <div class="oi">${acte.i}</div>
+      <div class="ol"><b>${acte.n}</b><span>${done ? 'déjà engagé' : acte.s}</span></div>
+    </button>`;
+  }
+  h += `<button class="btn-main" data-sit-close="${sit.instId}">SITUATION TRAITÉE</button>
+    <button class="btn-sec" data-act="close-sit">RETOUR AU POSTE — la situation reste ouverte</button>`;
+  $('sitContent').innerHTML = h;
+}
+
+/* ==========================================================
    MCI
    ========================================================== */
 function openMCI(ev){
@@ -3520,11 +3557,13 @@ function resolveMCI(idx){
     A.fail();
     toast('❌ MCI non conforme', 'bad');
   }
-  ev.resolved = true;
+  if(!ev.conduite) ev.resolved = true;
   renderMC(true);
   setTimeout(() => {
     $('mciScreen').classList.remove('open');
     if(G && G.activeModal === ev) G.activeModal = null;
+    /* On revient à la situation qu'on était en train de conduire. */
+    if(G && ev.conduite && !ev.closed) openSituation(ev.instId);
   }, 1400);
 }
 
@@ -3892,8 +3931,8 @@ function endVacation(){
   const planned = G.rounds.filter(x => !x.adhoc);
   const doneRounds = planned.filter(x => x.status === 'done').length;
   const onTimeRounds = planned.filter(x => x.status === 'done' && (x.doneAt - x.time) <= x.tolerance).length;
-  const alarms = G.events.filter(e => e.delay);
-  const alarmsHandled = alarms.filter(e => e.decidedAt).length;
+  const alarms = G.events.filter(e => e.conduite);
+  const alarmsHandled = alarms.filter(e => (e.actes || []).length).length;
   const pointsTried = (G.debrief.badges || 0) + (G.debrief.badgesFailed || 0) + (G.materiel.wrongKeys || 0);
   const issued = K.issued || 0;
   /* Sécurité du site à la relève : zones laissées à risque, anomalies non
@@ -3926,6 +3965,9 @@ function endVacation(){
       {w:3, v:rat(K.evacReussies || 0, K.evacuations || 0)},
       {w:2, v:rat(K.dasRearmed || 0, K.dasTotal || 0)},
       {w:3, v:rat(K.alerteOk || 0, K.alerteTotal || 0)},
+      {w:5, v:rat(K.sitTenues || 0, K.sitTotal || 0)},
+      {w:4, v:rat(K.actesTenus || 0, K.actesRequis || 0)},
+      {w:2, v:(K.actesProscrits || 0) ? Math.max(0, 1 - (K.actesProscrits || 0) * 0.34) : null},
       {w:2, v:rat(K.binomeAtkOk || 0, (K.binomeAtkOk || 0) + (K.binomeSeul || 0))},
     ]),
     time: ax([
@@ -3965,7 +4007,10 @@ function endVacation(){
   const detail = [
     ['Rondes tenues', frac(doneRounds, planned.length)],
     ['Rondes dans la tolérance', frac(onTimeRounds, doneRounds)],
-    ['Alarmes traitées dans le délai', frac(alarmsHandled, alarms.length)],
+    ['Situations engagées', frac(alarmsHandled, alarms.length)],
+    ['Situations conduites de bout en bout', frac(K.sitTenues || 0, K.sitTotal || 0)],
+    ['Actes attendus tenus', frac(K.actesTenus || 0, K.actesRequis || 0)],
+    ['Manœuvres à proscrire engagées', `${K.actesProscrits || 0}`],
     ['Levées de doute ≤ 5 min', frac(K.lddOnTime || 0, K.lddTotal || 0)],
     ['Alarmes avec un agent envoyé sur zone', frac(K.lddTotal || 0, (K.lddTotal || 0) + (K.lddNone || 0))],
     ['DAS réarmés avant la relève', frac(K.dasRearmed || 0, K.dasTotal || 0)],
@@ -4061,6 +4106,27 @@ function endVacation(){
       ${cap !== null ? `<div class="bsCap">Note plafonnée à ${cap} — sinistre majeur pendant la vacation</div>` : ''}
     </div>`;
   h += renderCommission();
+
+  const sits = G.events.filter(e => e.conduite);
+  if(sits.length){
+    h += `<h2>🗂 CONDUITE DES SITUATIONS</h2>
+      <div class="evContent" style="line-height:1.65">
+      ${sits.map(sit => {
+        const v = sit.verdict || evaluerConduite(sit);
+        const nom = k => ACTES[k] ? ACTES[k].n.toLowerCase() : k;
+        const col = v.conforme ? '#4ade80' : (v.proscrits.length ? '#ff6b5e' : '#ffb020');
+        return `<div style="margin-bottom:7px">
+          <b style="color:${col}">${v.conforme ? '✓' : (v.proscrits.length ? '✗' : '○')} ${sit.event}</b>
+          <span style="color:#7d8fa3"> — ${zoneName(sit.zoneId)} · ${fmtTime(sit.spawnedAt)}</span>
+          <div style="font-size:9.5px;color:#8fa4b8">
+            ${(sit.actes || []).length ? `${(sit.actes || []).length} acte(s) engagé(s)` : 'aucune conduite engagée'}
+            ${v.omis.length ? `<br><span style="color:#ffb020">omis : ${v.omis.map(nom).join(', ')}</span>` : ''}
+            ${v.proscrits.length ? `<br><span style="color:#ff6b5e">à proscrire : ${v.proscrits.map(nom).join(', ')}</span>` : ''}
+            ${v.desordre.length ? `<br><span style="color:#ffb020">ordre non tenu : ${v.desordre.map(([a, b]) => `${nom(a)} avant ${nom(b)}`).join(' · ')}</span>` : ''}
+          </div></div>`;
+      }).join('')}
+      </div>`;
+  }
 
   h += `<h2>📋 REGISTRE DES RONDES</h2>
     <div class="evContent" style="font-size:10px;line-height:1.7">
@@ -7391,45 +7457,16 @@ function mciPendingNow(){ return !!G.mciPending && (Date.now() - G.mciPending) <
 
 function tickEvents(){
   for(const ev of G.events){
-    if(ev.resolved || ev.escalated || ev.awaitingOrders) continue;
+    if(ev.resolved || ev.awaitingOrders || !ev.conduite) continue;
+    /* Une situation urgente interrompt le poste une fois. Ensuite elle
+       vit dans le tableau des situations : c'est au chef d'y revenir. */
     if(ev.autoOpen && !anyOverlayOpen() && !mciPendingNow()){
       ev.autoOpen = false;
-      if(ev.urgent) A.alarm();
-      openEventModal(ev);
-      continue;
+      if(ev.urgent){ A.alarm(); openSituation(ev.instId); }
+      else toast(`${ev.event} — ${zoneName(ev.zoneId)}`, 'bad');
     }
-    if(ev.deadline && G.t > ev.deadline) escalateEvent(ev);
   }
-}
-
-/* Ne pas décider est une décision : l'événement se solde sans le PCS. */
-function escalateEvent(ev){
-  ev.escalated = true;
-  ev.resolved = true;
-  ev.autoOpen = false;
-  const pen = {feu:{s:15, r:4, t:4}, medical:{s:12, r:3, t:4}, at:{s:10, r:3, t:3}}[ev.type] || {s:6, r:2, t:2};
-  G.score -= pen.s;
-  G.debrief.ignored = (G.debrief.ignored || 0) + 1;
-
-  if(ev.type === 'feu'){
-    G.ssi.alarmActive = true; G.ssi.buzzer = true; G.ssi.rearmNeeded = true;
-    logCause(ev.zoneId, `Alarme feu en ${zoneName(ev.zoneId)} laissée ${ev.delay} min sans décision du PCS : aucun agent envoyé.`);
-    mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — le sinistre se poursuit, personne n'a été envoyé`, 'crit');
-    mcAdd('S3', `Aucune décision du PCS sur l'alarme ${zoneName(ev.zoneId)}. Je reprends la main — ce sera au débriefing.`, 'crit');
-  } else if(ev.type === 'medical' || ev.type === 'at'){
-    mcAdd('PC', `⛔ ${ev.event} laissée sans décision du PCS pendant ${ev.delay} min — victime sans prise en charge`, 'crit');
-    mcAdd('S3', `Une victime a attendu. Explique-moi ça à la relève.`, 'crit');
-  } else {
-    mcAdd('PC', `⛔ ${ev.event} laissée sans suite (${ev.delay} min) — non-conformité`, 'crit');
-  }
-  A.fail();
-  toast('⛔ Alarme non traitée !', 'bad');
-
-  if(G.activeModal && G.activeModal.instId === ev.instId){
-    $('eventScreen').classList.remove('open');
-    G.activeModal = null;
-  }
-  renderMC(true);
+  tickSituations();
 }
 
 /* ==========================================================
@@ -7461,8 +7498,9 @@ function updateAlertStrip(){
   if(G.evac && !G.evac.termine){
     bits.push(`🚨 ÉVACUATION ${Math.round(G.evac.evacues)}/${G.evac.occupants}`);
   }
-  const pending = G.events.filter(e => !e.resolved && !e.awaitingOrders).length;
-  if(pending) bits.push(`🔔 ${pending} alarme(s)`);
+  const ouvertes = situationsOuvertes();
+  const vierges = ouvertes.filter(e => !(e.actes || []).length).length;
+  if(ouvertes.length) bits.push(`🗂 ${ouvertes.length} situation(s)${vierges ? ` · ${vierges} sans conduite` : ''}`);
   const waiting = awaitingAgents().length;
   if(waiting) bits.push(`⏸ ${waiting} agent(s) en attente`);
   if(G.binomeReq && !G.binomeReq.done) bits.push(`🧑‍🚒 agent seul sur le foyer — binôme !`);
@@ -7583,9 +7621,13 @@ const COACH = [
    title:'Une ronde arrive',
    text:`Touchez ASSIGNER dans le bandeau ou ouvrez 📋 le planning. L'agent choisi est équipé automatiquement : talkie, badge de pointage et trousseau du type de ronde. Une ronde non assignée passée la tolérance est une non-conformité.`},
   {id:'alarme',
-   when: () => G.events.some(e => e.delay && !e.resolved && e.autoOpen),
-   title:'Une alarme vous interrompt',
-   text:`La fenêtre de décision s'ouvre seule et un compte à rebours démarre — le temps continue de tourner pendant que vous lisez. Choisissez avant la fin du délai : sans décision du PCS, l'événement se solde sans vous et le SSIAP 3 le relèvera au débriefing.`},
+   when: () => G.events.some(e => e.conduite && !e.closed),
+   title:'Une situation s’ouvre',
+   text:`Elle s'inscrit dans le bandeau des situations, sous le planning, et y reste tant que vous ne l'avez pas close. Touchez-la : vous y trouvez ce que montre le tableau, ce que dit la radio et le téléphone, puis vos instruments. Aucune réponse n'est proposée — vous conduisez la situation acte par acte, dans l'ordre que vous jugez bon.`},
+  {id:'conduite',
+   when: () => G.events.some(e => e.conduite && !e.closed && (e.actes || []).length),
+   title:'Clore une situation',
+   text:`Chaque acte engagé s'inscrit dans le journal de la situation. Quand vous estimez en avoir fini, touchez SITUATION TRAITÉE : le SSIAP 3 vous dit alors ce que vous avez tenu, ce que vous avez omis, ce qui n'aurait pas dû être fait et si l'ordre a été respecté. Une situation laissée sans rien engager est une faute.`},
   {id:'attente',
    when: () => awaitingAgents().length > 0,
    title:'Un agent attend un ordre',
@@ -7688,7 +7730,7 @@ function handleTap(e){
   const mcEv = t.closest('[data-ev]');
   if(mcEv && G){
     const ev = G.events.find(x => x.instId === mcEv.dataset.ev && !x.resolved);
-    if(ev) openEventModal(ev);
+    if(ev) ev.awaitingOrders ? openAnomalyResponse(ev) : openSituation(ev.instId);
     return;
   }
   const alertBtn = t.closest('[data-answer]');
@@ -7697,8 +7739,22 @@ function handleTap(e){
     if(ev) openAnomalyResponse(ev);
     return;
   }
-  const choice = t.closest('[data-choice]');
-  if(choice){ resolveChoice(+choice.dataset.choice); return; }
+  const tabBtn = t.closest('[data-tab]');
+  if(tabBtn && G){
+    const sit = G.events.find(e => e.instId === tabBtn.dataset.sit);
+    if(sit){ sit.tab = tabBtn.dataset.tab; renderSituation(sit); A.click(); }
+    return;
+  }
+  const acteBtn = t.closest('[data-acte]');
+  if(acteBtn && G){ faireActe(acteBtn.dataset.sit, acteBtn.dataset.acte); return; }
+  const sitClose = t.closest('[data-sit-close]');
+  if(sitClose && G){
+    const sit = G.events.find(e => e.instId === sitClose.dataset.sitClose);
+    if(sit) cloreSituation(sit, false);
+    return;
+  }
+  const sitCard = t.closest('[data-sit]');
+  if(sitCard && G){ openSituation(sitCard.dataset.sit); return; }
   const mciBtn = t.closest('[data-mci]');
   if(mciBtn){ resolveMCI(+mciBtn.dataset.mci); return; }
   const qcmBtn = t.closest('[data-qcm]');
@@ -7752,6 +7808,7 @@ function handleTap(e){
   if(act === 'reroll-team'){ currentTeam = generateTeam(); renderTeam(); A.click(); return; }
   if(act === 'start-game'){ $('teamScreen').classList.remove('open'); startGame(); return; }
   if(act === 'close-order'){ $('orderScreen').classList.remove('open'); return; }
+  if(act === 'close-sit'){ $('sitScreen').classList.remove('open'); return; }
   if(act === 'close-actions'){ $('actionsScreen').classList.remove('open'); return; }
   if(act === 'open-materiel'){ $('actionsScreen').classList.remove('open'); openMateriel(); return; }
   if(act === 'open-sitestate'){ $('actionsScreen').classList.remove('open'); renderSiteState(); $('siteStateScreen').classList.add('open'); return; }

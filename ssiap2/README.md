@@ -10,7 +10,7 @@ progression est sauvegardée dans le `localStorage`).
 | Phase | Contenu |
 |---|---|
 | **0 — Prise de poste** | Choix du site (ERP M, ERP U, ERP O/N, IGH, Industriel) **et du type de vacation** (Jour 07h-19h / Nuit 19h-07h), tirage de l'équipe (2 SSIAP 1 + stagiaire éventuel) |
-| **1 — Vacation 12 h** | 8 rondes planifiées avec tolérance et pointage badge, événements SDI, chrono de levée de doute, registre matériel, modes dégradés, incidents RH, QCM et exercices CMSI. De jour la vacation s'ouvre par la prise de poste et se termine par la fermeture ; **de nuit c'est l'inverse** : la ronde de fermeture ouvre le poste (verrouillage, extinction, départ du public) et la ronde d'ouverture le termine avant la relève du matin |
+| **1 — Vacation 12 h** | 8 rondes planifiées avec tolérance et pointage badge, **situations à conduire acte par acte** au tableau, avec l'équipe, sur le site, au téléphone et au registre, chrono de levée de doute, registre matériel, modes dégradés, effectif de sécurité, QCM et exercices CMSI. De jour la vacation s'ouvre par la prise de poste et se termine par la fermeture ; **de nuit c'est l'inverse** : la ronde de fermeture ouvre le poste (verrouillage, extinction, départ du public) et la ronde d'ouverture le termine avant la relève du matin |
 | **2 — Débriefing SSIAP 3** | Note sur 6 axes : Réglementation, Réactivité, Management/RH, Qualité MCI, Gestion du matériel, Formation — XP, prime de vacation, succès |
 | **3 — Inter-vacation** | Arbre de compétences des SSIAP 1 (vitesse, vigilance, endurance, badge), boutique PCS, historique, changement de site / de vacation |
 
@@ -274,64 +274,49 @@ Le débriefing ajoute cinq lignes : *alarmes avec un agent envoyé sur zone*,
 *DAS réarmés avant la relève*, *messages d'alerte complets*, *attaques menées
 en binôme* et *dispositions prises avant l'arrivée des engins*.
 
-## Les situations du poste
+## Conduire une situation — la boucle du jeu
 
-Les quatorze situations du jeu sont écrites comme elles arrivent réellement au
-PCS : ce que montre le tableau de signalisation, ce que dit la radio, ce que dit
-le téléphone, qui se présente au poste. **Aucune conduite proposée n'est
-annoncée comme la bonne** — les libellés décrivent une action, jamais son
-mérite, et l'ordre d'affichage est tiré au sort à chaque ouverture, de sorte que
-la bonne réponse n'est jamais à la même place.
+Le chef d'équipe **ne choisit pas une réponse dans une liste**. Il conduit une
+situation avec les instruments dont il dispose, dans l'ordre qu'il juge bon, et
+il en répond.
 
-- **Alarme feu sur une seule détection** — arrêt du signal sonore, lecture de la
-  zone, envoi d'un agent en levée de doute. L'alarme générale immédiate est
-  disproportionnée, l'alerte des secours prématurée, l'inhibition proscrite.
-- **Feu confirmé** — trois détections et des appels du public : le doute est
-  levé par les faits. Alarme générale, message d'alerte, binôme sur le foyer.
-  Faire une levée de doute à ce stade, c'est perdre des minutes.
-- **Déclencheur manuel** — quelqu'un a vu quelque chose : l'information est vraie
-  jusqu'à preuve du contraire. On envoie un agent au déclencheur **sans
-  interrompre la temporisation**. La couper, c'est annuler un ordre d'évacuation
-  sans savoir pourquoi il a été donné.
-- **Feu sur appareil de cuisson** — coupure de l'énergie, étouffement du foyer,
-  contrôle du conduit d'extraction. L'attaque au RIA projette l'huile enflammée.
-- **Personne au sol** et **arrêt cardiaque** — agent secouriste avec le sac et le
-  DAE, bilan, puis alerte. Sur un arrêt cardiaque, le massage commence tout de
-  suite et c'est un **second agent** qui apporte le défibrillateur : interrompre
-  la réanimation pour aller le chercher est sanctionné.
-- **Accident du travail** — protéger avant de secourir : machine consignée, zone
-  balisée, victime non mobilisée, lieux préservés, DAT.
-- **Dérangement SSI** — ce n'est pas une alarme, c'est une ligne en défaut :
-  acquittement, consignation au registre de sécurité, demande d'intervention et
-  surveillance humaine renforcée tant que la zone n'est pas surveillée.
-- **Travaux par point chaud** — contrôle des abords avant, surveillance pendant,
-  et surtout **deux heures de surveillance après la fin du chantier**. Un permis
-  signé sans cela laisse la zone chaude, et le jeu en tire les conséquences :
-  la reprise de feu après le départ des ouvriers est un événement à part entière.
-- **Personne bloquée en ascenseur** — contact permanent par l'interphone, agent à
-  l'étage, dégagement laissé à l'ascensoriste. Forcer les portes palières sur une
-  cabine arrêtée entre deux niveaux est une faute grave.
-- **Odeur de gaz** — aucune manœuvre électrique, coupure à l'extérieur,
-  ventilation naturelle, évacuation, alerte. Démarrer l'extraction mécanique ou
-  entrer avec une lampe met un moteur ou une étincelle dans une atmosphère
-  explosive.
-- **Alarme intrusion** (nuit) — levée de doute par la vidéoprotection avant
-  d'engager qui que ce soit ; un agent isolé de nuit sur une intrusion possible
-  est un agent en danger.
-- **Effectif incomplet** — l'effectif de sécurité incendie conditionne
-  l'ouverture au public : rappel d'astreinte ou prestataire, et information de la
-  direction. L'absorber en silence est un manquement.
-- **Tension dans l'équipe** — chacun entendu séparément, règle de répartition
-  rappelée, décision tracée.
+1. **Une situation s'ouvre.** Elle s'inscrit dans le bandeau des situations,
+   sous le planning des rondes, avec sa zone, son âge et le nombre d'actes déjà
+   engagés. Une situation urgente interrompt le poste une fois ; ensuite elle
+   attend là, et c'est au chef d'y revenir. Jusqu'à trois peuvent courir
+   ensemble : la pression du jeu, c'est la charge et le nombre d'agents
+   disponibles, pas un compte à rebours.
+2. **La fiche montre ce qui arrive au PCS** : ce qu'affiche le tableau de
+   signalisation, ce que dit la radio, ce que dit le téléphone, qui se présente
+   au poste, et ce qui se joue. Aucune réponse n'est proposée.
+3. **Vous agissez, acte par acte.** Trente-quatre instruments répartis sur cinq
+   pupitres : **CMSI** (arrêt du signal sonore, lecture du tableau, temporisation,
+   alarme générale, désenfumage, compartimentage, inhibition, acquittement,
+   réarmement), **ÉQUIPE** (levée de doute, binôme d'attaque, RIA, secouriste,
+   défibrillateur, assistance ascenseur, réarmement des DAS, dispositions,
+   accueil des secours…), **SITE** (baliser et interdire l'accès, couper les
+   fluides, surveillance renforcée, vidéoprotection, contrôle avant travaux,
+   permis de feu, entretien d'équipe), **APPELS** (18, 15, police, ascensoriste,
+   maintenance, astreinte, direction) et **REGISTRE** (consignation au registre
+   de sécurité, qui ouvre la rédaction de main courante).
+   Chaque acte s'inscrit dans le journal de la situation, horodaté et numéroté.
+4. **Vous clôturez quand vous estimez en avoir fini.** Le SSIAP 3 rend alors son
+   verdict : ce que vous avez tenu, **ce qui manquait** et pourquoi, **ce qui
+   n'aurait pas dû être fait**, et si **l'ordre des actes** a été respecté — on
+   n'envoie pas en levée de doute avant d'avoir lu le tableau, on ne réarme pas
+   avant le compte rendu, on n'alerte pas les secours avant d'avoir levé le doute.
 
-Chaque conduite porte une **clé d'effet** : le moteur n'interprète plus le texte
-du bouton, il applique la procédure choisie (envoi en levée de doute, alarme
-générale avec choix de la méthode, message d'alerte, inhibition, consignation,
-mesures compensatoires, reprise de feu…).
+Chaque scénario porte donc trois listes : les **actes requis**, les **manœuvres
+à proscrire** et les **couples d'actes dont l'ordre compte**. Ne rien engager
+dans le délai est une faute ; au triple du délai la situation se clôt d'office
+sans le poste. Le débriefing rejoue ensuite chaque situation de la vacation avec
+ce qui a été tenu, omis ou proscrit.
 
-Les trois rédactions de main courante proposées après chaque situation sont
-toutes plausibles : elles se distinguent par leur **contenu** — qui, quand, où,
-quoi, conséquences, mesures prises — et non plus par leur longueur.
+Les quatorze situations : alarme feu sur une seule détection · feu confirmé par
+plusieurs détections · déclencheur manuel · feu sur appareil de cuisson ·
+personne au sol · arrêt cardiaque · accident du travail · dérangement SSI ·
+travaux par point chaud · personne bloquée en ascenseur · odeur de gaz ·
+intrusion de nuit · départ imprévu d'un agent · tension dans l'équipe.
 
 ## Le site garde la trace des vacations précédentes
 
@@ -472,7 +457,11 @@ réarmement des DAS et refus de réarmement du CMSI sans compte-rendu, chaîne
 secours à victime (bilan → 15 → accueil), bascule groupe,
 liaison de secours, surveillance compensatoire, inhibition/levée, refus du
 compartimentage hors IGH, DAT complète, renfort RH, règle du binôme,
-composition du message d'alerte (complet comme abandonné), les quatorze
+conduite complète d'une situation (journal des actes, changement de pupitre,
+consignation au registre et retour à la fiche, verdict affiché, manœuvre à
+proscrire relevée, situation abandonnée puis close d'office), bandeau des
+situations et bascule de l'une à l'autre, composition du message d'alerte
+(complet comme abandonné), les quatorze
 situations du poste (textes, clés d'effet, ordre d'affichage tiré au sort,
 déclencheur manuel sans feu réel, surveillance après travaux et reprise de feu,
 odeur de gaz, ascenseur bloqué, arrêt cardiaque avec DAE), dispositions
