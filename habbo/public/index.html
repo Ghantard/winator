@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hotel Pixel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="topbar" hidden>
+    <button id="nav-btn" type="button">Navigateur</button>
+    <span id="room-name"></span>
+  </div>
+
+  <div id="navigator" class="panel" hidden>
+    <div class="panel-head">
+      <strong>Salles</strong>
+      <button id="nav-close" type="button" aria-label="Fermer">&times;</button>
+    </div>
+    <ul id="room-list"></ul>
+  </div>
+
+  <div id="chat-log" hidden></div>
+
+  <form id="chat-form" autocomplete="off" hidden>
+    <input id="chat-input" maxlength="120" placeholder="Dis quelque chose... (Entree pour envoyer)">
+  </form>
+
+  <div id="login" class="overlay">
+    <form id="login-form" class="panel login-card">
+      <h1>Hotel Pixel</h1>
+      <label for="name-input">Pseudo</label>
+      <input id="name-input" maxlength="16" placeholder="Ton pseudo" required autofocus>
+      <span class="label">Couleur du t-shirt</span>
+      <div id="swatches"></div>
+      <button type="submit">Entrer dans l'hotel</button>
+    </form>
+  </div>
+
+  <div id="disconnected" class="overlay" hidden>
+    <div class="panel login-card">
+      <h1>Connexion perdue</h1>
+      <button type="button" onclick="location.reload()">Se reconnecter</button>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
