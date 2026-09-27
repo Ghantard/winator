@@ -2,8 +2,9 @@ import {
   iso, screenToTile, drawRoom, drawFurniture, furnitureDepth,
   drawAvatar, drawNameTag, drawBubble, chairBackInFront, drawChairBack,
 } from './render.js';
+import { getAvatarSprite } from './avatar.js';
+import { PALETTES, HAIR_STYLES, DEFAULT_LOOK, sanitizeLook, randomLook } from './look.js';
 
-const COLORS = ['#3b82c4', '#c43b52', '#2f9e5b', '#d9a441', '#8b5cc4', '#e0703a', '#222831', '#e8e8e8'];
 const BUBBLE_MS = 7000;
 
 const $ = (id) => document.getElementById(id);
@@ -20,42 +21,97 @@ const state = {
   hover: null,
 };
 
-// ---------- Ecran de connexion ----------
+// ---------- Ecran de connexion : editeur d'avatar ----------
 
-let chosenColor = COLORS[0];
-for (const color of COLORS) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'swatch';
-  b.style.background = color;
-  b.setAttribute('aria-label', `Couleur ${color}`);
-  b.setAttribute('aria-pressed', String(color === chosenColor));
-  b.addEventListener('click', () => {
-    chosenColor = color;
-    document.querySelectorAll('.swatch').forEach((s) => s.setAttribute('aria-pressed', String(s === b)));
-  });
-  $('swatches').append(b);
-}
-
+let look = { ...DEFAULT_LOOK };
 try {
+  look = sanitizeLook(JSON.parse(localStorage.getItem('habbo.look')));
   $('name-input').value = localStorage.getItem('habbo.name') ?? '';
 } catch { /* stockage indisponible */ }
+
+let previewDir = 2;
+const OPTIONS = [
+  { key: 'skin', label: 'Peau', colors: PALETTES.skin },
+  { key: 'hairStyle', label: 'Coiffure', labels: HAIR_STYLES.map((h) => h.label) },
+  { key: 'hair', label: 'Cheveux', colors: PALETTES.hair },
+  { key: 'shirt', label: 'Haut', colors: PALETTES.shirt },
+  { key: 'pants', label: 'Bas', colors: PALETTES.pants },
+];
+
+function buildEditor() {
+  const root = $('look-options');
+  root.replaceChildren();
+  for (const opt of OPTIONS) {
+    const row = document.createElement('div');
+    row.className = 'opt-row';
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = opt.label;
+    const values = document.createElement('div');
+    values.className = 'opt-values';
+    const items = opt.colors ?? opt.labels;
+    items.forEach((item, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (opt.colors) {
+        b.className = 'swatch';
+        b.style.background = item;
+        b.setAttribute('aria-label', `${opt.label} ${i + 1}`);
+      } else {
+        b.className = 'chip';
+        b.textContent = item;
+      }
+      b.setAttribute('aria-pressed', String(look[opt.key] === i));
+      b.addEventListener('click', () => {
+        look[opt.key] = i;
+        buildEditor();
+      });
+      values.append(b);
+    });
+    row.append(label, values);
+    root.append(row);
+  }
+}
+
+function drawPreview(now) {
+  if ($('login').hidden) return;
+  const pc = $('preview');
+  const pctx = pc.getContext('2d');
+  pctx.clearRect(0, 0, pc.width, pc.height);
+  pctx.imageSmoothingEnabled = false;
+  const sprite = getAvatarSprite(look, previewDir, { blinking: now % 3500 < 130 });
+  pctx.drawImage(sprite, 0, 0, sprite.width * 2, sprite.height * 2);
+  requestAnimationFrame(drawPreview);
+}
+
+$('rotate-left').addEventListener('click', () => { previewDir = (previewDir + 7) % 8; });
+$('rotate-right').addEventListener('click', () => { previewDir = (previewDir + 1) % 8; });
+$('random-look').addEventListener('click', () => {
+  look = randomLook();
+  buildEditor();
+});
+
+buildEditor();
+requestAnimationFrame(drawPreview);
 
 $('login-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const name = $('name-input').value.trim();
   if (!name) return;
-  try { localStorage.setItem('habbo.name', name); } catch { /* ignore */ }
-  connect(name, chosenColor);
+  try {
+    localStorage.setItem('habbo.name', name);
+    localStorage.setItem('habbo.look', JSON.stringify(look));
+  } catch { /* ignore */ }
+  connect(name, look);
 });
 
 // ---------- Reseau ----------
 
-function connect(name, color) {
+function connect(name, look) {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
   state.ws = ws;
-  ws.addEventListener('open', () => send({ t: 'join', name, color }));
+  ws.addEventListener('open', () => send({ t: 'join', name, look }));
   ws.addEventListener('message', (e) => handle(JSON.parse(e.data)));
   ws.addEventListener('close', () => { $('disconnected').hidden = false; });
 }
@@ -157,7 +213,8 @@ function logChat(p, text) {
   logLine((line) => {
     const name = document.createElement('span');
     name.className = 'name';
-    name.style.color = p.color === '#222831' ? '#9fb0c6' : p.color;
+    const shirt = PALETTES.shirt[p.look.shirt];
+    name.style.color = p.look.shirt === 6 ? '#9fb0c6' : shirt;
     name.textContent = `${p.name} : `;
     line.append(name, document.createTextNode(text));
   });

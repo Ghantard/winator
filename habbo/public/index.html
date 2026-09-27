@@ -31,10 +31,19 @@
   <div id="login" class="overlay">
     <form id="login-form" class="panel login-card">
       <h1>Hotel Pixel</h1>
+      <div class="editor">
+        <div class="preview">
+          <canvas id="preview" width="72" height="152"></canvas>
+          <div class="preview-actions">
+            <button type="button" id="rotate-left" aria-label="Tourner a gauche">&#8634;</button>
+            <button type="button" id="rotate-right" aria-label="Tourner a droite">&#8635;</button>
+          </div>
+          <button type="button" id="random-look" class="secondary">Au hasard</button>
+        </div>
+        <div id="look-options"></div>
+      </div>
       <label for="name-input">Pseudo</label>
       <input id="name-input" maxlength="16" placeholder="Ton pseudo" required autofocus>
-      <span class="label">Couleur du t-shirt</span>
-      <div id="swatches"></div>
       <button type="submit">Entrer dans l'hotel</button>
     </form>
   </div>

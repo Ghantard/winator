@@ -140,7 +140,7 @@ export class Room {
 
 export function publicPlayer(p) {
   return {
-    id: p.id, name: p.name, color: p.color,
+    id: p.id, name: p.name, look: p.look,
     x: p.x, y: p.y, dir: p.dir, walking: p.path.length > 0, sitting: p.sitting,
   };
 }

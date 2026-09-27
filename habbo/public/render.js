@@ -1,3 +1,5 @@
+import { getAvatarSprite, CENTER_X, FOOT_Y, SEAT_Y } from './avatar.js';
+
 // Rendu isometrique sur Canvas 2D.
 // Grille : x vers le bas-droite, y vers le bas-gauche. La case (x, y)
 // occupe [x, x+1] x [y, y+1] ; iso(x, y) donne le coin haut du losange.
@@ -185,64 +187,31 @@ export function drawChairBack(ctx, f) {
 
 // ---------- Avatars ----------
 
+
 export function drawAvatar(ctx, p, pos, now, walking) {
   const c = iso(pos.x + 0.5, pos.y + 0.5);
-  const [dx, dy] = DIRS[p.dir] ?? DIRS[4];
-  const facingCamera = dx + dy > 0 || (dx + dy === 0 && dy > 0);
-  const side = Math.sign(dx - dy); // -1 gauche, 1 droite a l'ecran
-  const bob = walking ? Math.abs(Math.sin(now / 90)) * 2 : 0;
-  const sitDrop = p.sitting ? 12 : 0;
-  const baseY = c.y - bob + (p.sitting ? -12 : 0);
+  const talking = p.bubble && now - p.bubble.at < 1500 && Math.floor(now / 140) % 2 === 0;
+  const blinking = (now + p.id * 1733) % 4200 < 130;
+  const sprite = getAvatarSprite(p.look, p.dir, {
+    frame: walking ? Math.floor(now / 115) % 4 : 0,
+    sitting: p.sitting && !walking,
+    talking,
+    blinking,
+  });
 
   // Ombre.
-  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
   ctx.beginPath();
-  ctx.ellipse(c.x, c.y, 14, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(c.x, c.y, 13, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Jambes.
-  const stride = walking ? Math.sin(now / 90) * 3 : 0;
-  ctx.fillStyle = '#2b3448';
-  const legH = 18 - sitDrop / 2;
-  ctx.fillRect(c.x - 7 + stride, baseY - legH, 6, legH);
-  ctx.fillRect(c.x + 1 - stride, baseY - legH, 6, legH);
+  const sitting = p.sitting && !walking;
+  const left = Math.round(c.x - CENTER_X);
+  const top = Math.round(sitting ? c.y - 10 - SEAT_Y : c.y + 2 - FOOT_Y);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sprite, left, top);
 
-  // Corps.
-  const bodyTop = baseY - legH - 22;
-  ctx.fillStyle = p.color;
-  roundRect(ctx, c.x - 10, bodyTop, 20, 24, 5);
-  ctx.fill();
-  ctx.fillStyle = shade(p.color, -0.25);
-  ctx.fillRect(c.x - 13, bodyTop + 3, 4, 15);
-  ctx.fillRect(c.x + 9, bodyTop + 3, 4, 15);
-
-  // Tete.
-  const hx = c.x + side * 1.5;
-  const hy = bodyTop - 11;
-  ctx.fillStyle = '#f1c9a5';
-  ctx.beginPath();
-  ctx.arc(hx, hy, 11, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Cheveux.
-  ctx.fillStyle = '#4a2f1d';
-  ctx.beginPath();
-  if (facingCamera) {
-    ctx.arc(hx, hy - 2, 11, Math.PI * 1.05, Math.PI * 1.95);
-  } else {
-    ctx.arc(hx, hy, 11.5, Math.PI * 0.85, Math.PI * 2.15);
-  }
-  ctx.fill();
-
-  // Yeux.
-  if (facingCamera) {
-    ctx.fillStyle = '#1b1b1b';
-    const ex = hx + side * 3;
-    ctx.fillRect(ex - 4, hy, 2, 3);
-    ctx.fillRect(ex + 2, hy, 2, 3);
-  }
-
-  return { x: c.x, y: hy - 14 };
+  return { x: c.x, y: top + 2 };
 }
 
 export function drawNameTag(ctx, name, x, y, highlight) {

@@ -95,3 +95,12 @@ test('Room ne met jamais deux joueurs sur la meme case', () => {
     assert.ok(!(a.x === b.x && a.y === b.y));
   }
 });
+
+test('sanitizeLook remplace les valeurs invalides par les valeurs par defaut', async () => {
+  const { sanitizeLook, DEFAULT_LOOK } = await import('../public/look.js');
+  assert.deepEqual(sanitizeLook(null), DEFAULT_LOOK);
+  assert.deepEqual(
+    sanitizeLook({ skin: 2, hairStyle: 99, hair: -1, shirt: 1.5, pants: '1', extra: 'x' }),
+    { ...DEFAULT_LOOK, skin: 2 },
+  );
+});

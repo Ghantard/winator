@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Room, publicPlayer } from './room.js';
 import { ROOM_DEFS } from './rooms.js';
+import { sanitizeLook } from '../public/look.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 const TICK_MS = 450;
@@ -96,8 +97,7 @@ const handlers = {
   join(client, msg) {
     if (client.player) return;
     const id = nextId++;
-    const color = /^#[0-9a-f]{6}$/i.test(msg.color ?? '') ? msg.color : '#3b82c4';
-    client.player = { id, name: cleanText(msg.name, 16) || `Invite${id}`, color };
+    client.player = { id, name: cleanText(msg.name, 16) || `Invite${id}`, look: sanitizeLook(msg.look) };
     clients.set(id, client);
     send(client.ws, { t: 'welcome', id, tickMs: TICK_MS, rooms: roomList() });
     enterRoom(client, ROOM_DEFS[0].id);

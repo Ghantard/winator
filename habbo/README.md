@@ -19,6 +19,9 @@ Ouvre deux onglets pour voir deux joueurs interagir.
 - Multijoueur temps reel via WebSocket, le serveur fait autorite sur les positions
 - Collisions avec le mobilier et entre joueurs
 - Chaises : on s'y assoit en s'arretant dessus
+- Avatars en pixel art style "hotel" generes par le code : 8 directions, contours sombres,
+  marche en 4 images, position assise, clignement des yeux, bouche qui bouge en parlant
+- Editeur d'avatar a l'entree : peau, coiffure, couleur de cheveux, haut, bas (+ tirage au hasard)
 - Chat avec bulles au-dessus des avatars + historique
 - Navigateur de salles (Hall d'accueil, Le Petit Cafe) avec nombre de joueurs
 - Camera deplacable en glissant la souris
@@ -35,6 +38,8 @@ public/
   index.html, style.css
   main.js         reseau, interface, camera, boucle de rendu
   render.js       rendu isometrique (sol, murs, meubles, avatars, bulles)
+  avatar.js       generation et cache des sprites d'avatars en pixel art
+  look.js         palettes et validation de l'apparence (partage client/serveur)
 test/             tests unitaires (npm test)
 ```
 
@@ -42,7 +47,7 @@ test/             tests unitaires (npm test)
 
 | Client -> serveur            | Serveur -> client                                 |
 |------------------------------|---------------------------------------------------|
-| `join {name, color}`         | `welcome {id, tickMs, rooms}`                     |
+| `join {name, look}`          | `welcome {id, tickMs, rooms}`                     |
 | `move {x, y}`                | `room {room}` (salle + joueurs presents)          |
 | `chat {text}`                | `player_joined`, `player_left`                    |
 | `goto {room}`                | `moves {moves: [{id, x, y, dir, walking, sitting}]}` |
@@ -52,5 +57,5 @@ test/             tests unitaires (npm test)
 
 - Inventaire et pose/rotation/deplacement de meubles par les joueurs
 - Comptes persistants (SQLite) et salles creees par les joueurs
-- Personnalisation de l'avatar (cheveux, pantalon, accessoires)
+- Plus de vetements et accessoires (chapeaux, lunettes), gestes (saluer, danser)
 - Vrais sprites pixel art a la place des formes dessinees
