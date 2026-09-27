@@ -53,18 +53,9 @@ function poly(ctx, pts, fill, stroke) {
 
 const up = (p, h) => ({ x: p.x, y: p.y - h });
 
-/** Boite isometrique : empreinte (gx, gy, gw, gh) en cases, elevation z et hauteur en pixels. */
-function box(ctx, gx, gy, gw, gh, z, height, color) {
-  const a = iso(gx, gy), b = iso(gx + gw, gy), c = iso(gx + gw, gy + gh), d = iso(gx, gy + gh);
-  const top = z + height;
-  poly(ctx, [up(d, z), up(c, z), up(c, top), up(d, top)], shade(color, -0.15));
-  poly(ctx, [up(b, z), up(c, z), up(c, top), up(b, top)], shade(color, -0.32));
-  poly(ctx, [up(a, top), up(b, top), up(c, top), up(d, top)], color);
-}
-
 // ---------- Salle ----------
 
-export function drawRoom(ctx, room, hover) {
+export function drawRoom(ctx, room, hover, hoverColor = 'rgba(255,255,255,.85)') {
   const floor = (x, y) => y >= 0 && y < room.height && x >= 0 && room.layout[y][x] === '0';
 
   // Murs : sur les bords arriere (voisin x-1 ou y-1 hors sol).
@@ -93,23 +84,12 @@ export function drawRoom(ctx, room, hover) {
     }
   }
 
-  // Tapis (au niveau du sol, sous tout le reste).
-  for (const f of room.furniture) {
-    if (f.type === 'rug') {
-      const inset = 0.08;
-      poly(ctx, [
-        iso(f.x + inset, f.y + inset), iso(f.x + f.w - inset, f.y + inset),
-        iso(f.x + f.w - inset, f.y + f.h - inset), iso(f.x + inset, f.y + f.h - inset),
-      ], f.color, shade(f.color, -0.3));
-    }
-  }
-
   // Case survolee.
   if (hover && floor(hover.x, hover.y)) {
     const { x, y } = hover;
     ctx.save();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255,255,255,.85)';
+    ctx.strokeStyle = hoverColor;
     ctx.beginPath();
     const pts = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
     ctx.moveTo(pts[0].x, pts[0].y);
@@ -118,71 +98,6 @@ export function drawRoom(ctx, room, hover) {
     ctx.stroke();
     ctx.restore();
   }
-}
-
-// ---------- Mobilier ----------
-
-export function furnitureDepth(f) {
-  return f.x + f.w - 1 + f.y + f.h - 1;
-}
-
-export function drawFurniture(ctx, f) {
-  const { x, y } = f;
-  switch (f.type) {
-    case 'table':
-      box(ctx, x + 0.15, y + 0.15, f.w - 0.3, f.h - 0.3, 0, 20, shade(f.color, -0.2));
-      box(ctx, x + 0.05, y + 0.05, f.w - 0.1, f.h - 0.1, 20, 5, f.color);
-      break;
-    case 'chair':
-      box(ctx, x + 0.22, y + 0.22, 0.56, 0.56, 0, 12, f.color);
-      if (!chairBackInFront(f)) drawChairBack(ctx, f);
-      break;
-    case 'sofa': {
-      box(ctx, x + 0.05, y + 0.1, f.w - 0.1, f.h - 0.2, 0, 16, f.color);
-      box(ctx, x + 0.05, y + 0.1, f.w - 0.1, 0.22, 16, 18, shade(f.color, 0.12));
-      break;
-    }
-    case 'bar':
-      box(ctx, x + 0.05, y + 0.2, f.w - 0.1, f.h - 0.4, 0, 34, f.color);
-      box(ctx, x, y + 0.15, f.w, f.h - 0.3, 34, 4, '#d8c3a0');
-      break;
-    case 'plant': {
-      box(ctx, x + 0.3, y + 0.3, 0.4, 0.4, 0, 18, '#b5653b');
-      const c = iso(x + 0.5, y + 0.5);
-      ctx.fillStyle = '#2f7a3a';
-      for (const [ox, oy, r] of [[0, -40, 16], [-10, -30, 12], [10, -30, 12], [0, -54, 11]]) {
-        ctx.beginPath();
-        ctx.arc(c.x + ox, c.y + oy, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.fillStyle = '#3f9a4b';
-      ctx.beginPath();
-      ctx.arc(c.x - 4, c.y - 46, 8, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case 'lamp': {
-      box(ctx, x + 0.35, y + 0.35, 0.3, 0.3, 0, 4, '#444');
-      box(ctx, x + 0.46, y + 0.46, 0.08, 0.08, 4, 56, '#666');
-      box(ctx, x + 0.25, y + 0.25, 0.5, 0.5, 58, 18, '#f3d98b');
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-/** Le dossier est cote camera quand la chaise regarde vers le fond : il doit passer devant l'avatar. */
-export function chairBackInFront(f) {
-  const [dx, dy] = DIRS[f.dir];
-  return dx < 0 || dy < 0;
-}
-
-export function drawChairBack(ctx, f) {
-  const [dx, dy] = DIRS[f.dir];
-  const bx = f.x + 0.22 + (dx < 0 ? 0.46 : 0);
-  const by = f.y + 0.22 + (dy < 0 ? 0.46 : 0);
-  box(ctx, bx, by, dx !== 0 ? 0.1 : 0.56, dy !== 0 ? 0.1 : 0.56, 12, 22, shade(f.color, 0.1));
 }
 
 // ---------- Avatars ----------
@@ -207,7 +122,7 @@ export function drawAvatar(ctx, p, pos, now, walking) {
 
   const sitting = p.sitting && !walking;
   const left = Math.round(c.x - CENTER_X);
-  const top = Math.round(sitting ? c.y - 10 - SEAT_Y : c.y + 2 - FOOT_Y);
+  const top = Math.round(sitting ? c.y - (p.z ?? 12) + 2 - SEAT_Y : c.y + 2 - FOOT_Y);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(sprite, left, top);
 

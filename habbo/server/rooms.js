@@ -1,5 +1,6 @@
-// Definition des salles. Dans `layout`, "0" = sol, "x" = vide.
-// Le mobilier est decrit par un type (rendu cote client) et son empreinte.
+// Definition des salles publiques. Dans `layout`, "0" = sol, "x" = vide.
+// `furniture` est le mobilier de depart, qui appartient a l'hotel
+// (personne ne peut le deplacer ni le ramasser).
 
 export const ROOM_DEFS = [
   {
@@ -19,18 +20,20 @@ export const ROOM_DEFS = [
       'xx0000000000',
     ],
     furniture: [
-      { type: 'rug', x: 4, y: 3, w: 4, h: 4, color: '#b84a4a' },
-      { type: 'table', x: 5, y: 4, w: 2, h: 2, color: '#8a5a33' },
-      { type: 'chair', x: 5, y: 3, dir: 4, color: '#3b6ea8' },
-      { type: 'chair', x: 6, y: 3, dir: 4, color: '#3b6ea8' },
-      { type: 'chair', x: 5, y: 6, dir: 0, color: '#3b6ea8' },
-      { type: 'chair', x: 6, y: 6, dir: 0, color: '#3b6ea8' },
+      { type: 'rug_red', x: 4, y: 3 },
+      { type: 'table_big', x: 5, y: 4 },
+      { type: 'chair_blue', x: 5, y: 3, dir: 4 },
+      { type: 'chair_blue', x: 6, y: 3, dir: 4 },
+      { type: 'chair_blue', x: 5, y: 6, dir: 0 },
+      { type: 'chair_blue', x: 6, y: 6, dir: 0 },
       { type: 'plant', x: 3, y: 0 },
-      { type: 'plant', x: 11, y: 0 },
+      { type: 'palm', x: 11, y: 0 },
       { type: 'plant', x: 11, y: 9 },
-      { type: 'sofa', x: 9, y: 0, w: 2, h: 1, dir: 4, color: '#6b4fa0' },
-      { type: 'lamp', x: 0, y: 2 },
-      { type: 'lamp', x: 0, y: 8 },
+      { type: 'sofa_purple', x: 9, y: 0, dir: 4 },
+      { type: 'lamp_floor', x: 0, y: 2, state: 1 },
+      { type: 'lamp_floor', x: 0, y: 8, state: 1 },
+      { type: 'tv', x: 8, y: 0, dir: 4 },
+      { type: 'aquarium', x: 0, y: 5, dir: 2 },
     ],
   },
   {
@@ -48,21 +51,46 @@ export const ROOM_DEFS = [
       '00000xxxxx',
     ],
     furniture: [
-      { type: 'bar', x: 2, y: 0, w: 5, h: 1, color: '#5a3a22' },
-      { type: 'plant', x: 9, y: 0 },
-      { type: 'table', x: 7, y: 3, w: 1, h: 1, color: '#c9c9c9' },
-      { type: 'chair', x: 8, y: 3, dir: 6, color: '#b84a4a' },
-      { type: 'chair', x: 7, y: 2, dir: 4, color: '#b84a4a' },
-      { type: 'table', x: 2, y: 6, w: 1, h: 1, color: '#c9c9c9' },
-      { type: 'chair', x: 3, y: 6, dir: 6, color: '#b84a4a' },
-      { type: 'chair', x: 1, y: 6, dir: 2, color: '#b84a4a' },
-      { type: 'rug', x: 3, y: 2, w: 3, h: 2, color: '#d9a441' },
-      { type: 'lamp', x: 4, y: 7 },
+      { type: 'bar_counter', x: 2, y: 0 },
+      { type: 'bar_counter', x: 3, y: 0 },
+      { type: 'bar_counter', x: 4, y: 0 },
+      { type: 'bar_counter', x: 5, y: 0 },
+      { type: 'bar_counter', x: 6, y: 0 },
+      { type: 'stool', x: 3, y: 1 },
+      { type: 'stool', x: 5, y: 1 },
+      { type: 'fridge', x: 8, y: 0, dir: 4 },
+      { type: 'palm', x: 9, y: 0 },
+      { type: 'table_square', x: 7, y: 3 },
+      { type: 'chair_wood', x: 8, y: 3, dir: 6 },
+      { type: 'chair_wood', x: 7, y: 2, dir: 4 },
+      { type: 'table_square', x: 2, y: 6 },
+      { type: 'chair_wood', x: 3, y: 6, dir: 6 },
+      { type: 'chair_wood', x: 1, y: 6, dir: 2 },
+      { type: 'rug_gold', x: 3, y: 2 },
+      { type: 'lava_lamp', x: 4, y: 7, state: 1 },
+      { type: 'fireplace', x: 0, y: 0, dir: 2, state: 1 },
+    ],
+  },
+  {
+    id: 'terrasse',
+    name: 'La Terrasse (salle libre)',
+    door: { x: 0, y: 5 },
+    layout: [
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+      '00000000000000',
+    ],
+    furniture: [
+      { type: 'plant', x: 0, y: 0 },
+      { type: 'plant', x: 13, y: 0 },
     ],
   },
 ];
-
-// Types de mobilier qu'on ne peut pas traverser.
-export const BLOCKING_TYPES = new Set(['table', 'plant', 'sofa', 'lamp', 'bar']);
-// Types sur lesquels on s'assoit en s'arretant dessus.
-export const SEAT_TYPES = new Set(['chair']);

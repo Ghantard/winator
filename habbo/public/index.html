@@ -11,16 +11,64 @@
 
   <div id="topbar" hidden>
     <button id="nav-btn" type="button">Navigateur</button>
+    <button id="cat-btn" type="button">Catalogue</button>
+    <button id="inv-btn" type="button">Inventaire</button>
     <span id="room-name"></span>
+    <span id="credits" title="Tes credits"><span class="coin" aria-hidden="true"></span><span id="credits-value">0</span></span>
   </div>
 
   <div id="navigator" class="panel" hidden>
     <div class="panel-head">
       <strong>Salles</strong>
-      <button id="nav-close" type="button" aria-label="Fermer">&times;</button>
+      <button class="close" data-close="navigator" type="button" aria-label="Fermer">&times;</button>
     </div>
     <ul id="room-list"></ul>
   </div>
+
+  <div id="catalog" class="panel" hidden>
+    <div class="panel-head">
+      <strong>Catalogue</strong>
+      <button class="close" data-close="catalog" type="button" aria-label="Fermer">&times;</button>
+    </div>
+    <div id="cat-tabs" class="tabs"></div>
+    <div id="cat-grid" class="furni-grid"></div>
+    <div id="cat-detail" class="detail">
+      <canvas id="cat-preview"></canvas>
+      <div class="detail-text">
+        <strong id="cat-name">Choisis un mobi</strong>
+        <span id="cat-price"></span>
+        <button id="cat-buy" type="button" disabled>Acheter</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="inventory" class="panel" hidden>
+    <div class="panel-head">
+      <strong>Inventaire</strong>
+      <button class="close" data-close="inventory" type="button" aria-label="Fermer">&times;</button>
+    </div>
+    <p class="hint">Clique sur un mobi pour le poser dans la salle.</p>
+    <div id="inv-grid" class="furni-grid"></div>
+    <p id="inv-empty" class="hint">Ton inventaire est vide. Passe par le catalogue !</p>
+  </div>
+
+  <div id="furni-info" class="panel" hidden>
+    <div class="panel-head">
+      <strong id="info-name"></strong>
+      <button class="close" data-close="furni-info" type="button" aria-label="Fermer">&times;</button>
+    </div>
+    <canvas id="info-preview"></canvas>
+    <p id="info-owner" class="hint"></p>
+    <div class="info-actions">
+      <button id="info-use" type="button">Utiliser</button>
+      <button id="info-rotate" type="button" class="secondary">Tourner</button>
+      <button id="info-move" type="button" class="secondary">Deplacer</button>
+      <button id="info-pickup" type="button" class="secondary">Ramasser</button>
+    </div>
+  </div>
+
+  <div id="place-hint" hidden>Clique pour poser &middot; <kbd>R</kbd> pour tourner &middot; <kbd>Echap</kbd> pour annuler</div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
 
   <div id="chat-log" hidden></div>
 
