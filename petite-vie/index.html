@@ -68,7 +68,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 .tool{display:flex;flex-direction:column;align-items:center;gap:2px;background:linear-gradient(#3a3d42,#26282c);color:var(--on-dark);border:1px solid #000;border-radius:6px;box-shadow:inset 0 1px 0 #50545a;padding:5px 2px;font-size:11px;min-width:0}
 .tool img{width:24px;height:24px;image-rendering:pixelated}
 .tool[aria-pressed="true"]{background:linear-gradient(var(--green-hi),var(--green));box-shadow:inset 0 1px 0 #9be58f;color:#fff}
-.tool span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tool span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.tool{position:relative;min-height:44px;justify-content:center}
+.tool img{width:30px;height:30px}
 
 /* Windows */
 .hwin{background:var(--win);color:var(--text);border:1px solid #000;border-radius:8px;overflow:hidden;box-shadow:0 3px 0 rgba(0,0,0,.45)}
@@ -89,6 +91,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 .card b{font-size:12px;font-weight:500;text-align:center;line-height:1.15}
 .card small{font-size:12px;color:#8a6a10;font-weight:700;display:flex;align-items:center;gap:3px}
 .card small img{width:14px;height:14px}
+.hc{background:#f6c343;color:#3a2a00;border:1px solid #000;border-radius:3px;padding:0 3px;font-size:10px;font-weight:700}
 .detail{display:flex;gap:10px;align-items:center;background:var(--win-2);border:1px solid #9a9a93;border-radius:6px;padding:8px}
 .detail img{width:72px;height:64px;image-rendering:pixelated;object-fit:contain;flex:none}
 .detail div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
@@ -100,8 +103,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 .room em{font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--green);border:1px solid #000;border-radius:10px;padding:1px 8px}
 .room em.empty{background:#9a9a93}
 .maker{display:flex;gap:12px;align-items:flex-start}
-.previewbox{flex:none;width:84px;height:150px;background:radial-gradient(ellipse at 50% 88%,#c9c9c2 0 30%,transparent 31%),linear-gradient(#f7f7f4,#dcdcd6);border:1px solid #000;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box}
-.previewbox canvas{width:66px;height:138px;image-rendering:pixelated}
+.previewbox{flex:none;width:84px;height:166px;background:radial-gradient(ellipse at 50% 88%,#c9c9c2 0 30%,transparent 31%),linear-gradient(#f7f7f4,#dcdcd6);border:1px solid #000;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box}
+.previewbox canvas{width:66px;height:150px;image-rendering:pixelated}
 .fields{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
 .fields label,.fields .lbl{font-size:12px;color:var(--muted);font-weight:500;display:flex;flex-direction:column;gap:3px}
 .txt{font:inherit;font-size:16px;background:#fff;color:var(--text);border:1px solid #000;border-radius:5px;padding:5px 7px;width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text;box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
@@ -231,45 +234,49 @@ document.querySelectorAll('[data-icon]').forEach(i => i.src = ICON_URL[i.dataset
 /* ================= Avatars ================= */
 const SKINS = [['#f7d8c0','#e2b596'],['#e8b48e','#c98f68'],['#c68a5e','#a56d45'],['#8d5a3b','#6e432a']];
 const HAIRS = [['#6b3f2a','#4a2a1c','#8e5a3e'],['#e8c05a','#b98f36','#f7dc8a'],['#2e2a33','#16131b','#4a4452'],['#c8552e','#8e3a1e','#e07a50'],['#d9d4e8','#a79fc0','#f4f1fb'],['#e06aa8','#a8457a','#f59ccb']];
-const SHIRTS = [['#4fb35a','#2f7d3b'],['#e0544f','#9e3431'],['#4a8fe0','#2e62a8'],['#9b5fd0','#6b3c98'],['#f0b43a','#b8801c'],['#ececec','#bdbdbd'],['#2e2e36','#1a1a20']];
+const SHIRTS = [['#4fb35a','#2f7d3b'],['#e0544f','#9e3431'],['#4a8fe0','#2e62a8'],['#9b5fd0','#6b3c98'],['#f0b43a','#b8801c'],['#ececec','#bdbdbd'],['#2e2e36','#1a1a20'],['#8e2a3a','#6b1f2b']];
 const PANTS = [['#3b4a8c','#2c3670'],['#2e2e36','#1a1a20'],['#8a6a4a','#6b4f33'],['#c9c2b0','#a39c8a']];
 const STYLES = ['Court','Long','Crête'];
 function avatarRows(view, legs, arms, look, closed) {
-  const W = 20, H = 44, G = Array.from({length:H}, () => Array(W).fill('.'));
+  // Hotel-style proportions: boxy round head, slim torso, long legs.
+  const W = 20, H = 48, G = Array.from({length:H}, () => Array(W).fill('.'));
   const set = (x, y, c) => { y += 2; if (x >= 0 && x < W && y >= 0 && y < H) G[y][x] = c; };
   const get = (x, y) => G[y+2] && G[y+2][x];
   const rect = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) set(x+i, y+j, c); };
-  const inHead = (x, y) => { const dx = (x + .5 - 10)/7.4, dy = (y + .5 - 9.2)/8.3; return dx*dx + dy*dy <= 1; };
-  const front = view === 'front';
-  if (legs === 'sit') { rect(6,29,9,4,'p'); rect(11,33,4,4,'p'); rect(11,37,6,2,'b'); set(10,30,'P'); }
-  else if (legs === 'a') { rect(5,30,4,8,'p'); rect(11,30,4,7,'p'); rect(8,30,4,2,'p'); rect(4,38,5,2,'b'); rect(11,37,6,2,'b'); }
-  else if (legs === 'b') { rect(7,30,6,8,'p'); set(10,32,'P'); set(10,33,'P'); rect(7,38,7,2,'b'); }
-  else { rect(6,30,8,8,'p'); for (let y = 32; y < 38; y++) set(10,y,'P'); rect(6,38,4,2,'b'); rect(10,38,5,2,'b'); }
-  rect(9,16,3,3,'S');
-  rect(6,18,8,1,'t'); rect(5,19,10,10,'t'); for (let y = 19; y < 29; y++) { set(13,y,'T'); set(14,y,'T'); }
-  rect(5,29,10,1,'k');
-  const sw = legs === 'a' ? 1 : 0;
-  const leftUp = arms === 'dB' || arms === 'up2', rightUp = arms === 'wave' || arms === 'dA' || arms === 'up2';
-  if (leftUp) { rect(1,9,2,11,'T'); rect(1,7,2,2,'S'); rect(3,19,2,2,'T'); } else { rect(3,19+sw,2,8,'T'); rect(3,27+sw,2,2,'S'); }
-  if (rightUp) { rect(17,9,2,11,'t'); rect(17,7,2,2,'s'); rect(15,19,2,2,'t'); } else if (legs === 'sit') { rect(15,19,2,6,'t'); rect(15,25,2,2,'s'); } else { rect(15,19-sw,2,8,'t'); rect(15,27-sw,2,2,'s'); }
-  if (front) { set(9,18,'s'); set(10,18,'s'); set(11,18,'s'); set(10,19,'s'); set(12,21,'T'); set(12,24,'T'); }
-  if (look.style === 1) { if (front) rect(3,12,5,12,'h'); else rect(4,12,12,12,'h'); }
-  for (let y = 0; y < 18; y++) for (let x = 0; x < W; x++) if (inHead(x,y)) set(x, y, 's');
+  const inHead = (x, y) => { const dx = Math.abs(x + .5 - 10)/6.6, dy = Math.abs(y + .5 - 8)/7.4; return Math.pow(dx, 2.6) + Math.pow(dy, 2.6) <= 1; };
+  const front = view === 'front', sw = legs === 'a' ? 1 : 0, drink = arms === 'drink';
+  if (legs === 'sit') { rect(6,30,10,4,'p'); rect(12,34,4,6,'p'); rect(12,40,6,2,'b'); set(11,31,'P'); set(15,35,'P'); }
+  else if (legs === 'a') { rect(5,30,4,12,'p'); rect(11,30,4,11,'p'); rect(8,30,4,3,'p'); for (let y = 33; y < 42; y++) set(8,y,'P'); rect(4,42,5,2,'b'); rect(11,41,6,2,'b'); }
+  else if (legs === 'b') { rect(7,30,6,12,'p'); for (let y = 33; y < 42; y++) set(10,y,'P'); rect(7,42,7,2,'b'); }
+  else { rect(6,30,8,12,'p'); for (let y = 33; y < 42; y++) set(10,y,'P'); rect(6,42,4,2,'b'); rect(10,42,5,2,'b'); }
+  rect(9,14,3,3,'S');
+  rect(7,16,6,1,'t'); rect(6,17,8,12,'t'); for (let y = 17; y < 29; y++) { set(12,y,'T'); set(13,y,'T'); }
+  rect(6,29,8,1,'k');
+  if (front) { set(9,16,'s'); set(10,16,'s'); set(11,16,'s'); set(10,17,'s'); set(11,20,'T'); set(11,23,'T'); }
+  const leftUp = arms === 'dB', rightUp = arms === 'wave' || arms === 'dA';
+  if (leftUp) { rect(2,6,2,11,'T'); rect(2,4,2,2,'S'); rect(4,17,2,2,'T'); } else { rect(4,17+sw,2,9,'T'); rect(4,26+sw,2,2,'S'); }
+  if (rightUp) { rect(16,6,2,11,'t'); rect(16,4,2,2,'s'); rect(14,17,2,2,'t'); }
+  else if (drink) rect(14,17,2,3,'t');
+  else if (legs === 'sit') { rect(14,17,2,7,'t'); rect(14,24,2,2,'s'); }
+  else { rect(14,17-sw,2,9,'t'); rect(14,26-sw,2,2,'s'); }
+  if (look.style === 1) { if (front) rect(3,10,5,13,'h'); else rect(4,10,12,13,'h'); }
+  for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) if (inHead(x,y)) set(x, y, 's');
   if (front) {
-    for (let y = 0; y < 18; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && (y < 6 || (x < 8 && y < 12) || (y === 6 && x % 3 !== 1) || (x < 5 && y < 15))) set(x,y,'h');
-    set(7,10,'S'); set(7,11,'S'); set(6,11,'S');
-    if (closed) { set(11,11,'e'); set(12,11,'e'); set(14,11,'e'); set(15,11,'e'); }
-    else { set(12,10,'e'); set(12,11,'e'); set(15,10,'e'); set(15,11,'e'); set(12,9,'w'); set(15,9,'w'); }
-    set(11,13,'r'); set(16,13,'r'); set(13,14,'m'); set(14,14,'m'); set(16,12,'S');
-    if (arms === 'dA' || arms === 'dB') { set(13,15,'m'); set(14,15,'m'); }
+    for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && (y < 4 || (y === 4 && x > 5 && x % 3 !== 1) || (x < 7 && y < 10) || (x < 5 && y < 13))) set(x,y,'h');
+    set(7,8,'S'); set(7,9,'S'); set(6,9,'S');
+    if (closed) { set(11,8,'e'); set(12,8,'e'); set(14,8,'e'); set(15,8,'e'); }
+    else { set(11,7,'w'); set(11,8,'w'); set(12,7,'e'); set(12,8,'e'); set(14,7,'w'); set(14,8,'w'); set(15,7,'e'); set(15,8,'e'); }
+    set(16,9,'S'); set(13,11,'m'); set(14,11,'m'); set(12,10,'S');
+    if (arms === 'dA' || arms === 'dB') { set(13,12,'m'); set(14,12,'m'); }
   } else {
-    for (let y = 0; y < 18; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && !(x >= 13 && y >= 10)) set(x,y,'h');
-    set(13,11,'S'); set(13,12,'S');
+    for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && !(x >= 13 && y >= 8)) set(x,y,'h');
+    set(13,8,'S'); set(13,9,'S');
   }
-  if (look.style === 1 && front) for (let y = 8; y < 16; y++) { set(3,y,'h'); set(4,y,'h'); }
+  if (look.style === 1 && front) for (let y = 5; y < 15; y++) { set(3,y,'h'); set(4,y,'h'); }
+  if (drink) { rect(16,11,2,7,'t'); rect(15,9,2,2,'s'); }
   if (look.style === 2) for (const x of [5,8,11,14]) { set(x,-1,'h'); set(x+1,-1,'h'); set(x,-2,'h'); if (!inHead(x,0)) set(x,0,'h'); }
-  for (let y = -2; y < 18; y++) for (let x = 0; x < W; x++) if (get(x,y) === 'h' && (get(x+1,y) === 's' || get(x,y+1) === 's' || get(x,y+1) === 'S')) set(x,y,'H');
-  for (const [x,y] of [[6,2],[7,2],[8,1],[5,3],[9,1]]) if (get(x,y) === 'h') set(x,y,'L');
+  for (let y = -2; y < 16; y++) for (let x = 0; x < W; x++) if (get(x,y) === 'h' && (get(x+1,y) === 's' || get(x,y+1) === 's' || get(x,y+1) === 'S')) set(x,y,'H');
+  for (const [x,y] of [[6,1],[7,1],[8,0],[5,2],[9,0]]) if (get(x,y) === 'h') set(x,y,'L');
   return G.map(r => r.join(''));
 }
 const AVCACHE = new Map();
@@ -291,6 +298,26 @@ const CAT = {
   sleep: pix([".....K..K....","....kkkkkk...","..kkkkkkkkkk.",".kkKkKkkkkkkk","kkkkkkkkkkkkk","kkkkkkkkkkkk.",".kkkkkkkkkk.."], CAT_PAL, 1, '#2a1a10'),
 };
 const CAT_FACE = (() => { const c = document.createElement('canvas'); c.width = 22; c.height = 22; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(CAT.walk[0], 9, 0, 7, 7, 0, 0, 22, 22); return c.toDataURL(); })();
+
+/* ================= Drinks (hand items) ================= */
+const DRINKS = {
+  cafe:  {name:'café', art:'un café', rows:["wccw.","wwwwh","wwwwh","wwww.",".ww.."], pal:{w:'#ffffff', h:'#ffffff', c:'#6b3f1f'}},
+  the:   {name:'thé', art:'un thé', rows:["wccw.","wwwwh","wwwwh","wwww.",".ww.."], pal:{w:'#d8f0d0', h:'#d8f0d0', c:'#c98b3a'}},
+  choco: {name:'chocolat chaud', art:'un chocolat chaud', rows:["cccc.","wwwwh","wwwwh","wwww.",".ww.."], pal:{w:'#8b5a36', h:'#8b5a36', c:'#fff4e8'}},
+  jus:   {name:'jus d\'orange', art:'un jus d\'orange', rows:["g...g","gooog","gooog","gooog",".ggg."], pal:{g:'#d8f0ff', o:'#ff9a2a'}},
+  eau:   {name:'verre d\'eau', art:'un verre d\'eau', rows:["g...g","gooog","gooog","gooog",".ggg."], pal:{g:'#e8f7ff', o:'#7cc6f2'}},
+  shake: {name:'milkshake', art:'un milkshake', rows:["..r..","pppp.","pwpp.","pppp.",".pp.."], pal:{p:'#ff9ec4', w:'#ffffff', r:'#e0544f'}},
+};
+for (const k in DRINKS) DRINKS[k].img = pix(DRINKS[k].rows, DRINKS[k].pal, 1, '#111111');
+function drinkFromText(n) {
+  if (/\b(cafe|cafes|expresso|espresso|cappuccino|latte)\b/.test(n)) return 'cafe';
+  if (/\bthe\b/.test(n)) return 'the';
+  if (/chocolat/.test(n)) return 'choco';
+  if (/\bjus\b|orange/.test(n)) return 'jus';
+  if (/\beau\b/.test(n)) return 'eau';
+  if (/milk ?shake|soda|coca/.test(n)) return 'shake';
+  return null;
+}
 
 /* ================= Furniture ("mobis") ================= */
 // Local coords: u across, v depth; the front faces +v. r0 faces SW, r1 SE, r2 NE, r3 NW.
@@ -344,7 +371,56 @@ const F = {
   aquarium:  {name:'Aquarium', cat:'Loisirs', price:40, w:2, d:1, kind:'block', toggle:true, draw(L,p){ if (p !== 'base') return; L.box(.05,.2,1.9,.6,0,16,'#3a3a48'); L.box(.05,.2,1.9,.6,16,22,'#4aa6d6'); L.box(.05,.2,1.9,.6,16,4,'#d9c79a'); L.top(.05,.2,1.9,.6,38,'#8fd0f0'); L.front(.3,.34,.8,20,30,'#2f8a3f'); L.front(1.5,1.54,.8,20,33,'#2f8a3f'); }},
   jukebox:   {name:'Jukebox', cat:'Loisirs', price:45, w:1, d:1, kind:'block', toggle:true, draw(L,p){ if (p !== 'base') return; L.box(.14,.24,.72,.52,0,34,'#8b2f8b'); L.box(.14,.24,.72,.52,34,6,'#c24ac2'); L.front(.22,.78,.76,6,14,'#2a2a33'); for (let i = 0; i < 4; i++) L.front(.24+i*.14,.32+i*.14,.76,17,32,['#f6c343','#ff5f97','#5ec8f0','#6ccc5f'][i]); }},
 };
-const CAT_TABS = ['Sièges','Tables','Lits','Déco','Loisirs'];
+// Club HC collection (original designs in the classic club style)
+const HC = {
+  clubSofa:  {name:'Canapé Club', cat:'Club HC', hc:true, price:60, w:2, d:1, kind:'sit', sitZ:11, draw(L,p){
+      if (p === 'base') { for (const [u,v] of [[.08,.16],[1.84,.16],[.08,.8],[1.84,.8]]) L.box(u,v,.08,.08,0,3,'#d9a52a');
+        L.box(.04,.12,1.92,.8,3,8,'#6b1f2e'); L.front(.04,1.96,.92,3,5,'#d9a52a');
+        for (const u of [.2,1.02]) { L.box(u,.32,.78,.56,11,3,'#86283a'); for (let i = 0; i < 3; i++) fr(...L.P(u+.15+i*.25,.6,14), 1, 1, '#4a1420'); } }
+      if (backPart(L,p)) { L.box(.04,.08,1.92,.26,11,18,'#5e1a28'); L.box(.04,.08,1.92,.26,29,3,'#86283a');
+        for (let i = 0; i < 7; i++) for (let j = 0; j < 2; j++) { const [x,y] = L.P(.2+i*.26+j*.13,.2,17+j*6); fr(x,y,1,1,'#d9a52a'); } }
+      if (p === 'base') { L.box(.04,.12,.2,.8,11,12,'#5e1a28'); L.box(.04,.12,.2,.8,23,2,'#86283a'); L.box(1.76,.12,.2,.8,11,12,'#5e1a28'); L.box(1.76,.12,.2,.8,23,2,'#86283a'); } }},
+  throne:    {name:'Trône doré', cat:'Club HC', hc:true, price:100, w:1, d:1, kind:'sit', sitZ:12, draw(L,p){
+      if (p === 'base') { L.box(.12,.16,.76,.72,0,12,'#e0b030'); L.front(.2,.8,.88,3,9,'#b3872a'); L.box(.2,.26,.6,.56,12,3,'#b3222e'); }
+      if (backPart(L,p)) { L.box(.12,.1,.76,.16,12,36,'#e0b030'); L.front(.2,.8,.26,17,43,'#b3222e'); L.front(.44,.56,.26,36,40,'#f6c343');
+        for (const u of [.12,.43,.74]) L.box(u,.1,.14,.16,48,6,'#f6c343'); fr(...L.P(.5,.18,52), 2, 2, '#d8433a'); }
+      if (p === 'base') { L.box(.12,.16,.1,.72,12,10,'#e0b030'); L.box(.78,.16,.1,.72,12,10,'#e0b030'); } }},
+  majChair:  {name:'Fauteuil majestueux', cat:'Club HC', hc:true, price:45, w:1, d:1, kind:'sit', sitZ:10, draw(L,p){
+      if (p === 'base') { legs4(L,.16,.76,.08,4,'#d9a52a'); L.box(.12,.14,.76,.74,4,6,'#5b3a8a'); L.box(.22,.3,.56,.52,10,3,'#7652a8'); }
+      if (backPart(L,p)) { L.box(.12,.1,.76,.2,10,24,'#4c2f78'); L.box(.12,.1,.76,.2,34,2,'#d9a52a'); for (let i = 0; i < 3; i++) fr(...L.P(.3+i*.2,.3,24), 1, 1, '#d9a52a'); }
+      if (p === 'base') { L.box(.12,.14,.14,.74,10,8,'#4c2f78'); L.box(.74,.14,.14,.74,10,8,'#4c2f78'); } }},
+  clubTable: {name:'Table basse Club', cat:'Club HC', hc:true, price:30, w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      legs4(L,.12,.8,.08,10,'#d9a52a'); L.box(.06,.06,.88,.88,10,3,'#4a2a1a'); L.top(.14,.14,.72,.72,13,'#5e3622'); const [cx,cy] = L.P(.5,.5,13); ell(cx, cy-2, 4, 2, '#f6c343'); }},
+  oilLamp:   {name:'Lampe à huile', cat:'Club HC', hc:true, price:35, w:1, d:1, kind:'block', toggle:true, draw(L,p){ if (p !== 'base') return;
+      const [cx,cy] = L.P(.5,.5,0); ell(cx, cy, 7, 3, '#8a6a2a'); L.box(.44,.44,.12,.12,0,26,'#c9a24a'); ell(cx, cy-27, 8, 4, '#b3872a'); ell(cx, cy-29, 7, 3, '#e0b030');
+      L.box(.42,.42,.16,.16,30,11,'#f3e6b0'); L.box(.4,.4,.2,.2,41,2,'#c9a24a'); }},
+  coffeeMachine:{name:'Machine à café', cat:'Club HC', hc:true, price:40, w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(.12,.16,.76,.68,0,18,'#6b4a3a'); L.front(.2,.8,.84,4,14,'#7d5a48'); L.box(.2,.26,.6,.46,18,22,'#2e2e36'); L.box(.18,.24,.64,.5,40,3,'#c8c8d0');
+      L.front(.3,.62,.72,20,29,'#9fc3d0'); L.front(.34,.58,.72,20,25,'#5a3a22'); L.front(.68,.74,.72,33,35,'#ff3030'); L.front(.3,.62,.72,31,37,'#44444e'); }},
+  hcBath:    {name:'Baignoire club', cat:'Club HC', hc:true, price:80, w:2, d:1, kind:'sit', sitZ:5, draw(L,p){
+      const near = L.r >= 2 ? .1 : .82;
+      if (p === 'base') { for (const [u,v] of [[.1,.14],[1.82,.14],[.1,.8],[1.82,.8]]) L.box(u,v,.08,.08,0,3,'#d9a52a');
+        L.box(.04,.1,1.92,.8,3,15,'#f2f2f4'); L.top(.14,.2,1.72,.6,16,'#5ab0e0'); L.top(.3,.3,.5,.2,16,'#9fd8f2'); L.box(1.7,.12,.08,.08,18,8,'#d9a52a'); L.box(1.6,.12,.2,.08,24,2,'#d9a52a'); }
+      if (p === 'back') { L.box(.04,near,1.92,.08,3,15,'#f2f2f4'); L.box(.04,near,1.92,.08,18,1,'#ffffff'); } }},
+  rugClub:   {name:'Tapis Club', cat:'Club HC', hc:true, price:25, w:2, d:2, kind:'rug', draw(L,p){ if (p !== 'base') return;
+      L.top(.06,.06,1.88,1.88,.5,'#d9a52a'); L.top(.16,.16,1.68,1.68,.5,'#4c2f78'); L.top(.4,.4,1.2,1.2,.5,'#5b3a8a'); L.top(.86,.86,.28,.28,.5,'#f6c343');
+      for (const [u,v] of [[.3,.3],[1.6,.3],[.3,1.6],[1.6,1.6]]) L.top(u,v,.1,.1,.5,'#f6c343'); }},
+};
+// Hotel fixtures (not for sale)
+const FIX = {
+  receptionDesk:{name:'Comptoir de réception', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(.02,.12,.96,.76,0,24,'#5e3622'); L.front(.08,.92,.88,4,20,'#6e4430'); L.front(.02,.98,.88,20,22,'#d9a52a'); L.box(0,.08,1,.84,24,3,'#e8dcc4'); }},
+  receptionBell:{name:'Comptoir de réception', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(.02,.12,.96,.76,0,24,'#5e3622'); L.front(.08,.92,.88,4,20,'#6e4430'); L.front(.02,.98,.88,20,22,'#d9a52a'); L.box(0,.08,1,.84,24,3,'#e8dcc4');
+      const [cx,cy] = L.P(.55,.5,27); ell(cx, cy, 5, 2, '#8a6a2a'); ell(cx, cy-3, 4, 3, '#f6c343'); fr(cx, cy-7, 1, 2, '#b3872a'); fr(cx-2, cy-4, 1, 1, '#fff2b0');
+      L.box(.12,.2,.28,.36,27,1,'#ffffff'); }},
+  luggage:{name:'Chariot à bagages', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(.1,.1,.8,.8,3,2,'#d9a52a'); for (const [u,v] of [[.12,.12],[.8,.12],[.12,.8],[.8,.8]]) L.box(u,v,.08,.08,0,3,'#333');
+      L.box(.18,.2,.6,.3,5,14,'#3f6f94'); L.box(.24,.54,.52,.3,5,10,'#b8322c'); L.box(.3,.26,.4,.24,19,9,'#e0b050');
+      L.box(.1,.1,.06,.06,5,40,'#d9a52a'); L.box(.84,.1,.06,.06,5,40,'#d9a52a'); L.box(.1,.1,.8,.06,45,2,'#d9a52a'); }},
+};
+Object.assign(F, HC, FIX);
+const CAT_TABS = ['Club HC','Sièges','Tables','Lits','Déco','Loisirs'];
 const OWN_START = {chair:0};
 
 // Baking: every mobi is drawn once per (type, rotation, part) around a fixed origin, then translated.
@@ -381,16 +457,29 @@ const LINES = {
   cafe:['Un chocolat chaud, s\'il vous plaît !','Ce café est trop cosy.','Quelqu\'un a mis une musique ?','Je reprendrais bien un croissant.','On joue à un jeu ?','Hmm, ça sent bon ici.'],
   roof:['Quelle vue !','Il fait trop beau aujourd\'hui.','Les canards sont trop mignons.','On fait une photo près de la fontaine ?','J\'adore le toit.'],
   home:[],
+  reception:['Je viens d\'arriver à l\'hôtel !','Ce hall est trop classe.','Quelqu\'un sait où est le café ?','J\'attends mes amis.','Vous avez vu le trône là-bas ?','Trop beau ce canapé Club !'],
 };
 const ROOMS = {
   hall:{name:"Hall de l'hôtel", desc:'Le point de rencontre de tout l\'hôtel.', gx:11, gy:9, wallH:62, door:2, floor:'check', wall:{L:'#a9cbe6',R:'#93b8d8',S:'#bcd8ee',cap:'#5d7f9c'}, dot:'#2f7aa8', bots:5,
     windows:[['R',2.3,3.7,28,52],['R',7.3,8.7,28,52],['L',5.3,6.7,28,52]],
     furni:[['palm',0,0,0],['aquarium',1,0,0],['counter',4,1,0],['counter',5,1,0],['counter',6,1,0],['trophy',5,0,0],['stool',4,2,0],['stool',5,2,0],['stool',6,2,0],['jukebox',9,0,0],['palm',10,0,0],
       ['rugRed',4,4,0],['sofa',2,4,1],['sofa',7,4,3],['tableRound',5,7,0],['armchair',4,7,1],['armchair',6,7,3],['plant',0,8,0],['plant',10,8,0],['lamp',10,4,0],['lamp',0,5,0]]},
-  cafe:{name:'Café Pixel', desc:'Boissons chaudes et bonne musique.', gx:10, gy:8, wallH:62, door:6, floor:'darkwood', wall:{L:'#e9c9a0',R:'#d8b488',S:'#f2d8b6',cap:'#8a6444'}, dot:'#8b5a36', bots:4,
-    windows:[['R',5.1,6.5,28,52],['L',2.3,3.7,28,52]],
-    furni:[['fridge',0,0,0],['counter',1,1,0],['counter',2,1,0],['counter',3,1,0],['counter',4,1,0],['stool',1,2,2],['stool',2,2,2],['stool',3,2,2],['stool',4,2,2],['shelf',2,0,0],['shelf',3,0,0],['tv',7,0,0],['jukebox',9,0,0],
-      ['tableRound',3,5,0],['chair',2,5,1],['chair',4,5,3],['chair',3,4,0],['chair',3,6,2],['tableRound',7,5,0],['chairRed',6,5,1],['chairRed',8,5,3],['chairRed',7,4,0],['chairRed',7,6,2],['plant',9,7,0],['plant',6,0,0],['lamp',9,3,0]]},
+  reception:{name:'Réception', desc:'L\'entrée de l\'hôtel. La réceptionniste t\'accueille.', gx:10, gy:9, wallH:62, door:6, floor:'marble', wall:{L:'#8e3b46',R:'#7a313b',S:'#a04a56',cap:'#4a1c24'}, dot:'#8e3b46', bots:2,
+    windows:[['L',2.2,3.6,28,52]], staffZone:[[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1]],
+    staff:[{role:'reception', name:'Sofia', motto:'Réceptionniste du Pixel Hôtel', tile:[4,1], face:'SW', look:{style:1, hair:2, skin:1, shirt:7, pants:1}}],
+    decor(qx, qy) { qy(2.2,5.8,26,48,'#4a2a1a'); qy(2.3,5.7,28,46,'#6e4430'); for (let i = 0; i < 8; i++) { const u = 2.5 + i*.4; qy(u, u+.06, 40, 44, '#d9a52a'); if (i % 3 !== 1) qy(u-.02, u+.08, 33, 39, '#f6c343'); }
+      qy(7.2,8.4,34,50,'#d9a52a'); qy(7.28,8.32,36,48,'#1f5c82'); qy(7.5,8.1,40,44,'#f6c343'); },
+    furni:[['palm',0,0,0],['palm',9,0,0],['receptionDesk',2,2,0],['receptionDesk',3,2,0],['receptionBell',4,2,0],['receptionDesk',5,2,0],['plant',7,0,0],['luggage',8,1,0],
+      ['rugClub',4,4,0],['clubSofa',2,7,2],['clubTable',4,7,0],['clubSofa',5,7,2],['majChair',8,4,3],['majChair',8,5,3],['oilLamp',1,8,0],['oilLamp',9,8,0],['throne',9,2,3]]},
+  cafe:{name:'Café Pixel', desc:'Le serveur t\'apporte ce que tu demandes.', gx:10, gy:8, wallH:62, door:6, floor:'darkwood', wall:{L:'#e9c9a0',R:'#d8b488',S:'#f2d8b6',cap:'#8a6444'}, dot:'#8b5a36', bots:4,
+    windows:[['R',5.2,6.6,28,52],['L',2.3,3.7,28,52]], staffZone:[[0,1],[1,1],[2,1],[3,1],[4,1]], machine:{use:[1,1], face:'NE'},
+    staff:[{role:'waiter', name:'Marco', motto:'Serveur au Café Pixel', tile:[2,1], face:'SW', look:{style:0, hair:2, skin:2, shirt:5, pants:1}}],
+    decor(qx, qy) { qy(2.3,4.7,40,52,'#2a2a2a'); qy(2.36,4.64,41,51,'#3a4a3a'); for (let i = 0; i < 3; i++) qy(2.5, 3.3 + (i % 2)*.6, 49 - i*3, 50 - i*3, '#f4f1ea'); qy(3.9,4.4,43,44,'#f6c343'); },
+    furni:[['fridge',0,0,0],['coffeeMachine',1,0,0],['counter',2,0,0],['shelf',3,0,0],['counter',4,0,0],
+      ['counter',1,2,0],['counter',2,2,0],['counter',3,2,0],['counter',4,2,0],['stool',1,3,2],['stool',2,3,2],['stool',3,3,2],['stool',4,3,2],
+      ['tv',7,0,0],['jukebox',9,0,0],['plant',6,0,0],
+      ['tableRound',7,3,0],['chairRed',6,3,1],['chairRed',8,3,3],['chairRed',7,2,0],['chairRed',7,4,2],
+      ['tableRound',4,6,0],['chair',3,6,1],['chair',5,6,3],['chair',4,5,0],['chair',4,7,2],['lamp',9,6,0],['plant',9,7,0]]},
   roof:{name:'Jardin sur le toit', desc:'Fontaine, soleil et canards.', gx:10, gy:10, wallH:26, door:8, floor:'grass', hedge:true, wall:{L:'#3f8f3f',R:'#357a35',S:'#57a857',cap:'#2c6a2c'}, dot:'#3fa33f', bots:3, sky:true,
     windows:[],
     furni:[['fountain',4,4,0],['bench',4,2,0],['bench',4,7,2],['bench',2,4,1],['bench',7,4,3],['palm',0,0,0],['palm',9,0,0],['palm',9,9,0],['plant',0,4,0],['duck',3,3,0],['duck',6,6,0],['lamp',2,2,0],['lamp',7,7,0]]},
@@ -407,7 +496,7 @@ const KEY = 'pixel-hotel.save.v1';
 const randLook = () => ({style:Math.floor(Math.random()*3), hair:Math.floor(Math.random()*HAIRS.length), skin:Math.floor(Math.random()*SKINS.length), shirt:Math.floor(Math.random()*SHIRTS.length), pants:Math.floor(Math.random()*PANTS.length)});
 const pickRand = arr => arr[Math.floor(Math.random()*arr.length)];
 function newProfile(name, look, motto) {
-  return {v:1, name, look, motto, credits:100, inv:{}, home:ROOMS.home.furni.map(([t,x,y,r]) => ({t,x,y,r,on:t === 'tv' || t === 'lamp'})), room:'hall', lastDaily:'', played:0};
+  return {v:1, name, look, motto, credits:100, inv:{}, home:ROOMS.home.furni.map(([t,x,y,r]) => ({t,x,y,r,on:t === 'tv' || t === 'lamp'})), room:'reception', lastDaily:'', played:0};
 }
 function save() { if (!S) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function loadSave() { try { const s = localStorage.getItem(KEY); const o = s && JSON.parse(s); return o && o.v === 1 ? o : null; } catch (e) { return null; } }
@@ -425,8 +514,10 @@ function paintRoom(room) {
     if (room.floor === 'wood' || room.floor === 'darkwood') { const dk = room.floor === 'darkwood', c1 = dk ? '#7a4a2e' : '#cf965c', c2 = dk ? '#6b3f26' : '#c48a52', ln = dk ? '#55311d' : '#a8703e';
       for (let k = 0; k < 4; k++) { poly([P(x,y+k/4),P(x+1,y+k/4),P(x+1,y+(k+1)/4),P(x,y+(k+1)/4)], k % 2 ? c2 : c1); line(P(x,y+k/4),P(x+1,y+k/4),ln); const o = ((x*3 + y*5 + k*2) % 4)/4 + .12; line(P(x+o,y+k/4),P(x+o,y+(k+1)/4),ln); } }
     else if (room.floor === 'check') { for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) sq(i/2, j/2, .5, (i+j) % 2 ? '#2b2b33' : '#e8e6e0'); }
+    else if (room.floor === 'marble') { for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) sq(i/2, j/2, .5, (i+j) % 2 ? '#e2d8c6' : '#f1ebdf');
+      const a = hash(x, y); line(P(x+a*.6, y+.1), P(x+a*.6+.3, y+.7), 'rgba(150,130,110,.35)'); sq(.44, .44, .12, '#c9a24a'); }
     else if (room.floor === 'grass') { sq(0, 0, 1, '#62b04a'); for (let i = 0; i < 12; i++) { const a = hash(x*31+i, y*17+i), b = hash(y*13+i, x*7+i*3); fr(...P(x+a, y+b), 1, 1, i % 3 ? '#4e9a3a' : '#7cc860'); } }
-    line(P(x,y),P(x+1,y),'rgba(0,0,0,.12)'); line(P(x,y),P(x,y+1),'rgba(0,0,0,.12)');
+    line(P(x,y),P(x+1,y),'rgba(255,255,255,.22)'); line(P(x,y),P(x,y+1),'rgba(255,255,255,.16)'); line(P(x,y+1),P(x+1,y+1),'rgba(0,0,0,.22)'); line(P(x+1,y),P(x+1,y+1),'rgba(0,0,0,.28)');
   }
   poly([P(.1,dy+.12),P(.92,dy+.12),P(.92,dy+.88),P(.1,dy+.88)], '#8a5a3a'); poly([P(.2,dy+.22),P(.82,dy+.22),P(.82,dy+.78),P(.2,dy+.78)], '#a8743e');
   const doorH = Math.min(46, WALLH - 4);
@@ -435,10 +526,10 @@ function paintRoom(room) {
       let col; const door = left && u > dy + .1 && u < dy + .9 && z < doorH + 2;
       if (door) col = (u < dy + .17 || u > dy + .83 || z >= doorH) ? '#6b4a32' : shade('#2a211a', 1 + z/200);
       else if (room.hedge) col = hash(sx, z) < .18 ? W.S : (hash(z, sx) < .1 ? W.cap : (left ? W.L : W.R));
-      else if (z < 4) col = left ? '#8a6a50' : '#76593f';
-      else if (z >= WALLH - 3) col = shade(left ? W.L : W.R, .9);
-      else col = (Math.floor(sx/4) % 3 === 0) ? W.S : (left ? W.L : W.R);
-      C.fillStyle = col; C.fillRect(sx, bottom - z - 1, 1, 1);
+      else if (z >= WALLH - 2) col = shade(left ? W.L : W.R, 1.18);
+      else if (z < 2) col = shade(left ? W.L : W.R, .82);
+      else col = left ? W.L : W.R;
+      C.fillStyle = col; C.fillRect(sx, Math.round(bottom) - z - 1, 1, 1);
     }
   };
   for (let sx = P(0,GY)[0]; sx < OX; sx++) wallCol(sx, OY + (OX - sx)/2, (OX - sx - .5)/16, true);
@@ -448,6 +539,7 @@ function paintRoom(room) {
   poly([P(0,GY,WALLH),P(0,0,WALLH),P(-t,-t,WALLH),P(-t,GY,WALLH)], W.cap); poly([P(0,0,WALLH),P(GX,0,WALLH),P(GX,-t,WALLH),P(-t,-t,WALLH)], W.cap);
   poly([P(0,GY,WALLH),P(-t,GY,WALLH),P(-t,GY,-SLAB),P(0,GY,-SLAB)], shade(W.cap,.8)); poly([P(GX,0,WALLH),P(GX,-t,WALLH),P(GX,-t,-SLAB),P(GX,0,-SLAB)], shade(W.cap,.65));
   line(P(0,0,WALLH),P(0,GY,WALLH),shade(W.cap,1.3)); line(P(0,0,WALLH),P(GX,0,WALLH),shade(W.cap,1.3));
+  if (room.decor) room.decor((y0,y1,z0,z1,col) => faceX(0,y0,y1,z0,z1,col), (x0,x1,z0,z1,col) => faceY(x0,x1,0,z0,z1,col));
   for (const [side, a0, a1, z0, z1] of room.windows) {
     const face = side === 'L' ? (a, b, q0, q1, c) => faceX(0, a, b, q0, q1, c) : (a, b, q0, q1, c) => faceY(a, b, 0, q0, q1, c);
     face(a0, a1, z0, z1, '#f4f1ea'); face(a0+.08, a1-.08, z0+3, z1-3, '#8fd3ff'); face(a0+.08, a1-.08, z0+3, (z0+z1)/2, '#c4ecff');
@@ -465,12 +557,13 @@ function enterRoom(id, silent) {
   cv.width = CW; cv.height = CH; g.imageSmoothingEnabled = false;
   paintRoom(room);
   const items = room.own ? S.home : room.furni.map(([t,x,y,r]) => ({t,x,y,r,on:true}));
-  R = {id, room, items, ents:[], cat:null, spawnT:12};
+  R = {id, room, items, ents:[], cat:null, spawnT:12, orders:[], brewing:0};
   bubbles.splice(0).forEach(o => o.el.remove());
   rebuildGrid();
   const door = [0, room.door];
   R.me = makeEntity(S.name, S.look, S.motto, door, false); R.me.face = 'SE'; R.ents.push(R.me);
   walkTo(R.me, [1, room.door]);
+  for (const st of room.staff || []) { const e = makeEntity(st.name, st.look, st.motto, st.tile, true); e.role = st.role; e.home = st.tile; e.homeFace = st.face; e.face = st.face; e.timer = 20; R.ents.push(e); }
   for (let i = 0; i < room.bots; i++) spawnBot(false);
   if (id === 'home') R.cat = {x:4.5, y:6.5, tile:[4,6], path:[], face:'SE', anim:0, moving:false, sleep:0, wait:3};
   $('stage').classList.toggle('sky', !!room.sky);
@@ -482,9 +575,9 @@ function enterRoom(id, silent) {
   save();
 }
 function updateRoomSub() { if (!R) return; const n = R.ents.length; $('roomSub').textContent = R.room.own ? `Propriétaire : ${S.name}` : `${n} personne${n > 1 ? 's' : ''} ici`; }
-function freeTiles() { const out = []; for (let y = 0; y < GY; y++) for (let x = 0; x < GX; x++) if (!R.block.has(y*GX+x) && !R.seat.has(y*GX+x) && !(x === 0 && y === R.room.door)) out.push([x,y]); return out; }
+function freeTiles() { const out = []; for (let y = 0; y < GY; y++) for (let x = 0; x < GX; x++) if (!R.block.has(y*GX+x) && !R.seat.has(y*GX+x) && !(x === 0 && y === R.room.door) && !(R.room.staffZone || []).some(t => t[0] === x && t[1] === y)) out.push([x,y]); return out; }
 function spawnBot(fromDoor) {
-  const used = new Set(R.ents.map(e => e.name)); const names = BOT_NAMES.filter(n => !used.has(n)); if (!names.length) return;
+  const used = new Set(R.ents.map(e => e.name).concat(['Sofia','Marco'])); const names = BOT_NAMES.filter(n => !used.has(n)); if (!names.length) return;
   const tile = fromDoor ? [0, R.room.door] : pickRand(freeTiles());
   const b = makeEntity(pickRand(names), randLook(), pickRand(MOTTOS), tile, true);
   R.ents.push(b);
@@ -528,11 +621,13 @@ function stepMove(e, dist) {
 function walkTo(e, t) {
   const p = (t[0] === e.tile[0] && t[1] === e.tile[1]) ? [] : bfs(e.tile, t);
   if (!p) return false;
-  e.path = p; e.pose = null; e.dance = 0; e.dest = t.slice(); if (e === R.me) syncDance();
+  e.path = p; e.pose = null; e.dance = 0; e.dest = t.slice(); e.pendingBrew = null; if (e === R.me) syncDance();
   return true;
 }
 function arrive(e) {
   e.dest = null;
+  if (e.pendingBrew) { const it = e.pendingBrew; e.pendingBrew = null; const fp = footprint(it)[0]; e.face = dirFace(fp[0] - e.tile[0], fp[1] - e.tile[1]);
+    it.brew = performance.now()/1000 + 2; setTimeout(() => { if (R && R.ents.includes(e) && !e.path.length) give(e, 'cafe'); }, 2000); }
   const it = R.seat.get(e.tile[1]*GX + e.tile[0]);
   if (it) { const f = F[it.t]; e.pose = {k:f.kind, z:f.sitZ, face:['SW','SE','NE','NW'][it.r], item:it}; }
   if (e.leaving) { R.ents.splice(R.ents.indexOf(e), 1); updateRoomSub(); }
@@ -543,21 +638,72 @@ function freeSeat() { const seats = [...R.seat.keys()].map(k => [k % GX, (k / GX
 
 /* ================= Bots ================= */
 function botThink(b, dt) {
-  if (b.leaving || b.path.length || !atRest(b)) return;
+  if (b.role) return staffThink(b, dt);
+  if (b.leaving || b.path.length || !atRest(b) || b.waiting) return;
   b.timer -= dt; if (b.timer > 0) return;
-  const r = Math.random(), lines = LINES[R.id];
+  const r = Math.random(), lines = LINES[R.id] || [];
+  if (R.room.machine && !b.carry && r < .16 && staff('waiter')) { const d = pickRand(['cafe','cafe','the','choco','jus','shake']);
+    say(b, pickRand([`${cap(DRINKS[d].art)}, s'il vous plaît !`, `Marco, ${DRINKS[d].art} pour moi !`, `Je prendrais bien ${DRINKS[d].art}.`]));
+    b.dance = 0; setTimeout(() => R && R.ents.includes(b) && order(b, d), 700); b.timer = 6; return; }
   if (b.dance > 0 && r < .5) { b.timer = 3; return; }
   b.dance = 0;
   if (r < .32) { const t = pickRand(freeTiles()); if (t) walkTo(b, t); b.timer = 2 + Math.random()*4; }
   else if (r < .55) { const s = freeSeat(); if (s) walkTo(b, s); b.timer = 10 + Math.random()*15; }
   else if (r < .66) { b.dance = 8 + Math.random()*8; b.timer = b.dance; }
   else if (r < .88) { if (lines.length) say(b, pickRand(lines)); if (Math.random() < .3) b.wave = 1.8; b.timer = 4 + Math.random()*6; }
-  else if (r < .95 && R.ents.filter(e => e.bot).length > 2) { b.leaving = true; if (!walkTo(b, [0, R.room.door])) b.leaving = false; else if (Math.random() < .5) say(b, pickRand(['Bon, j\'y vais !','À plus !','Bye bye !'])); }
+  else if (r < .95 && R.ents.filter(e => e.bot && !e.role).length > 2) { b.leaving = true; if (!walkTo(b, [0, R.room.door])) b.leaving = false; else if (Math.random() < .5) say(b, pickRand(['Bon, j\'y vais !','À plus !','Bye bye !'])); }
   else b.timer = 3;
+}
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+const staff = role => R && R.ents.find(e => e.role === role);
+const sameT = (a, b) => a[0] === b[0] && a[1] === b[1];
+function order(who, d) {
+  const w = staff('waiter'); if (!w) return false;
+  if (who.carry) { say(w, `Finis d'abord ton ${DRINKS[who.carry.d].name}, ${who.name} !`); return false; }
+  if (R.orders.some(o => o.who === who) || (w.job && w.job.o.who === who)) { say(w, `C'est en préparation, ${who.name} !`); return false; }
+  R.orders.push({who, d}); who.waiting = true;
+  setTimeout(() => R && R.ents.includes(w) && say(w, pickRand([`${cap(DRINKS[d].art)} pour ${who.name}, ça arrive !`, `Tout de suite, ${who.name} !`, `Un instant, je te prépare ça !`])), 500);
+  return true;
+}
+function serveTile(s, who) {
+  let best = null, bl = 1e9;
+  for (const rad of [1, 2]) { for (let dx = -rad; dx <= rad; dx++) for (let dy = -rad; dy <= rad; dy++) {
+      if (Math.abs(dx) + Math.abs(dy) !== rad) continue; const t = [who.tile[0]+dx, who.tile[1]+dy];
+      if (!inRoom(...t) || R.block.has(t[1]*GX+t[0]) || R.seat.has(t[1]*GX+t[0]) || (t[0] === 0 && t[1] === R.room.door)) continue;
+      if (R.ents.some(e => e !== s && sameT(e.tile, t))) continue;
+      const p = sameT(t, s.tile) ? [] : bfs(s.tile, t); if (p && p.length < bl) { bl = p.length; best = t; } }
+    if (best) return best; }
+  return null;
+}
+function give(who, d) {
+  who.carry = {d, t:32, sip:0}; who.waiting = false;
+  if (who === R.me) toast(`Tu as reçu ${DRINKS[d].art} !`, 'good');
+  else setTimeout(() => R && R.ents.includes(who) && say(who, pickRand(['Merci !','Merci beaucoup !','Trop gentil, merci !'])), 800);
+}
+function staffThink(s, dt) {
+  if (s.path.length || !atRest(s)) return;
+  if (s.role === 'reception') { if (!sameT(s.tile, s.home)) walkTo(s, s.home); else s.face = s.homeFace; s.timer -= dt;
+    if (s.timer < 0) { s.timer = 40 + Math.random()*40; say(s, pickRand(['Bienvenue au Pixel Hôtel !','Besoin d\'aide ? Demande-moi !','Le café est à deux pas : ouvre le Navigateur.','Ta clé d\'appart ? Dis-moi « chambre » !'])); } return; }
+  const j = s.job;
+  if (!j) {
+    if (R.orders.length) { const o = R.orders.shift(); if (!R.ents.includes(o.who)) return; s.job = {o, step:'machine'}; if (!walkTo(s, R.room.machine.use)) s.job.step = 'atMachine'; return; }
+    if (!sameT(s.tile, s.home)) { walkTo(s, s.home); return; }
+    s.face = s.homeFace; s.timer -= dt; if (s.timer < 0) { s.timer = 35 + Math.random()*35; say(s, pickRand(['Qui veut un café ?','Chocolat chaud, thé, jus… demandez !','Le milkshake maison est top !'])); }
+    return; }
+  const who = j.o.who;
+  if (!R.ents.includes(who)) { s.job = null; s.carry = null; return; }
+  if (j.step === 'machine' || j.step === 'atMachine') { s.face = R.room.machine.face; j.step = 'brew'; j.t = 2.4; R.brewing = 2.4; return; }
+  if (j.step === 'brew') { j.t -= dt; if (j.t > 0) return; s.carry = {d:j.o.d, t:999, sip:0, hold:true}; j.step = 'go'; const t = serveTile(s, who); if (t) walkTo(s, t); return; }
+  if (j.step === 'go') {
+    const dist = Math.abs(who.tile[0] - s.tile[0]) + Math.abs(who.tile[1] - s.tile[1]);
+    if (dist > 2 || who.path.length) { if (!j.retry || j.retry < performance.now()) { j.retry = performance.now() + 800; const t = serveTile(s, who); if (t && !sameT(t, s.tile)) { walkTo(s, t); return; } } if (who.path.length) return; }
+    s.face = dirFace(who.x - s.x, who.y - s.y); if (!who.pose) who.face = dirFace(s.x - who.x, s.y - who.y);
+    s.carry = null; give(who, j.o.d); say(s, pickRand([`Et voilà ${DRINKS[j.o.d].art}, ${who.name} !`, `${cap(DRINKS[j.o.d].art)} pour ${who.name}. Bonne dégustation !`]));
+    s.job = null; s.timer = 8; }
 }
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 function botReply(text) {
-  const n = norm(text), bots = R.ents.filter(e => e.bot && !e.leaving); if (!bots.length) return;
+  const n = norm(text), bots = R.ents.filter(e => e.bot && !e.leaving && !e.role); if (!bots.length) return;
   const me = R.me, near = bots.slice().sort((a, b) => (Math.abs(a.x-me.x)+Math.abs(a.y-me.y)) - (Math.abs(b.x-me.x)+Math.abs(b.y-me.y)))[0];
   const who = bots.find(b => n.includes(norm(b.name))) || near;
   let rep = null;
@@ -580,10 +726,13 @@ function update(dt) {
     if (e.path.length || !atRest(e)) { stepMove(e, (e.bot ? 2.2 : 2.6) * dt); if (atRest(e)) arrive(e); } else e.moving = false;
     if (e.dance > 0 && e.bot) e.dance -= dt;
     if (e.wave > 0) e.wave -= dt;
+    if (e.carry && !e.carry.hold) { e.carry.t -= dt; e.carry.sip += dt; if (e.carry.t <= 0) { e.carry = null; if (e === R.me) toast('Boisson terminée !'); }
+      else if (e.bot && !e.carry.said && e.carry.sip > 4) { e.carry.said = true; if (Math.random() < .6) say(e, pickRand(['Mmm, délicieux !','Il est trop bon ce café.','Ça fait du bien !'])); } }
     if (e.bot) botThink(e, dt);
   }
   if (R.cat) updateCat(dt);
-  if (R.room.bots) { R.spawnT -= dt; if (R.spawnT < 0) { R.spawnT = 20 + Math.random()*30; if (R.ents.filter(e => e.bot).length < R.room.bots + 1) spawnBot(true); } }
+  if (R.brewing > 0) R.brewing -= dt;
+  if (R.room.bots) { R.spawnT -= dt; if (R.spawnT < 0) { R.spawnT = 20 + Math.random()*30; if (R.ents.filter(e => e.bot && !e.role).length < R.room.bots + 1) spawnBot(true); } }
   bonusT += dt; S.played += dt;
   if (bonusT > 180) { bonusT = 0; S.credits += 10; toast('Bonus de présence : +10 crédits', 'good'); renderCredits(); save(); }
 }
@@ -606,13 +755,13 @@ function shadow(x, y) { g.fillStyle = 'rgba(0,0,0,.22)'; for (let j = -2; j <= 2
 function anchor(e) {
   const z = e.pose ? e.pose.z : 0, [sx, sy] = P(e.x, e.y, z);
   const sit = e.pose && e.pose.k === 'sit';
-  return {sx, sy, head: e.pose && e.pose.k === 'lay' ? sy - 20 : sit ? sy - 34 : sy - 43};
+  return {sx, sy, head: e.pose && e.pose.k === 'lay' ? sy - 20 : sit ? sy - 36 : sy - 48};
 }
 function drawAvatar(e, t) {
   const A = anchor(e), av = e.av;
   if (e.pose && e.pose.k === 'lay') {
     const img = av.get('front','stand','n',true); g.save(); g.translate(Math.round(A.sx), Math.round(A.sy) - 6);
-    g.rotate(e.pose.face === 'SW' || e.pose.face === 'NE' ? -Math.PI/2.6 : Math.PI/2.6); g.drawImage(img, -11, -30); g.restore(); return; }
+    g.rotate(e.pose.face === 'SW' || e.pose.face === 'NE' ? -Math.PI/2.6 : Math.PI/2.6); g.drawImage(img, -11, -34); g.restore(); return; }
   const face = e.pose ? e.pose.face : e.face, view = (face === 'SE' || face === 'SW') ? 'front' : 'back', flip = face === 'SW' || face === 'NW';
   let legs = 'stand', arms = 'n', bob = 0;
   if (e.pose) legs = 'sit';
@@ -620,9 +769,16 @@ function drawAvatar(e, t) {
   const dancing = e.bot ? e.dance > 0 : (e === R.me && dancingMe);
   if (dancing && !e.moving) { const f = Math.floor(t*4 + (e.name.length)) % 2; arms = f ? 'dA' : 'dB'; if (!e.pose) { legs = f ? 'stand' : 'b'; bob = f ? -1 : 0; } }
   else if (e.wave > 0) arms = Math.floor(t*5) % 2 ? 'wave' : 'n';
-  const img = av.get(view, legs, arms);
+  const sipping = e.carry && !e.carry.hold && !e.moving && arms === 'n' && (e.carry.sip % 3.6) > 2.4;
+  if (sipping) arms = 'drink';
+  const img = av.get(view, legs, arms), top = A.sy - (e.pose ? 36 : 48) + bob, left = A.sx - 11;
   if (!e.pose) shadow(A.sx, A.sy);
-  drawSpr(img, A.sx - 11, A.sy - (e.pose ? 34 : 43) + bob, flip);
+  const cup = e.carry && DRINKS[e.carry.d].img;
+  const cupAt = () => { const cx = 14, cy = sipping ? 8 : (e.pose ? 24 : 26) + (e.moving && legs === 'a' ? -1 : 0), x = flip ? 22 - cx - cup.width : cx; g.drawImage(cup, Math.round(left + x), Math.round(top + cy)); };
+  if (cup && view === 'back') cupAt();
+  drawSpr(img, left, top, flip);
+  if (cup && view === 'front') cupAt();
+  if (sipping && view === 'front' && Math.random() < .03) particles.push({k:'o', x:A.sx + (flip ? -4 : 4), y:top + 10, t, life:.8});
 }
 function drawCat() {
   const c = R.cat, [sx, sy] = P(c.x, c.y, 0), flip = c.face === 'SW' || c.face === 'NW';
@@ -647,6 +803,9 @@ function dynamic(it, t) {
   else if (it.t === 'aquarium') { for (let i = 0; i < 4; i++) { const u = .2 + (((t*.12*(i % 2 ? 1 : -1) + i*.27) % 1 + 1) % 1)*1.6, z = 22 + i*3.5, [x, y] = L.P(u, .5, z); g.fillStyle = ['#ff8a3c','#f6c343','#ff5f97','#ffffff'][i]; g.fillRect(Math.round(x)-2, Math.round(y), 4, 2); g.fillRect(Math.round(x)+(i % 2 ? -3 : 2), Math.round(y), 1, 2); }
     if (Math.random() < .08) { const [x, y] = L.P(.3 + Math.random()*1.4, .5, 24); particles.push({k:'o', x, y, t, life:1}); } }
   else if (it.t === 'jukebox') { for (let i = 0; i < 4; i++) L.front(.24+i*.14,.32+i*.14,.76,17,32,['#f6c343','#ff5f97','#5ec8f0','#6ccc5f'][(i + Math.floor(t*4)) % 4]); if (Math.random() < .04) { const [x, y] = L.P(.5,.5,46); particles.push({k:'n', x, y, t, life:2}); } }
+  else if (it.t === 'coffeeMachine') { if (R.brewing > 0 || it.brew > t) { if (Math.random() < .3) { const [x, y] = L.P(.45 + Math.random()*.1, .5, 44); particles.push({k:'o', x, y, t, life:1.2}); }
+      const [x, y] = L.P(.46, .72, 22); g.fillStyle = '#6b3f1f'; g.fillRect(Math.round(x), Math.round(y) - Math.floor((t*6) % 4), 1, 3); } }
+  else if (it.t === 'oilLamp') { const [cx, cy] = L.P(.5,.5,36); const gr = g.createRadialGradient(cx, cy, 1, cx, cy, 36); gr.addColorStop(0, 'rgba(255,200,90,.4)'); gr.addColorStop(1, 'rgba(255,200,90,0)'); g.fillStyle = gr; g.fillRect(cx-36, cy-36, 72, 72); fr(cx-1, cy-3 - Math.floor((t*8) % 2), 2, 3, '#ffb13a'); }
   else if (it.t === 'fountain') { const [x, y] = L.P(1,1,34); for (let i = 0; i < 6; i++) { const a = i/6*Math.PI*2 + t, r = 6 + ((t*20 + i*5) % 8); fr(x + Math.cos(a)*r*1.6, y + Math.sin(a)*r*.8 + ((t*20 + i*5) % 8), 1, 2, '#bfe8ff'); } }
 }
 function render(t) {
@@ -661,7 +820,7 @@ function render(t) {
   if (marker && t - marker.t < .5) tileOutline(marker.x, marker.y, `rgba(255,236,120,${1 - (t - marker.t)/.5})`);
   if (R.me.dest) tileOutline(R.me.dest[0], R.me.dest[1], 'rgba(255,255,255,.5)');
   if (placing && placing.x != null) { const it = {t:placing.t, x:placing.x, y:placing.y, r:placing.r}; for (const [x,y] of footprint(it)) if (inRoom(x,y)) tileOutline(x, y, placing.ok ? '#6ccc5f' : '#e8574c'); }
-  for (const e of R.ents) rest.push({k:e.x + e.y + (e.pose && e.pose.k === 'lay' ? .8 : .5), f:() => drawAvatar(e, t)});
+  for (const e of R.ents) rest.push({k:e.pose ? itemKey(e.pose.item) + .3 : e.x + e.y + .5, f:() => drawAvatar(e, t)});
   if (R.cat) rest.push({k:R.cat.x + R.cat.y + .45, f:drawCat});
   if (placing && placing.x != null) { const it = {t:placing.t, x:placing.x, y:placing.y, r:placing.r}; const k = itemKey(it); rest.push({k:k + .9, f:() => { drawItem(it, 'base', t, .75); drawItem(it, 'back', t, .75); }}); }
   rest.sort((a, b) => a.k - b.k).forEach(o => o.f());
@@ -718,6 +877,15 @@ let dancingMe = false;
 function syncDance() { $('tDance').setAttribute('aria-pressed', String(dancingMe)); }
 
 /* ================= Tap handling ================= */
+function receptionReply(n) {
+  const r = staff('reception'); if (!r) return; r.face = dirFace(R.me.x - r.x, R.me.y - r.y); r.timer = 30;
+  let rep;
+  if (/chambre|cle|appart/.test(n)) { rep = `Voici la clé de ton appart, ${S.name} ! Veux-tu que je t'y conduise ?`;
+    setTimeout(() => R && R.id === 'reception' && openMenu('Clé de ton appart', 'Offerte par Sofia', [['Aller dans mon appart', () => enterRoom('home')], ['Rester ici', () => {}]], ...P(R.me.x, R.me.y, 40)), 1400); }
+  else if (/aide|info/.test(n)) rep = 'Le Navigateur te fait visiter l\'hôtel, le Catalogue vend des mobis, et au Café, dis juste « café » à Marco !';
+  else rep = pickRand([`Bonjour ${S.name}, bienvenue au Pixel Hôtel !`, `Ravie de te voir, ${S.name} !`]);
+  setTimeout(() => { r.wave = 1.2; say(r, rep); }, 700);
+}
 function openMenu(title, sub, items, nx, ny) {
   menu.innerHTML = ''; const h = document.createElement('h3'); h.textContent = title; menu.appendChild(h);
   if (sub) { const p = document.createElement('p'); p.textContent = sub; menu.appendChild(p); }
@@ -765,6 +933,13 @@ cv.addEventListener('click', ev => {
   if (!menu.hidden) { closeMenu(); return; }
   if (placing) { const [tx, ty] = tileAt(nx, ny); placing.x = tx; placing.y = ty; checkPlace(); return; }
   const e = hitEnt(nx, ny);
+  if (e && e.role === 'waiter') { const A = anchor(e);
+    return openMenu(e.name + ' (serveur)', 'Que veux-tu boire ?', Object.keys(DRINKS).map(d => [cap(DRINKS[d].name), () => { say(R.me, `${cap(DRINKS[d].art)}, s'il te plaît !`); order(R.me, d); }]), A.sx, A.head); }
+  if (e && e.role === 'reception') { const A = anchor(e);
+    return openMenu(e.name + ' (réception)', e.motto, [
+      ['Demander ma clé d\'appart', () => { say(R.me, 'Bonjour, ma clé de chambre s\'il vous plaît !'); receptionReply('chambre'); }],
+      ['Demander de l\'aide', () => { say(R.me, 'Vous pouvez m\'aider ?'); receptionReply('aide'); }],
+      ['Faire coucou', () => { R.me.wave = 2; setTimeout(() => { e.wave = 2; say(e, `Bonjour ${S.name} !`); }, 600); }]], A.sx, A.head); }
   if (e && e !== R.me) { const A = anchor(e);
     return openMenu(e.name, e.motto, [
       ['Faire coucou', () => { R.me.wave = 2; turnTo(R.me, e); setTimeout(() => { if (R.ents.includes(e)) { turnTo(e, R.me); e.wave = 2; say(e, pickRand([`Coucou ${S.name} !`, 'Hey !', 'Salut toi !'])); } }, 700); }],
@@ -775,6 +950,7 @@ cv.addEventListener('click', ev => {
       [dancingMe ? 'Arrêter de danser' : 'Danser', () => { dancingMe = !dancingMe; R.me.pose = null; syncDance(); }],
       ['Faire coucou', () => { R.me.wave = 2; }],
       ['Changer de look', () => openWardrobe()],
+      ...(R.me.carry ? [['Poser ma boisson', () => { R.me.carry = null; }]] : []),
     ], A.sx, A.head); }
   if (R.cat) { const [cx, cy] = P(R.cat.x, R.cat.y, 0); if (Math.abs(nx - cx) < 12 && ny > cy - 16 && ny < cy + 4) return openMenu('Pixel le chat', 'Le chat de ton appart', [
     ['Caresser', () => { const t = nearTile({t:'duck', x:R.cat.tile[0], y:R.cat.tile[1], r:0}); if (t) walkTo(R.me, t); setTimeout(() => { say('cat', 'Prrrr… prrrr…'); for (let i = 0; i < 3; i++) particles.push({k:'h', x:cx + i*3 - 3, y:cy - 16, t:performance.now()/1000 + i*.2, life:1.5}); }, 900); }]], cx, cy - 12); }
@@ -785,7 +961,9 @@ cv.addEventListener('click', ev => {
     if (f.kind === 'sit') acts.push(['S\'asseoir', () => goUse(it, [tx, ty])]);
     if (f.kind === 'lay') acts.push(['S\'allonger', () => goUse(it, [tx, ty])]);
     if (f.toggle) acts.push([it.on ? 'Éteindre' : 'Allumer', () => { it.on = !it.on; const t = nearTile(it); if (t) walkTo(R.me, t); save(); }]);
-    if (f.kind === 'block' && !f.toggle) acts.push(['Aller à côté', () => { const t = nearTile(it); if (t) walkTo(R.me, t); else toast("Impossible d'y accéder.", 'bad'); }]);
+    if (it.t === 'coffeeMachine') acts.push(['Se servir un café', () => { const tt = nearTile(it); if (!tt) return toast("Impossible d'y accéder.", 'bad'); walkTo(R.me, tt); R.me.pendingBrew = it; if (!R.me.path.length && atRest(R.me)) arrive(R.me); }]);
+    if (it.t === 'receptionBell') acts.push(['Sonner la cloche', () => { const r = staff('reception'); toast('Ding !'); if (r) setTimeout(() => { r.wave = 1.5; say(r, `Oui, ${S.name} ? Je peux t'aider ?`); }, 700); }]);
+    if (f.kind === 'block' && !f.toggle && it.t !== 'coffeeMachine' && it.t !== 'receptionBell') acts.push(['Aller à côté', () => { const t = nearTile(it); if (t) walkTo(R.me, t); else toast("Impossible d'y accéder.", 'bad'); }]);
     if (f.kind === 'rug') acts.push(['Marcher ici', () => walkTo(R.me, [tx, ty])]);
     if (R.room.own) { acts.push(['Déplacer', () => startPlace(it.t, it)]); acts.push(['Tourner', () => rotateItem(it)]); acts.push(['Ranger dans l\'inventaire', () => pickUp(it)]); }
     const [ox, oy] = P(it.x + .5, it.y + .5, 20);
@@ -842,13 +1020,13 @@ function openNavigator() {
   const b = openSheet('Navigateur');
   const p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Choisis une pièce à visiter.'; b.appendChild(p);
   const list = document.createElement('div'); list.className = 'rooms'; b.appendChild(list);
-  for (const id of ['hall','cafe','roof','home']) { const r = ROOMS[id], here = R && R.id === id, n = here ? R.ents.length : r.bots + (id === 'home' ? 0 : 1);
+  for (const id of ['reception','hall','cafe','roof','home']) { const r = ROOMS[id], here = R && R.id === id, n = here ? R.ents.length : r.bots + (r.staff ? r.staff.length : 0);
     const btn = document.createElement('button'); btn.className = 'room';
     btn.innerHTML = `<i class="dot" style="background:${r.dot}"></i><div><b></b><span></span></div><em class="${n ? '' : 'empty'}">${here ? 'Ici' : n + ' ' + (n > 1 ? 'pers.' : 'pers.')}</em>`;
     btn.querySelector('b').textContent = r.name; btn.querySelector('span').textContent = r.desc;
     btn.onclick = () => { closeSheet(); if (!here) enterRoom(id); }; list.appendChild(btn); }
 }
-function openCatalogue(tab = 'Sièges', sel = null) {
+function openCatalogue(tab = 'Club HC', sel = null) {
   const b = openSheet('Catalogue');
   const tabs = document.createElement('div'); tabs.className = 'tabs'; b.appendChild(tabs);
   for (const t of CAT_TABS) { const x = document.createElement('button'); x.className = 'hbtn'; x.textContent = t; x.setAttribute('aria-pressed', String(t === tab)); x.onclick = () => openCatalogue(t); tabs.appendChild(x); }
@@ -864,7 +1042,7 @@ function openCatalogue(tab = 'Sièges', sel = null) {
   if (S.credits < f.price) { const p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Pas assez de crédits : reste connecté·e pour gagner 10 crédits toutes les 3 minutes.'; b.appendChild(p); }
   const grid = document.createElement('div'); grid.className = 'grid'; b.appendChild(grid);
   for (const id of ids) { const c = document.createElement('button'); c.className = 'card'; c.setAttribute('aria-pressed', String(id === sel));
-    c.innerHTML = `<img alt=""><b></b><small><img alt="" src="${ICON_URL.money}">${F[id].price}</small>`; c.querySelector('img').src = thumb(id); c.querySelector('b').textContent = F[id].name;
+    c.innerHTML = `<img alt=""><b></b><small><img alt="" src="${ICON_URL.money}">${F[id].price}${F[id].hc ? ' <span class="hc">HC</span>' : ''}</small>`; c.querySelector('img').src = thumb(id); c.querySelector('b').textContent = F[id].name;
     c.onclick = () => openCatalogue(tab, id); grid.appendChild(c); }
 }
 function openInventory() {
@@ -881,10 +1059,10 @@ function openInventory() {
 let pick = null;
 function lookEditor(body, look, onChange) {
   const maker = document.createElement('div'); maker.className = 'maker';
-  maker.innerHTML = `<div class="previewbox"><canvas width="22" height="46"></canvas></div><div class="fields"></div>`;
+  maker.innerHTML = `<div class="previewbox"><canvas width="22" height="50"></canvas></div><div class="fields"></div>`;
   body.appendChild(maker);
   const cvp = maker.querySelector('canvas'), fields = maker.querySelector('.fields');
-  const draw = () => { const x = cvp.getContext('2d'); x.clearRect(0, 0, 22, 46); x.drawImage(avatarSet(look).get('front','stand','wave'), 0, 0); onChange && onChange(); };
+  const draw = () => { const x = cvp.getContext('2d'); x.clearRect(0, 0, 22, 50); x.drawImage(avatarSet(look).get('front','stand','wave'), 0, 0); onChange && onChange(); };
   const seg = (label, opts, key) => { const d = document.createElement('div'); d.className = 'lbl'; d.textContent = label; const s = document.createElement('div'); s.className = 'seg'; d.appendChild(s);
     const paint = () => { s.innerHTML = ''; opts.forEach((o, i) => { const b = document.createElement('button'); b.className = 'hbtn'; b.textContent = o; b.setAttribute('aria-pressed', String(look[key] === i)); b.onclick = () => { look[key] = i; paint(); draw(); }; s.appendChild(b); }); };
     paint(); fields.appendChild(d); };
@@ -916,7 +1094,7 @@ function openWelcome() {
   let armed = false;
   n.onclick = () => { if (saved && !armed) { armed = true; n.textContent = 'Effacer l\'ancien perso ?'; n.classList.add('warn'); return; }
     const name = nameI.value.trim().slice(0, 14) || 'Pixelou'; $('sheetClose').hidden = false; closeSheet(); boot(newProfile(name, look, 'Nouveau·elle à l\'hôtel !')); };
-  b.insertAdjacentHTML('beforeend', `<ul class="help"><li><b>Touche le sol</b> pour marcher, <b>un mobi</b> pour t'asseoir ou l'utiliser.</li><li><b>Écris dans le chat</b> : les autres te répondent.</li><li><b>Navigateur</b> pour changer de pièce, <b>Catalogue</b> pour acheter des mobis.</li><li>Décore <b>ton appart</b> : déplace, tourne et range tes mobis.</li></ul>`);
+  b.insertAdjacentHTML('beforeend', `<ul class="help"><li><b>Touche le sol</b> pour marcher, <b>un mobi</b> pour t'asseoir ou l'utiliser.</li><li><b>Écris dans le chat</b> : les autres te répondent. Au Café, dis « café » au serveur !</li><li><b>Navigateur</b> pour changer de pièce, <b>Catalogue</b> pour acheter des mobis.</li><li>Décore <b>ton appart</b> : déplace, tourne et range tes mobis.</li></ul>`);
 }
 $('tNav').onclick = () => openNavigator();
 $('tCat').onclick = () => openCatalogue();
@@ -929,7 +1107,11 @@ $('chatForm').addEventListener('submit', ev => {
   const low = norm(text);
   if (low === ':danse' || low === '/danse') { dancingMe = true; R.me.pose = null; syncDance(); return; }
   if (low === ':coucou' || low === '/coucou') { R.me.wave = 2; return; }
-  say(R.me, text); botReply(text);
+  say(R.me, text);
+  const d = drinkFromText(low);
+  if (d && staff('waiter')) { order(R.me, d); return; }
+  if (staff('reception') && (/chambre|cle|appart|aide|info|bonjour|salut|coucou|sofia/.test(low))) { receptionReply(low); if (!/salut|coucou|bonjour/.test(low)) return; }
+  botReply(text);
 });
 
 /* ================= Boot & loop ================= */
@@ -937,7 +1119,7 @@ function boot(profile) {
   S = profile;
   const today = new Date().toISOString().slice(0, 10);
   if (S.lastDaily !== today) { const first = !S.lastDaily; S.lastDaily = today; if (!first) { S.credits += 50; setTimeout(() => toast('Bonus du jour : +50 crédits !', 'good'), 800); } }
-  renderCredits(); enterRoom(S.room === 'home' ? 'home' : (ROOMS[S.room] ? S.room : 'hall'), false);
+  renderCredits(); enterRoom(ROOMS[S.room] ? S.room : 'reception', false);
   save();
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
