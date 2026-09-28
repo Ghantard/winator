@@ -264,8 +264,10 @@ document.querySelectorAll('[data-icon]').forEach(i => i.src = ICON_URL[i.dataset
 /* ================= Avatars ================= */
 const SKINS = [['#ffcb98','#eaa872'],['#f2b584','#d4915e'],['#c68a5e','#a56d45'],['#8d5a3b','#6e432a']];
 const HAIRS = [['#6b3f2a','#4a2a1c','#8e5a3e'],['#e8c05a','#b98f36','#f7dc8a'],['#2e2a33','#16131b','#4a4452'],['#c8552e','#8e3a1e','#e07a50'],['#d9d4e8','#a79fc0','#f4f1fb'],['#e06aa8','#a8457a','#f59ccb']];
-const SHIRTS = [['#4fb35a','#2f7d3b'],['#e0544f','#9e3431'],['#4a8fe0','#2e62a8'],['#9b5fd0','#6b3c98'],['#f0b43a','#b8801c'],['#ececec','#bdbdbd'],['#2e2e36','#1a1a20'],['#8e2a3a','#6b1f2b']];
-const PANTS = [['#3b4a8c','#2c3670'],['#2e2e36','#1a1a20'],['#8a6a4a','#6b4f33'],['#c9c2b0','#a39c8a']];
+const SHIRTS = [['#4fb35a','#2f7d3b'],['#e0544f','#9e3431'],['#4a8fe0','#2e62a8'],['#9b5fd0','#6b3c98'],['#f0b43a','#b8801c'],['#ececec','#bdbdbd'],['#2e2e36','#1a1a20'],['#8e2a3a','#6b1f2b'],['#2e3f6e','#1f2c50'],['#f08a2a','#c86a1a']];
+const PANTS = [['#3b4a8c','#2c3670'],['#2e2e36','#1a1a20'],['#8a6a4a','#6b4f33'],['#c9c2b0','#a39c8a'],['#2e3f6e','#1f2c50'],['#f08a2a','#c86a1a']];
+const guardLook = l => Object.assign({}, l, {shirt:8, pants:4, cap:true});
+const inmateLook = l => Object.assign({}, l, {shirt:9, pants:5, cap:false});
 const STYLES = ['Court','Long','Crête'];
 function avatarRows(view, legs, arms, look, closed) {
   // Double-resolution figure: body shapes in base units (2px), face and clothing details at single pixels.
@@ -314,21 +316,26 @@ function avatarRows(view, legs, arms, look, closed) {
     B(15,11,1,2,'S'); px(32,23,'s'); px(32,24,'s');
   }
   if (look.style === 1 && front) B(4,6,2,11,'h');
-  if (look.style === 2) for (const x of [7,10,13,16]) for (let j = 0; j < 7; j++) { const w = Math.max(1, 6 - j); hl(x*2 + (j >> 1), x*2 + (j >> 1) + w - 1, 3 - j, 'h'); }
+  if (look.style === 2 && !look.cap) for (const x of [7,10,13,16]) for (let j = 0; j < 7; j++) { const w = Math.max(1, 6 - j); hl(x*2 + (j >> 1), x*2 + (j >> 1) + w - 1, 3 - j, 'h'); }
   if (drink) { B(17,14,2,8,'t'); vl(37,28,43,'T'); B(16,12,2,2,'s'); }
   // hair shading, strands and shine
   for (let Y = -6; Y < 42; Y++) for (let X = 0; X < W; X++) if (at(X,Y) === 'h') {
     if (at(X+1,Y) === 's' || at(X+1,Y) === 'S' || at(X,Y+1) === 's' || at(X,Y+1) === 'S') px(X,Y,'H');
     else if ((X*3 + Y) % 11 === 0 && Y > 4) px(X,Y,'H'); }
   for (let Y = 2; Y < 10; Y++) for (let X = 12; X < 26; X++) if (at(X,Y) === 'h' && Math.abs((X - 12) - (Y - 2)*1.2 - 4) < 1.2) px(X,Y,'L');
+  if (look.cap) { // guard cap with badge and visor
+    for (let Y = -2; Y < 16; Y++) for (let X = 0; X < W; X++) { const y = (Y + .5)/2; if (!inHead(X, Y) && !(Y < 4 && inHead(X, Y + 3))) continue; if (y < 5) px(X, Y, 'c'); else if (y < 6) px(X, Y, 'C'); }
+    if (front) { hl(26, 43, 11, 'v'); hl(28, 42, 12, 'v'); B(10, 1, 1, 1, 'G'); px(21, 2, 'G'); } else hl(8, 18, 11, 'v');
+    if (front) B(9, 23, 1, 1, 'G');
+  }
   return G.map(r => r.join(''));
 }
 const AVCACHE = new Map();
 function avatarSet(look) {
-  const key = [look.style, look.hair, look.skin, look.shirt, look.pants].join('.');
+  const key = [look.style, look.hair, look.skin, look.shirt, look.pants, look.cap ? 1 : 0].join('.');
   if (AVCACHE.has(key)) return AVCACHE.get(key);
   const sk = SKINS[look.skin], hr = HAIRS[look.hair], sh = SHIRTS[look.shirt], pa = PANTS[look.pants || 0];
-  const pal = {s:sk[0], S:sk[1], h:hr[0], H:hr[1], L:hr[2], e:'#1a1a1a', w:'#ffffff', m:'#b4524a', r:'#f0a3a0', t:sh[0], T:sh[1], U:shade(sh[0],1.25), k:'#3a3a3a', p:pa[0], P:pa[1], b:'#3a3a40', B:'#dadada'};
+  const pal = {c:'#2a3a66', C:'#1c2848', v:'#141c34', G:'#f6c343', s:sk[0], S:sk[1], h:hr[0], H:hr[1], L:hr[2], e:'#1a1a1a', w:'#ffffff', m:'#b4524a', r:'#f0a3a0', t:sh[0], T:sh[1], U:shade(sh[0],1.25), k:'#3a3a3a', p:pa[0], P:pa[1], b:'#3a3a40', B:'#dadada'};
   const cache = {};
   const get = (view, legs, arms = 'n', closed = false) => { const k = view + legs + arms + closed; return cache[k] || (cache[k] = pix(avatarRows(view, legs, arms, look, closed), pal, 1, 'auto')); };
   const face = document.createElement('canvas'); face.width = 50; face.height = 50; face.getContext('2d').drawImage(get('front','stand'), 0, 0, 50, 50, 0, 0, 50, 50);
@@ -491,6 +498,24 @@ const MODERN = {
 Object.assign(F, MODERN);
 // Hotel fixtures (not for sale)
 const FIX = {
+  bars:{name:'Barreaux', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(0,.44,1,.12,0,4,'#4e525c'); for (let i = 0; i < 6; i++) L.box(.05+i*.17,.47,.06,.06,4,54,'#8a909c'); L.box(0,.46,1,.08,30,2,'#6a6e78'); L.box(0,.44,1,.12,58,4,'#4e525c'); }},
+  cellDoor:{name:'Porte de cellule', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(0,.42,.07,.16,0,62,'#3a3e48'); L.box(.93,.42,.07,.16,0,62,'#3a3e48'); L.box(0,.42,1,.16,58,4,'#3a3e48');
+      for (let i = 0; i < 5; i++) L.box(.14+i*.17,.47,.05,.06,3,55,'#9aa0ac'); L.box(.07,.45,.86,.1,3,3,'#6a6e78'); L.box(.07,.45,.86,.1,28,3,'#6a6e78'); L.box(.68,.4,.14,.2,24,9,'#d9a52a'); }},
+  cellDoorOpen:{name:'Porte de cellule', w:1, d:1, kind:'deco', draw(L,p){ if (p !== 'base') return;
+      L.box(0,.42,.07,.16,0,62,'#3a3e48'); L.box(.93,.42,.07,.16,0,62,'#3a3e48'); L.box(0,.42,1,.16,58,4,'#3a3e48');
+      for (let i = 0; i < 3; i++) L.box(.08+i*.05,.5,.04,.05,3,55,'#9aa0ac'); L.box(.07,.48,.18,.08,3,3,'#6a6e78'); L.box(.07,.48,.18,.08,28,3,'#6a6e78'); }},
+  prisonBed:{name:'Couchette', w:1, d:2, kind:'lay', sitZ:13, draw(L,p){ if (p !== 'base') return;
+      for (const [u,v] of [[.1,.06],[.84,.06],[.1,1.88],[.84,1.88]]) L.box(u,v,.06,.06,0,8,'#6a707a'); L.box(.08,.04,.84,1.92,8,2,'#8a909a');
+      L.box(.12,.08,.76,1.84,10,3,'#c8c8c0'); L.box(.18,.14,.64,.34,13,3,'#ecece8'); L.box(.12,.66,.76,1.26,13,2,'#6a7280'); L.box(.12,.66,.76,.1,15,1,'#8a92a0'); }},
+  steelToilet:{name:'Toilettes en inox', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(.26,.08,.48,.22,0,20,'#9aa2ac'); L.box(.28,.3,.44,.44,0,11,'#c0c6ce'); L.top(.34,.36,.32,.32,11.2,'#5a626c'); L.box(.44,.12,.12,.1,20,2,'#d0d6de'); }},
+  guardDesk:{name:'Bureau des gardiens', w:2, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
+      L.box(.05,.15,1.9,.7,0,20,'#3a4050'); L.front(.1,1.9,.85,4,17,'#465064'); L.box(0,.1,2,.8,20,3,'#5a6070');
+      L.box(.3,.22,.5,.14,23,15,'#1e2128'); L.front(.34,.76,.36,26,36,'#1a4a2a'); for (let i = 0; i < 3; i++) L.front(.38,.5+i*.08,.36,34-i*3,35-i*3,'#6ee06a');
+      L.box(1.1,.3,.34,.26,23,1,'#f4f4f0'); L.box(1.16,.34,.3,.24,24,1,'#ffffff'); L.box(1.6,.3,.12,.16,23,9,'#2a2a30'); L.box(1.64,.34,.02,.02,32,8,'#555'); }},
+
   receptionDesk:{name:'Comptoir de réception', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
       L.box(.02,.12,.96,.76,0,24,'#5e3622'); L.front(.08,.92,.88,4,20,'#6e4430'); L.front(.02,.98,.88,20,22,'#d9a52a'); L.box(0,.08,1,.84,24,3,'#e8dcc4'); }},
   receptionBell:{name:'Comptoir de réception', w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return;
@@ -536,7 +561,9 @@ function thumb(type) {
 const footprint = (it) => { const f = F[it.t], sw = it.r % 2 ? f.d : f.w, sd = it.r % 2 ? f.w : f.d, out = []; for (let i = 0; i < sw; i++) for (let j = 0; j < sd; j++) out.push([it.x+i, it.y+j]); return out; };
 
 /* ================= Rooms ================= */
+const PRISON_LINES = ['Je suis innocent·e !','Laissez-moi sortir !','Chef, on peut avoir des frites ce soir ?','Cette couchette est trop dure…','Un jour je sortirai d\'ici.','Quelqu\'un a une lime à ongles ?','C\'est pas moi, c\'est le canard !'];
 const LINES = {
+  prison:[],
   hall:['Bienvenue à l\'hôtel !','Quelqu\'un veut être mon ami ?','Vous avez vu le nouveau canapé ?','Je cherche un appart à visiter.','Qui vient au café ?','Trop bien ce hall !','J\'adore ton look !','Il y a une fête sur le toit ce soir ?'],
   cafe:['Un chocolat chaud, s\'il vous plaît !','Ce café est trop cosy.','Quelqu\'un a mis une musique ?','Je reprendrais bien un croissant.','On joue à un jeu ?','Hmm, ça sent bon ici.'],
   roof:['Quelle vue !','Il fait trop beau aujourd\'hui.','Les canards sont trop mignons.','On fait une photo près de la fontaine ?','J\'adore le toit.'],
@@ -564,6 +591,16 @@ const ROOMS = {
       ['tv',7,0,0],['jukebox',9,0,0],['plant',6,0,0],
       ['tableRound',7,3,0],['chairRed',6,3,1],['chairRed',8,3,3],['chairRed',7,2,0],['chairRed',7,4,2],
       ['tableRound',4,6,0],['chair',3,6,1],['chair',5,6,3],['chair',4,5,0],['chair',4,7,2],['lamp',9,6,0],['plant',9,7,0]]},
+  prison:{name:'Prison de l\'hôtel', desc:'Réservé au personnel : tu y es gardien.', gx:12, gy:10, wallH:62, door:7, floor:'concrete', dot:'#5a6068', bots:0,
+    wall:{L:'#9aa0a8',R:'#8a9098',S:'#b0b6be',cap:'#4a5058',pattern:'brick',P1:'#9aa0a8',P2:'#c4c8ce'},
+    windows:[['L',5.4,6.5,36,50]], staffZone:[],
+    cells:[{x0:0, x1:2, door:[1,3]}, {x0:4, x1:6, door:[5,3]}, {x0:8, x1:10, door:[9,3]}],
+    staff:[{role:'warden', name:'Chef Martin', motto:'Directeur de la prison', tile:[9,7], face:'NW', look:{style:0, hair:2, skin:1, shirt:8, pants:4, cap:true}}],
+    decor(qx, qy) { for (let i = 0; i < 3; i++) { const u = i*4 + 1; qy(u + .1, u + .9, 44, 56, '#2a2e36'); qy(u + .16, u + .84, 45, 55, '#f6c343');
+        const [x, y] = P(u + .5, 0, 50); C.font = `bold ${8*K}px Ubuntu, sans-serif`; C.fillStyle = '#2a2e36'; C.textAlign = 'center'; C.textBaseline = 'middle'; C.fillText(String(i + 1), x, y + 2*K); }
+      qx(8.4, 9.6, 30, 52, '#2a2e36'); qx(8.48, 9.52, 32, 50, '#f4f4f0'); for (let i = 0; i < 4; i++) qx(8.6, 9.4, 45 - i*4, 46 - i*4, '#6a6e78'); },
+    furni:[...[0,4,8].flatMap((x0, i) => [['prisonBed',x0,0,0],['steelToilet',x0+2,0,0],['cellDoor',x0+1,3,0],['bars',x0,3,0],['bars',x0+2,3,0],['bars',x0+3,0,1],['bars',x0+3,1,1],['bars',x0+3,2,1],['bars',x0+3,3,0]]),
+      ['guardDesk',6,6,0],['chromeChair',6,7,2],['bench',2,9,2],['plant',11,9,0],['plant',0,9,0],['lamp',11,5,0]]},
   roof:{name:'Jardin sur le toit', desc:'Fontaine, soleil et canards.', gx:10, gy:10, wallH:26, door:8, floor:'grass', hedge:true, wall:{L:'#3f8f3f',R:'#357a35',S:'#57a857',cap:'#2c6a2c'}, dot:'#3fa33f', bots:3, sky:true,
     windows:[],
     furni:[['fountain',4,4,0],['bench',4,2,0],['bench',4,7,2],['bench',2,4,1],['bench',7,4,3],['palm',0,0,0],['palm',9,0,0],['palm',9,9,0],['plant',0,4,0],['duck',3,3,0],['duck',6,6,0],['lamp',2,2,0],['lamp',7,7,0]]},
@@ -599,6 +636,7 @@ function paintRoom(room) {
     if (room.floor === 'wood' || room.floor === 'darkwood') { const dk = room.floor === 'darkwood', c1 = dk ? '#7a4a2e' : '#cf965c', c2 = dk ? '#6b3f26' : '#c48a52', ln = dk ? '#55311d' : '#a8703e';
       for (let k = 0; k < 4; k++) { poly([P(x,y+k/4),P(x+1,y+k/4),P(x+1,y+(k+1)/4),P(x,y+(k+1)/4)], k % 2 ? c2 : c1); line(P(x,y+k/4),P(x+1,y+k/4),ln); const o = ((x*3 + y*5 + k*2) % 4)/4 + .12; line(P(x+o,y+k/4),P(x+o,y+(k+1)/4),ln); } }
     else if (room.floor === 'check') { for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) sq(i/2, j/2, .5, (i+j) % 2 ? '#2b2b33' : '#e8e6e0'); }
+    else if (room.floor === 'concrete') { sq(0, 0, 1, '#b2b6ba'); for (let i = 0; i < 10; i++) { const a = hash(x*13+i, y*7+i*3), b = hash(y*11+i, x*5+i); fr(...P(x+a, y+b), K, K, i % 2 ? '#a2a6aa' : '#c2c6ca'); } line(P(x+.5,y), P(x+.5,y+1), 'rgba(0,0,0,.06)'); }
     else if (room.floor === 'tile') { sq(0, 0, 1, '#f3f3f1'); for (let k = 1; k < 4; k++) { line(P(x, y+k/4), P(x+1, y+k/4), '#e2e2de'); line(P(x+k/4, y), P(x+k/4, y+1), '#e8e8e4'); } }
     else if (room.floor === 'marble') { for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) sq(i/2, j/2, .5, (i+j) % 2 ? '#e2d8c6' : '#f1ebdf');
       const a = hash(x, y); line(P(x+a*.6, y+.1), P(x+a*.6+.3, y+.7), 'rgba(150,130,110,.35)'); sq(.44, .44, .12, '#c9a24a'); }
@@ -613,6 +651,8 @@ function paintRoom(room) {
       if (door) col = (u < dy + .17 || u > dy + .83 || z >= doorH*K) ? '#6b4a32' : shade('#2a211a', 1 + z/200);
       else if (room.hedge) col = hash(sx, z) < .18 ? W.S : (hash(z, sx) < .1 ? W.cap : (left ? W.L : W.R));
       else if (z >= WALLH*K - 3) col = W.rim || shade(left ? W.L : W.R, 1.18);
+      else if (W.pattern === 'brick') { const U = left ? (OX - sx) : (sx - OX), row = Math.floor(z/(7*K/2)), off = (row % 2)*8*K/2, bx = Math.floor((U + off)/(16*K/2));
+        const mortar = z % Math.round(7*K/2) === 0 || Math.floor(U + off) % Math.round(16*K/2) === 0; const base = mortar ? W.P2 : (hash(bx, row) > .5 ? W.P1 : '#8e949c'); col = left ? base : shade(base, .9); }
       else if (W.pattern === 'chevron') { const U = left ? (OX - sx) : (sx - OX), zz = z + Math.abs((U % 20) - 10); col = Math.floor(zz/7) % 2 ? W.P1 : W.P2; if (!left) col = shade(col, .9); }
       else if (z < 2) col = shade(left ? W.L : W.R, .82);
       else col = left ? W.L : W.R;
@@ -649,8 +689,12 @@ function enterRoom(id, silent) {
   bubbles.splice(0).forEach(o => o.el.remove());
   rebuildGrid();
   const door = [0, room.door];
-  R.me = makeEntity(S.name, S.look, S.motto, door, false); R.me.face = 'SE'; R.ents.push(R.me);
+  R.me = makeEntity(S.name, id === 'prison' ? guardLook(S.look) : S.look, S.motto, door, false); R.me.face = 'SE'; R.ents.push(R.me);
   walkTo(R.me, [1, room.door]);
+  if (room.cells) { R.items.forEach(it => { const c = room.cells.findIndex(cl => cl.door[0] === it.x && cl.door[1] === it.y); if (c >= 0 && it.t.startsWith('cellDoor')) it.cell = c; });
+    for (const pz of S.prisoners) { const tiles = cellTiles(pz.cell); const t = pickRand(tiles) || [room.cells[pz.cell].x0 + 1, 1];
+      const e = makeEntity(pz.name, inmateLook(pz.look), pz.motto, t, true); e.prisoner = true; e.cell = pz.cell; e.timer = 2 + Math.random()*4; R.ents.push(e); }
+    setTimeout(() => { const w = staff('warden'); if (w && R && R.id === 'prison') { w.wave = 1.5; say(w, `Salut ${S.name}, prêt·e pour ton service ? Tu as ${S.prisoners.length} détenu·e·s à surveiller.`); } }, 1400); }
   for (const st of room.staff || []) { const e = makeEntity(st.name, st.look, st.motto, st.tile, true); e.role = st.role; e.home = st.tile; e.homeFace = st.face; e.face = st.face; e.timer = 20; R.ents.push(e); }
   for (let i = 0; i < room.bots; i++) spawnBot(false);
   if (id === 'home') R.cat = {x:4.5, y:6.5, tile:[4,6], path:[], face:'SE', anim:0, moving:false, sleep:0, wait:3};
@@ -662,10 +706,54 @@ function enterRoom(id, silent) {
   if (room.own && !silent) setTimeout(() => toast('Ton appart : touche un mobi pour le déplacer, le tourner ou le ranger.', 'good'), 600);
   save();
 }
-function updateRoomSub() { if (!R) return; const n = R.ents.length; $('roomSub').textContent = R.room.own ? `Propriétaire : ${S.name}` : `${n} personne${n > 1 ? 's' : ''} ici`; }
+function updateRoomSub() { if (!R) return; const n = R.ents.length;
+  $('roomSub').textContent = R.room.own ? `Propriétaire : ${S.name}` : R.room.cells ? `${S.prisoners.length} détenu·e${S.prisoners.length > 1 ? 's' : ''} · tu es de service` : `${n} personne${n > 1 ? 's' : ''} ici`; }
+function cellTiles(i) { const c = R.room.cells[i], out = []; for (let x = c.x0; x <= c.x1; x++) for (let y = 0; y <= 2; y++) if (!R.block.has(y*GX+x) && !R.seat.has(y*GX+x)) out.push([x,y]); return out; }
+function cellDoorOf(i) { return R.items.find(it => it.cell === i && it.t.startsWith('cellDoor')); }
+function setDoor(it, open) {
+  if (!open && R.ents.some(e => sameT(e.tile, [it.x, it.y]))) { toast('Quelqu\'un bloque la porte.', 'bad'); return false; }
+  it.t = open ? 'cellDoorOpen' : 'cellDoor'; rebuildGrid(); toast(`Cellule ${it.cell + 1} ${open ? 'ouverte' : 'fermée'}.`, open ? 'bad' : 'good'); return true;
+}
+function arrest(e) {
+  const counts = [0, 0, 0]; S.prisoners.forEach(pz => counts[pz.cell]++);
+  const cell = counts.indexOf(Math.min(...counts)); if (counts[cell] >= 2) return toast('Toutes les cellules sont pleines !', 'bad');
+  R.me.face = dirFace(e.x - R.me.x, e.y - R.me.y); R.me.pose = null;
+  say(R.me, pickRand([`Sécurité de l'hôtel ! ${e.name}, suis-moi.`, `${e.name}, tu es en état d'arrestation !`]));
+  e.path = []; e.dance = 0; e.waiting = false; e.leaving = false; e.timer = 99; e.face = dirFace(R.me.x - e.x, R.me.y - e.y);
+  setTimeout(() => { if (R && R.ents.includes(e)) say(e, pickRand(['Quoi ?! Mais j\'ai rien fait !','Je veux parler à mon avocat !','C\'est une erreur !','Pas la prison, pitié !'])); }, 900);
+  setTimeout(() => { if (!R || !R.ents.includes(e)) return; const [x, y] = P(e.x, e.y, 30); for (let i = 0; i < 8; i++) particles.push({k:'o', x:x + (i - 4)*3*K, y, t:performance.now()/1000, life:1});
+    R.ents.splice(R.ents.indexOf(e), 1); S.prisoners.push({name:e.name, look:e.look, motto:`Détenu·e de la cellule ${cell + 1}`, cell});
+    S.credits += 5; renderCredits(); updateRoomSub(); toast(`${e.name} est emmené·e en cellule ${cell + 1}. Prime : +5 crédits`, 'good'); save(); }, 2300);
+}
+function release(e) {
+  const d = cellDoorOf(e.cell); if (d && d.t === 'cellDoor') setDoor(d, true);
+  e.released = true; e.leaving = true; e.pose = null;
+  if (!walkTo(e, [0, R.room.door])) { e.leaving = false; toast("Impossible de sortir d'ici.", 'bad'); return; }
+  say(e, pickRand(['Merci chef ! Je serai sage.','Enfin libre !','Je reviendrai… non, je rigole !']));
+}
+function recapture(e) {
+  const t = pickRand(cellTiles(e.cell)); if (!t) return;
+  e.path = []; e.pose = null; e.tile = t.slice(); e.x = t[0] + .5; e.y = t[1] + .5; e.leaving = false; e.escaping = false;
+  const d = cellDoorOf(e.cell); if (d && d.t === 'cellDoorOpen') setDoor(d, false);
+  say(e, 'Zut, repris…'); S.credits += 2; renderCredits(); toast(`${e.name} est de retour en cellule. +2 crédits`, 'good'); save();
+}
+function prisonerThink(b, dt) {
+  if (b.leaving || b.path.length || !atRest(b)) return;
+  b.timer -= dt; if (b.timer > 0) return;
+  const d = cellDoorOf(b.cell), r = Math.random();
+  if (d && d.t === 'cellDoorOpen' && !b.released && r < .4) {
+    b.pose = null; b.escaping = true; b.leaving = true;
+    if (walkTo(b, [0, R.room.door])) { say(b, pickRand(['La porte est ouverte ! Je file !','Adieu les barreaux !'])); const w = staff('warden'); if (w) setTimeout(() => say(w, `Alerte ! ${b.name} s'échappe !`), 700); }
+    else { b.escaping = false; b.leaving = false; }
+    b.timer = 2; return; }
+  if (r < .45) { const t = pickRand(cellTiles(b.cell)); if (t) walkTo(b, t); b.timer = 3 + Math.random()*5; }
+  else if (r < .62) { const bed = R.items.find(it => it.t === 'prisonBed' && it.x === R.room.cells[b.cell].x0); if (bed) walkTo(b, [bed.x, bed.y + 1]); b.timer = 10 + Math.random()*12; }
+  else if (r < .85) { say(b, pickRand(PRISON_LINES)); b.timer = 6 + Math.random()*6; }
+  else b.timer = 3;
+}
 function freeTiles() { const out = []; for (let y = 0; y < GY; y++) for (let x = 0; x < GX; x++) if (!R.block.has(y*GX+x) && !R.seat.has(y*GX+x) && !(x === 0 && y === R.room.door) && !(R.room.staffZone || []).some(t => t[0] === x && t[1] === y)) out.push([x,y]); return out; }
 function spawnBot(fromDoor) {
-  const used = new Set(R.ents.map(e => e.name).concat(['Sofia','Marco'])); const names = BOT_NAMES.filter(n => !used.has(n)); if (!names.length) return;
+  const used = new Set(R.ents.map(e => e.name).concat(['Sofia','Marco'], S.prisoners.map(pz => pz.name))); const names = BOT_NAMES.filter(n => !used.has(n)); if (!names.length) return;
   const tile = fromDoor ? [0, R.room.door] : pickRand(freeTiles());
   const b = makeEntity(pickRand(names), randLook(), pickRand(MOTTOS), tile, true);
   R.ents.push(b);
@@ -718,7 +806,13 @@ function arrive(e) {
     it.brew = performance.now()/1000 + 2; setTimeout(() => { if (R && R.ents.includes(e) && !e.path.length) give(e, 'cafe'); }, 2000); }
   const it = R.seat.get(e.tile[1]*GX + e.tile[0]);
   if (it) { const f = F[it.t]; e.pose = {k:f.kind, z:f.sitZ, face:['SW','SE','NE','NW'][it.r], item:it}; }
-  if (e.leaving) { R.ents.splice(R.ents.indexOf(e), 1); updateRoomSub(); }
+  if (e.leaving && sameT(e.tile, [0, R.room.door])) {
+    R.ents.splice(R.ents.indexOf(e), 1);
+    if (e.prisoner) { S.prisoners = S.prisoners.filter(pz => pz.name !== e.name); save();
+      if (e.escaping) { toast(`${e.name} s'est évadé·e !`, 'bad'); const w = staff('warden'); if (w) say(w, 'Trop tard… Ferme mieux les portes la prochaine fois !'); }
+      else toast(`${e.name} a quitté la prison.`); }
+    updateRoomSub(); }
+  else if (e.leaving) { e.leaving = false; e.escaping = false; }
 }
 function turnTo(e, o) { if (e.pose) return; e.face = dirFace(o.x - e.x, o.y - e.y); }
 const occupied = t => R.ents.some(e => e.tile[0] === t[0] && e.tile[1] === t[1]);
@@ -727,6 +821,7 @@ function freeSeat() { const seats = [...R.seat.keys()].map(k => [k % GX, (k / GX
 /* ================= Bots ================= */
 function botThink(b, dt) {
   if (b.role) return staffThink(b, dt);
+  if (b.prisoner) return prisonerThink(b, dt);
   if (b.leaving || b.path.length || !atRest(b) || b.waiting) return;
   b.timer -= dt; if (b.timer > 0) return;
   const r = Math.random(), lines = LINES[R.id] || [];
@@ -770,6 +865,8 @@ function give(who, d) {
 }
 function staffThink(s, dt) {
   if (s.path.length || !atRest(s)) return;
+  if (s.role === 'warden') { if (!sameT(s.tile, s.home)) walkTo(s, s.home); else s.face = s.homeFace; s.timer -= dt;
+    if (s.timer < 0) { s.timer = 35 + Math.random()*35; say(s, pickRand(['Garde un œil sur les cellules.','Personne ne s\'évade sous ma surveillance !','Pense à bien fermer les portes des cellules.','Beau travail, gardien !','Si tu vois un fauteur de troubles dans l\'hôtel, arrête-le !'])); } return; }
   if (s.role === 'reception') { if (!sameT(s.tile, s.home)) walkTo(s, s.home); else s.face = s.homeFace; s.timer -= dt;
     if (s.timer < 0) { s.timer = 40 + Math.random()*40; say(s, pickRand(['Bienvenue au Pixel Hôtel !','Besoin d\'aide ? Demande-moi !','Le café est à deux pas : ouvre le Navigateur.','Ta clé d\'appart ? Dis-moi « chambre » !'])); } return; }
   const j = s.job;
@@ -810,7 +907,8 @@ function botReply(text) {
 /* ================= Update loop ================= */
 let bonusT = 0;
 function update(dt) {
-  for (const e of R.ents) {
+  for (const e of R.ents.slice()) {
+    if (e.path.length && R.block.has(e.path[0][1]*GX + e.path[0][0])) { e.path = []; if (e.escaping) { e.escaping = false; e.leaving = false; say(e, 'Zut, c\'est fermé !'); } }
     if (e.path.length || !atRest(e)) { stepMove(e, (e.bot ? 2.2 : 2.6) * dt); if (atRest(e)) arrive(e); } else e.moving = false;
     if (e.dance > 0 && e.bot) e.dance -= dt;
     if (e.wave > 0) e.wave -= dt;
@@ -1089,8 +1187,17 @@ cv.addEventListener('click', ev => {
       ['Demander ma clé d\'appart', () => { say(R.me, 'Bonjour, ma clé de chambre s\'il vous plaît !'); receptionReply('chambre'); }],
       ['Demander de l\'aide', () => { say(R.me, 'Vous pouvez m\'aider ?'); receptionReply('aide'); }],
       ['Faire coucou', () => { R.me.wave = 2; setTimeout(() => { e.wave = 2; say(e, `Bonjour ${S.name} !`); }, 600); }]], A.sx, A.head); }
+  if (e && e.prisoner) { const A = anchor(e);
+    return openMenu(e.name + ' (détenu·e)', e.motto, [
+      ...(e.escaping ? [['Ramener en cellule', () => recapture(e)]] : []),
+      ...(e.released ? [] : [['Libérer', () => release(e)]]),
+      ['Interroger', () => { turnTo(R.me, e); say(R.me, pickRand(['Alors, tu avoues ?','Qu\'est-ce que tu faisais dans le hall ?','Tu as quelque chose à dire ?'])); setTimeout(() => R && R.ents.includes(e) && say(e, pickRand(PRISON_LINES)), 900); }],
+    ], A.sx, A.head); }
+  if (e && e !== R.me && e.role === 'warden') { const A = anchor(e);
+    return openMenu(e.name, e.motto, [['Demander les consignes', () => { say(R.me, 'Chef, des consignes ?'); setTimeout(() => say(e, 'Arrête les fauteurs de troubles dans l\'hôtel, garde les portes fermées et interroge les détenus.'), 800); }]], A.sx, A.head); }
   if (e && e !== R.me) { const A = anchor(e);
     return openMenu(e.name, e.motto, [
+      ...(!e.role && !R.room.cells ? [['Arrêter (gardien)', () => arrest(e)]] : []),
       ['Faire coucou', () => { R.me.wave = 2; turnTo(R.me, e); setTimeout(() => { if (R.ents.includes(e)) { turnTo(e, R.me); e.wave = 2; say(e, pickRand([`Coucou ${S.name} !`, 'Hey !', 'Salut toi !'])); } }, 700); }],
       ['Danser ensemble', () => { dancingMe = true; syncDance(); R.me.pose = null; e.pose = null; e.path = []; e.dance = 12; e.timer = 12; turnTo(e, R.me); say(e, 'Yeah, on danse !'); }],
       ['Aller vers', () => { const t = nearTile({t:'duck', x:e.tile[0], y:e.tile[1], r:0}); if (t) walkTo(R.me, t); }],
@@ -1112,7 +1219,8 @@ cv.addEventListener('click', ev => {
     if (f.toggle) acts.push([it.on ? 'Éteindre' : 'Allumer', () => { it.on = !it.on; const t = nearTile(it); if (t) walkTo(R.me, t); save(); }]);
     if (it.t === 'coffeeMachine') acts.push(['Se servir un café', () => { const tt = nearTile(it); if (!tt) return toast("Impossible d'y accéder.", 'bad'); walkTo(R.me, tt); R.me.pendingBrew = it; if (!R.me.path.length && atRest(R.me)) arrive(R.me); }]);
     if (it.t === 'receptionBell') acts.push(['Sonner la cloche', () => { const r = staff('reception'); toast('Ding !'); if (r) setTimeout(() => { r.wave = 1.5; say(r, `Oui, ${S.name} ? Je peux t'aider ?`); }, 700); }]);
-    if (f.kind === 'block' && !f.toggle && it.t !== 'coffeeMachine' && it.t !== 'receptionBell') acts.push(['Aller à côté', () => { const t = nearTile(it); if (t) walkTo(R.me, t); else toast("Impossible d'y accéder.", 'bad'); }]);
+    if (it.t.startsWith('cellDoor')) acts.push([it.t === 'cellDoor' ? 'Ouvrir la cellule' : 'Fermer la cellule', () => setDoor(it, it.t === 'cellDoor')]);
+    if (f.kind === 'block' && !f.toggle && !['coffeeMachine','receptionBell','bars','cellDoor','steelToilet'].includes(it.t)) acts.push(['Aller à côté', () => { const t = nearTile(it); if (t) walkTo(R.me, t); else toast("Impossible d'y accéder.", 'bad'); }]);
     if (f.kind === 'rug') acts.push(['Marcher ici', () => walkTo(R.me, [tx, ty])]);
     if (R.room.own) { acts.push(['Déplacer', () => startPlace(it.t, it)]); acts.push(['Tourner', () => rotateItem(it)]); acts.push(['Ranger dans l\'inventaire', () => pickUp(it)]); }
     const [ox, oy] = P(it.x + .5, it.y + .5, 20);
@@ -1170,7 +1278,7 @@ function openNavigator() {
   const b = openSheet('Navigateur');
   const p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Choisis une pièce à visiter.'; b.appendChild(p);
   const list = document.createElement('div'); list.className = 'rooms'; b.appendChild(list);
-  for (const id of ['reception','hall','cafe','roof','home']) { const r = ROOMS[id], here = R && R.id === id, n = here ? R.ents.length : r.bots + (r.staff ? r.staff.length : 0);
+  for (const id of ['reception','hall','cafe','roof','prison','home']) { const r = ROOMS[id], here = R && R.id === id, n = here ? R.ents.length : r.bots + (r.staff ? r.staff.length : 0) + (r.cells ? S.prisoners.length : 0);
     const btn = document.createElement('button'); btn.className = 'room';
     btn.innerHTML = `<i class="dot" style="background:${r.dot}"></i><div><b></b><span></span></div><em class="${n ? '' : 'empty'}">${here ? 'Ici' : n + ' ' + (n > 1 ? 'pers.' : 'pers.')}</em>`;
     btn.querySelector('b').textContent = r.name; btn.querySelector('span').textContent = r.desc;
@@ -1244,7 +1352,7 @@ function openWelcome() {
   let armed = false;
   n.onclick = () => { if (saved && !armed) { armed = true; n.textContent = 'Effacer l\'ancien perso ?'; n.classList.add('warn'); return; }
     const name = nameI.value.trim().slice(0, 14) || 'Pixelou'; $('sheetClose').hidden = false; closeSheet(); boot(newProfile(name, look, 'Nouveau·elle à l\'hôtel !')); };
-  b.insertAdjacentHTML('beforeend', `<ul class="help"><li><b>Touche le sol</b> pour marcher, <b>un mobi</b> pour t'asseoir ou l'utiliser.</li><li><b>Écris dans le chat</b> : les autres te répondent. Au Café, dis « café » au serveur !</li><li><b>Navigateur</b> pour changer de pièce, <b>Catalogue</b> pour acheter des mobis.</li><li>Décore <b>ton appart</b> : déplace, tourne et range tes mobis.</li></ul>`);
+  b.insertAdjacentHTML('beforeend', `<ul class="help"><li><b>Touche le sol</b> pour marcher, <b>un mobi</b> pour t'asseoir ou l'utiliser.</li><li><b>Écris dans le chat</b> : les autres te répondent. Au Café, dis « café » au serveur !</li><li>Tu es <b>gardien de la prison</b> : touche quelqu'un puis « Arrêter ».</li><li><b>Navigateur</b> pour changer de pièce, <b>Catalogue</b> pour acheter des mobis.</li><li>Décore <b>ton appart</b> : déplace, tourne et range tes mobis.</li></ul>`);
 }
 $('tNav').onclick = () => openNavigator();
 $('roomPill').onclick = () => openNavigator();
@@ -1270,6 +1378,8 @@ $('chatForm').addEventListener('submit', ev => {
 /* ================= Boot & loop ================= */
 function boot(profile) {
   S = profile;
+  if (!S.prisoners) S.prisoners = [{name:'Bob', look:randLook(), motto:'Détenu·e de la cellule 1', cell:0}, {name:'Kev', look:randLook(), motto:'Détenu·e de la cellule 3', cell:2}];
+  S.guard = true;
   if (S.homeV !== 2) { for (const it of S.home) S.inv[it.t] = (S.inv[it.t] || 0) + 1; S.home = ROOMS.home.furni.map(([t,x,y,r]) => ({t,x,y,r,on:t === 'tv' || t === 'lamp'})); S.homeV = 2; }
   const today = new Date().toISOString().slice(0, 10);
   if (S.lastDaily !== today) { const first = !S.lastDaily; S.lastDaily = today; if (!first) { S.credits += 50; setTimeout(() => toast('Bonus du jour : +50 crédits !', 'good'), 800); } }
