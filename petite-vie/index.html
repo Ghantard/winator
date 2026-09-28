@@ -119,8 +119,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 .room em{font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--green);border:1px solid #000;border-radius:10px;padding:1px 8px}
 .room em.empty{background:#9a9a93}
 .maker{display:flex;gap:12px;align-items:flex-start}
-.previewbox{flex:none;width:84px;height:166px;background:radial-gradient(ellipse at 50% 88%,#c9c9c2 0 30%,transparent 31%),linear-gradient(#f7f7f4,#dcdcd6);border:1px solid #000;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box}
-.previewbox canvas{width:66px;height:150px;image-rendering:pixelated}
+.previewbox{flex:none;width:96px;height:186px;background:radial-gradient(ellipse at 50% 88%,#c9c9c2 0 30%,transparent 31%),linear-gradient(#f7f7f4,#dcdcd6);border:1px solid #000;border-radius:6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box}
+.previewbox canvas{width:78px;height:171px;image-rendering:pixelated}
 .fields{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
 .fields label,.fields .lbl{font-size:12px;color:var(--muted);font-weight:500;display:flex;flex-direction:column;gap:3px}
 .txt{font:inherit;font-size:16px;background:#fff;color:var(--text);border:1px solid #000;border-radius:5px;padding:5px 7px;width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text;box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
@@ -219,17 +219,24 @@ function ell(cx, cy, rx, ry, col) { C.fillStyle = col; for (let dy = -ry; dy <= 
 function outlinePass(c, col) {
   const x = c.getContext('2d'), im = x.getImageData(0, 0, c.width, c.height), d = im.data, W = c.width, H = c.height;
   const src = new Uint8Array(W*H); for (let i = 0; i < W*H; i++) src[i] = d[i*4+3] > 60 ? 1 : 0;
-  const [r,g,b] = [parseInt(col.slice(1,3),16), parseInt(col.slice(3,5),16), parseInt(col.slice(5,7),16)];
+  const fixed = col && col !== 'auto' ? [parseInt(col.slice(1,3),16), parseInt(col.slice(3,5),16), parseInt(col.slice(5,7),16)] : null;
   for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) { const i = yy*W + xx; if (src[i]) continue;
-    if ((xx > 0 && src[i-1]) || (xx < W-1 && src[i+1]) || (yy > 0 && src[i-W]) || (yy < H-1 && src[i+W])) { d[i*4] = r; d[i*4+1] = g; d[i*4+2] = b; d[i*4+3] = 255; } }
+    const nb = (xx > 0 && src[i-1]) ? i-1 : (xx < W-1 && src[i+1]) ? i+1 : (yy > 0 && src[i-W]) ? i-W : (yy < H-1 && src[i+W]) ? i+W : -1;
+    if (nb < 0) continue;
+    if (fixed) { d[i*4] = fixed[0]; d[i*4+1] = fixed[1]; d[i*4+2] = fixed[2]; }
+    else { d[i*4] = d[nb*4]*.38 | 0; d[i*4+1] = d[nb*4+1]*.34 | 0; d[i*4+2] = d[nb*4+2]*.36 | 0; }
+    d[i*4+3] = 255; }
   x.putImageData(im, 0, 0);
 }
+const darkOf = hex => { const n = parseInt(hex.slice(1), 16); return `rgb(${((n >> 16)*.38) | 0},${(((n >> 8) & 255)*.34) | 0},${((n & 255)*.36) | 0})`; };
 function pix(rows, pal, scale = 1, outline) {
   const h = rows.length, w = rows[0].length, o = outline ? 1 : 0;
   const c = document.createElement('canvas'); c.width = (w + 2*o)*scale; c.height = (h + 2*o)*scale;
   const x = c.getContext('2d');
   const on = (i, j) => j >= 0 && j < h && i >= 0 && i < w && rows[j][i] !== '.' && pal[rows[j][i]];
-  if (outline) { x.fillStyle = outline; for (let j = -1; j <= h; j++) for (let i = -1; i <= w; i++) if (!on(i,j) && (on(i-1,j)||on(i+1,j)||on(i,j-1)||on(i,j+1))) x.fillRect((i+o)*scale, (j+o)*scale, scale, scale); }
+  if (outline) for (let j = -1; j <= h; j++) for (let i = -1; i <= w; i++) { if (on(i,j)) continue;
+    const n = on(i-1,j) ? [i-1,j] : on(i+1,j) ? [i+1,j] : on(i,j-1) ? [i,j-1] : on(i,j+1) ? [i,j+1] : null; if (!n) continue;
+    x.fillStyle = outline === 'auto' ? darkOf(pal[rows[n[1]][n[0]]]) : outline; x.fillRect((i+o)*scale, (j+o)*scale, scale, scale); }
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const ch = rows[j][i]; if (ch === '.' || !pal[ch]) continue; x.fillStyle = pal[ch]; x.fillRect((i+o)*scale, (j+o)*scale, scale, scale); }
   return c;
 }
@@ -253,51 +260,59 @@ document.getElementById('coinImg').src = ICON_URL.money;
 document.querySelectorAll('[data-icon]').forEach(i => i.src = ICON_URL[i.dataset.icon]);
 
 /* ================= Avatars ================= */
-const SKINS = [['#f7d8c0','#e2b596'],['#e8b48e','#c98f68'],['#c68a5e','#a56d45'],['#8d5a3b','#6e432a']];
+const SKINS = [['#ffcb98','#eaa872'],['#f2b584','#d4915e'],['#c68a5e','#a56d45'],['#8d5a3b','#6e432a']];
 const HAIRS = [['#6b3f2a','#4a2a1c','#8e5a3e'],['#e8c05a','#b98f36','#f7dc8a'],['#2e2a33','#16131b','#4a4452'],['#c8552e','#8e3a1e','#e07a50'],['#d9d4e8','#a79fc0','#f4f1fb'],['#e06aa8','#a8457a','#f59ccb']];
 const SHIRTS = [['#4fb35a','#2f7d3b'],['#e0544f','#9e3431'],['#4a8fe0','#2e62a8'],['#9b5fd0','#6b3c98'],['#f0b43a','#b8801c'],['#ececec','#bdbdbd'],['#2e2e36','#1a1a20'],['#8e2a3a','#6b1f2b']];
 const PANTS = [['#3b4a8c','#2c3670'],['#2e2e36','#1a1a20'],['#8a6a4a','#6b4f33'],['#c9c2b0','#a39c8a']];
 const STYLES = ['Court','Long','Crête'];
 function avatarRows(view, legs, arms, look, closed) {
-  // Hotel-style proportions: boxy round head, slim torso, long legs.
-  const W = 20, H = 48, G = Array.from({length:H}, () => Array(W).fill('.'));
-  const set = (x, y, c) => { y += 2; if (x >= 0 && x < W && y >= 0 && y < H) G[y][x] = c; };
-  const get = (x, y) => G[y+2] && G[y+2][x];
+  // Hotel-style figure, 3/4 view: egg-shaped head with the nose poking out, slim body, long legs.
+  const W = 24, H = 55, OFF = 3, G = Array.from({length:H}, () => Array(W).fill('.'));
+  const set = (x, y, c) => { y += OFF; if (x >= 0 && x < W && y >= 0 && y < H) G[y][x] = c; };
+  const get = (x, y) => G[y+OFF] && G[y+OFF][x];
   const rect = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) set(x+i, y+j, c); };
-  const inHead = (x, y) => { const dx = Math.abs(x + .5 - 10)/6.6, dy = Math.abs(y + .5 - 8)/7.4; return Math.pow(dx, 2.6) + Math.pow(dy, 2.6) <= 1; };
+  const inHead = (x, y) => { const cx = 12, cy = 10; let rx = 7.2; const ry = 8.6; if (y + .5 > cy + 2) rx -= (y + .5 - cy - 2)*.34; const dx = (x + .5 - cx)/rx, dy = (y + .5 - cy)/ry; return dx*dx + dy*dy <= 1; };
   const front = view === 'front', sw = legs === 'a' ? 1 : 0, drink = arms === 'drink';
-  if (legs === 'sit') { rect(6,30,10,4,'p'); rect(12,34,4,6,'p'); rect(12,40,6,2,'b'); set(11,31,'P'); set(15,35,'P'); }
-  else if (legs === 'a') { rect(5,30,4,12,'p'); rect(11,30,4,11,'p'); rect(8,30,4,3,'p'); for (let y = 33; y < 42; y++) set(8,y,'P'); rect(4,42,5,2,'b'); rect(11,41,6,2,'b'); }
-  else if (legs === 'b') { rect(7,30,6,12,'p'); for (let y = 33; y < 42; y++) set(10,y,'P'); rect(7,42,7,2,'b'); }
-  else { rect(6,30,8,12,'p'); for (let y = 33; y < 42; y++) set(10,y,'P'); rect(6,42,4,2,'b'); rect(10,42,5,2,'b'); }
-  rect(9,14,3,3,'S');
-  rect(7,16,6,1,'t'); rect(6,17,8,12,'t'); for (let y = 17; y < 29; y++) { set(12,y,'T'); set(13,y,'T'); }
-  rect(6,29,8,1,'k');
-  if (front) { set(9,16,'s'); set(10,16,'s'); set(11,16,'s'); set(10,17,'s'); set(11,20,'T'); set(11,23,'T'); }
   const leftUp = arms === 'dB', rightUp = arms === 'wave' || arms === 'dA';
-  if (leftUp) { rect(2,6,2,11,'T'); rect(2,4,2,2,'S'); rect(4,17,2,2,'T'); } else { rect(4,17+sw,2,9,'T'); rect(4,26+sw,2,2,'S'); }
-  if (rightUp) { rect(16,6,2,11,'t'); rect(16,4,2,2,'s'); rect(14,17,2,2,'t'); }
-  else if (drink) rect(14,17,2,3,'t');
-  else if (legs === 'sit') { rect(14,17,2,7,'t'); rect(14,24,2,2,'s'); }
-  else { rect(14,17-sw,2,9,'t'); rect(14,26-sw,2,2,'s'); }
-  if (look.style === 1) { if (front) rect(3,10,5,13,'h'); else rect(4,10,12,13,'h'); }
-  for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) if (inHead(x,y)) set(x, y, 's');
+  // legs & shoes
+  if (legs === 'sit') { rect(8,34,12,4,'p'); for (let x = 8; x < 20; x++) set(x,37,'P'); rect(16,38,4,8,'p'); for (let y = 38; y < 46; y++) set(19,y,'P'); rect(16,46,6,2,'b'); rect(16,48,6,1,'B'); }
+  else if (legs === 'a') { rect(6,34,4,14,'p'); rect(14,34,4,14,'p'); rect(9,34,6,3,'p'); for (let y = 36; y < 48; y++) { set(9,y,'P'); set(17,y,'P'); } rect(5,48,5,2,'b'); rect(5,50,5,1,'B'); rect(14,48,6,2,'b'); rect(14,50,6,1,'B'); }
+  else if (legs === 'b') { rect(9,34,6,15,'p'); for (let y = 36; y < 49; y++) set(12,y,'P'); rect(8,49,8,2,'b'); rect(8,51,8,1,'B'); }
+  else { rect(8,34,4,15,'p'); rect(13,34,4,15,'p'); rect(12,34,1,4,'p'); for (let y = 36; y < 49; y++) { set(11,y,'P'); set(16,y,'P'); } rect(7,49,5,2,'b'); rect(7,51,5,1,'B'); rect(13,49,6,2,'b'); rect(13,51,6,1,'B'); }
+  // far arm (behind the body)
+  if (leftUp) { rect(4,8,2,13,'T'); rect(4,6,2,2,'S'); } else { rect(5,21+sw,2,10,'T'); rect(5,31+sw,2,2,'S'); }
+  // neck + torso
+  rect(10,17,5,4,'S');
+  rect(8,20,9,1,'t'); rect(7,21,11,11,'t'); rect(8,32,9,1,'t'); rect(8,33,9,1,'k');
+  for (let y = 21; y < 33; y++) { set(16,y,'T'); set(17,y,'T'); } for (let y = 21; y < 25; y++) set(8,y,'U');
+  if (front) { set(11,20,'s'); set(12,20,'s'); set(13,20,'s'); set(12,21,'s'); for (let y = 24; y < 31; y++) set(13,y,'T'); }
+  // near arm
+  if (rightUp) { rect(18,8,2,13,'t'); rect(18,6,2,2,'s'); set(17,21,'t'); }
+  else if (drink) rect(17,21,2,3,'t');
+  else { rect(18,21-sw,2,10,'t'); for (let y = 21-sw; y < 31-sw; y++) set(19,y,'T'); rect(18,31-sw,2,2,'s'); }
+  // long hair behind
+  if (look.style === 1) { if (front) rect(4,10,6,17,'h'); else rect(5,10,14,17,'h'); }
+  // head
+  for (let y = 0; y < 20; y++) for (let x = 0; x < W; x++) if (inHead(x,y)) set(x,y,'s');
+  for (let y = 0; y < 20; y++) for (let x = 0; x < W; x++) if (get(x,y) === 's' && !inHead(x-1,y) && y > 8) set(x,y,'S');
   if (front) {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && (y < 4 || (y === 4 && x > 5 && x % 3 !== 1) || (x < 7 && y < 10) || (x < 5 && y < 13))) set(x,y,'h');
-    set(7,8,'S'); set(7,9,'S'); set(6,9,'S');
-    if (closed) { set(11,8,'e'); set(12,8,'e'); set(14,8,'e'); set(15,8,'e'); }
-    else { set(11,7,'w'); set(11,8,'w'); set(12,7,'e'); set(12,8,'e'); set(14,7,'w'); set(14,8,'w'); set(15,7,'e'); set(15,8,'e'); }
-    set(16,9,'S'); set(13,11,'m'); set(14,11,'m'); set(12,10,'S');
-    if (arms === 'dA' || arms === 'dB') { set(13,12,'m'); set(14,12,'m'); }
+    for (let y = 0; y < 20; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && (y < 5 || (y === 5 && x > 8) || (y === 6 && x > 9 && x % 3 !== 0) || (x < 10 && y < 12) || (x < 7 && y < 15))) set(x,y,'h');
+    set(9,10,'s'); set(9,11,'s'); set(9,12,'S'); set(10,11,'S');
+    set(13,7,'H'); set(14,7,'H'); set(16,7,'H'); set(17,7,'H');
+    if (closed) { set(13,10,'e'); set(14,10,'e'); set(16,10,'e'); set(17,10,'e'); }
+    else { set(13,9,'w'); set(13,10,'w'); set(14,9,'e'); set(14,10,'e'); set(16,9,'w'); set(16,10,'w'); set(17,9,'e'); set(17,10,'e'); }
+    set(19,11,'s'); set(19,12,'S'); set(18,12,'S');
+    set(15,14,'S'); set(16,14,'m'); set(17,14,'m');
+    if (arms === 'dA' || arms === 'dB') { set(16,15,'m'); set(17,15,'m'); }
   } else {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && !(x >= 13 && y >= 8)) set(x,y,'h');
-    set(13,8,'S'); set(13,9,'S');
+    for (let y = 0; y < 20; y++) for (let x = 0; x < W; x++) if (inHead(x,y) && !(x >= 16 && y >= 10)) set(x,y,'h');
+    set(15,11,'S'); set(15,12,'S'); set(16,11,'s');
   }
-  if (look.style === 1 && front) for (let y = 5; y < 15; y++) { set(3,y,'h'); set(4,y,'h'); }
-  if (drink) { rect(16,11,2,7,'t'); rect(15,9,2,2,'s'); }
-  if (look.style === 2) for (const x of [5,8,11,14]) { set(x,-1,'h'); set(x+1,-1,'h'); set(x,-2,'h'); if (!inHead(x,0)) set(x,0,'h'); }
-  for (let y = -2; y < 16; y++) for (let x = 0; x < W; x++) if (get(x,y) === 'h' && (get(x+1,y) === 's' || get(x,y+1) === 's' || get(x,y+1) === 'S')) set(x,y,'H');
-  for (const [x,y] of [[6,1],[7,1],[8,0],[5,2],[9,0]]) if (get(x,y) === 'h') set(x,y,'L');
+  if (look.style === 1 && front) for (let y = 6; y < 17; y++) { set(4,y,'h'); set(5,y,'h'); }
+  if (look.style === 2) for (const x of [7,10,13,16]) { set(x,-2,'h'); set(x,-1,'h'); set(x+1,-1,'h'); if (!inHead(x,0)) { set(x,0,'h'); set(x+1,0,'h'); } }
+  if (drink) { rect(17,14,2,8,'t'); for (let y = 14; y < 22; y++) set(18,y,'T'); rect(16,12,2,2,'s'); }
+  for (let y = -3; y < 20; y++) for (let x = 0; x < W; x++) if (get(x,y) === 'h' && (get(x+1,y) === 's' || get(x+1,y) === 'S' || get(x,y+1) === 's' || get(x,y+1) === 'S')) set(x,y,'H');
+  for (const [x,y] of [[8,2],[9,2],[10,1],[7,3],[11,1],[8,3]]) if (get(x,y) === 'h') set(x,y,'L');
   return G.map(r => r.join(''));
 }
 const AVCACHE = new Map();
@@ -305,10 +320,10 @@ function avatarSet(look) {
   const key = [look.style, look.hair, look.skin, look.shirt, look.pants].join('.');
   if (AVCACHE.has(key)) return AVCACHE.get(key);
   const sk = SKINS[look.skin], hr = HAIRS[look.hair], sh = SHIRTS[look.shirt], pa = PANTS[look.pants || 0];
-  const pal = {s:sk[0], S:sk[1], h:hr[0], H:hr[1], L:hr[2], e:'#111111', w:'#ffffff', m:'#a0403a', r:'#f0a3a0', t:sh[0], T:sh[1], k:'#2a2a2a', p:pa[0], P:pa[1], b:'#2b2b2b'};
+  const pal = {s:sk[0], S:sk[1], h:hr[0], H:hr[1], L:hr[2], e:'#1a1a1a', w:'#ffffff', m:'#b4524a', r:'#f0a3a0', t:sh[0], T:sh[1], U:shade(sh[0],1.25), k:'#3a3a3a', p:pa[0], P:pa[1], b:'#3a3a40', B:'#dadada'};
   const cache = {};
-  const get = (view, legs, arms = 'n', closed = false) => { const k = view + legs + arms + closed; return cache[k] || (cache[k] = pix(avatarRows(view, legs, arms, look, closed), pal, 1, '#111111')); };
-  const face = document.createElement('canvas'); face.width = 22; face.height = 22; face.getContext('2d').drawImage(get('front','stand'), 0, 0, 22, 22, 0, 0, 22, 22);
+  const get = (view, legs, arms = 'n', closed = false) => { const k = view + legs + arms + closed; return cache[k] || (cache[k] = pix(avatarRows(view, legs, arms, look, closed), pal, 1, 'auto')); };
+  const face = document.createElement('canvas'); face.width = 26; face.height = 26; face.getContext('2d').drawImage(get('front','stand'), 0, 0, 26, 26, 0, 0, 26, 26);
   const set = {get, faceUrl: face.toDataURL()};
   AVCACHE.set(key, set); return set;
 }
@@ -384,7 +399,12 @@ const F = {
       const [cx, cy] = L.P(.5,.5,24); fr(cx-9, cy-2, 2, 5, '#d9a52a'); fr(cx+8, cy-2, 2, 5, '#d9a52a'); fr(cx-3, cy-2, 2, 4, '#fff2b0'); }},
   fountain:  {name:'Fontaine', cat:'Déco', price:60, w:2, d:2, kind:'block', draw(L,p){ if (p !== 'base') return; L.box(.08,.08,1.84,1.84,0,8,'#b8b8c0'); L.top(.2,.2,1.6,1.6,8,'#5ab0e0'); L.top(.3,.3,.5,.3,8,'#8fd0f0');
       L.box(.85,.85,.3,.3,8,18,'#c8c8d0'); L.box(.6,.6,.8,.8,26,4,'#b8b8c0'); L.top(.68,.68,.64,.64,30,'#5ab0e0'); }},
-  tv:        {name:'Télévision', cat:'Loisirs', price:30, w:1, d:1, kind:'block', toggle:true, draw(L,p){ if (p !== 'base') return; L.box(.08,.2,.84,.62,0,14,'#6b4a3a'); L.box(.42,.42,.16,.16,14,3,'#2a2a33'); L.box(.12,.34,.76,.36,17,24,'#2a2a33'); L.front(.18,.82,.7,19,39,'#343a48'); }},
+  tv:        {name:'Télévision rétro', cat:'Loisirs', price:30, w:1, d:1, kind:'block', toggle:true, draw(L,p){ if (p !== 'base') return;
+      for (const [u,v] of [[.18,.26],[.76,.26],[.18,.74],[.76,.74]]) L.box(u,v,.06,.06,0,5,'#3a2a1a');
+      L.box(.1,.2,.8,.64,5,28,'#9a6438'); L.box(.1,.2,.8,.64,33,2,'#b47a48');
+      L.front(.14,.86,.84,8,31,'#6e4424'); L.front(.17,.66,.84,10,29,'#26262c'); L.front(.2,.63,.84,12,27,'#56687a'); L.front(.22,.36,.84,23,26,'#7f93a6');
+      for (let i = 0; i < 5; i++) L.front(.7,.82,.84,12+i*3,13+i*3,'#4a2c16'); L.front(.72,.78,.84,26,28,'#e0b030'); L.front(.72,.78,.84,22,24,'#e0b030');
+      const [ax, ay] = L.P(.5,.52,35); line([ax,ay],[ax-9,ay-17],'#555560'); line([ax,ay],[ax+8,ay-18],'#555560'); disc(ax-9, ay-17, 1, '#d8433a'); disc(ax+8, ay-18, 1, '#d8433a'); ell(ax, ay, 3, 1, '#333338'); }},
   fridge:    {name:'Réfrigérateur', cat:'Loisirs', price:25, w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return; L.box(.08,.1,.84,.82,0,48,'#eef2f4'); L.front(.12,.88,.92,29,30,'#8d9aa3'); L.front(.74,.78,.92,34,43,'#6f7c85'); L.front(.74,.78,.92,12,25,'#6f7c85'); L.front(.25,.3,.92,38,40,'#e5484d'); L.front(.45,.5,.92,18,20,'#4a8fe0'); }},
   shelf:     {name:'Bibliothèque', cat:'Loisirs', price:22, w:1, d:1, kind:'block', draw(L,p){ if (p !== 'base') return; L.box(.06,.04,.88,.46,0,54,'#7a4a2a'); L.front(.12,.88,.5,3,51,'#3e2414');
       const cols = ['#d9534f','#4a8fe0','#f0c040','#5fb35f','#9b5fd0','#e07a3c','#e8e0d0','#2f7aa8'];
@@ -454,7 +474,7 @@ function baked(type, r, part) {
   OX = sOX; OY = sOY;
   const d0 = C.getImageData(0, 0, BW, BH).data; let any = false; for (let i = 3; i < d0.length; i += 4) if (d0[i]) { any = true; break; }
   if (!any) { BAKED.set(key, null); return null; }
-  if (f.kind !== 'rug') outlinePass(c, '#1b140e'); else outlinePass(c, '#3a2a20');
+  outlinePass(c, 'auto');
   const d = c.getContext('2d').getImageData(0, 0, BW, BH).data; let x0 = BW, y0 = BH, x1 = -1, y1 = -1;
   for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) if (d[(y*BW + x)*4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   const w = x1 - x0 + 1, h = y1 - y0 + 1, img = document.createElement('canvas'); img.width = w; img.height = h;
@@ -777,13 +797,13 @@ function shadow(x, y) { g.fillStyle = 'rgba(0,0,0,.22)'; for (let j = -2; j <= 2
 function anchor(e) {
   const z = e.pose ? e.pose.z : 0, [sx, sy] = P(e.x, e.y, z);
   const sit = e.pose && e.pose.k === 'sit';
-  return {sx, sy, head: e.pose && e.pose.k === 'lay' ? sy - 20 : sit ? sy - 36 : sy - 48};
+  return {sx, sy, head: e.pose && e.pose.k === 'lay' ? sy - 22 : sit ? sy - 38 : sy - 52};
 }
 function drawAvatar(e, t) {
   const A = anchor(e), av = e.av;
   if (e.pose && e.pose.k === 'lay') {
     const img = av.get('front','stand','n',true); g.save(); g.translate(Math.round(A.sx), Math.round(A.sy) - 6);
-    g.rotate(e.pose.face === 'SW' || e.pose.face === 'NE' ? -Math.PI/2.6 : Math.PI/2.6); g.drawImage(img, -11, -34); g.restore(); return; }
+    g.rotate(e.pose.face === 'SW' || e.pose.face === 'NE' ? -Math.PI/2.6 : Math.PI/2.6); g.drawImage(img, -13, -44); g.restore(); return; }
   const face = e.pose ? e.pose.face : e.face, view = (face === 'SE' || face === 'SW') ? 'front' : 'back', flip = face === 'SW' || face === 'NW';
   let legs = 'stand', arms = 'n', bob = 0;
   if (e.pose) legs = 'sit';
@@ -793,10 +813,10 @@ function drawAvatar(e, t) {
   else if (e.wave > 0) arms = Math.floor(t*5) % 2 ? 'wave' : 'n';
   const sipping = e.carry && !e.carry.hold && !e.moving && arms === 'n' && (e.carry.sip % 3.6) > 2.4;
   if (sipping) arms = 'drink';
-  const img = av.get(view, legs, arms), top = A.sy - (e.pose ? 36 : 48) + bob, left = A.sx - 11;
+  const img = av.get(view, legs, arms), top = A.sy - (e.pose ? 41 : 56) + bob, left = A.sx - 13;
   if (!e.pose) shadow(A.sx, A.sy);
   const cup = e.carry && DRINKS[e.carry.d].img;
-  const cupAt = () => { const cx = 14, cy = sipping ? 8 : (e.pose ? 24 : 26) + (e.moving && legs === 'a' ? -1 : 0), x = flip ? 22 - cx - cup.width : cx; g.drawImage(cup, Math.round(left + x), Math.round(top + cy)); };
+  const cupAt = () => { const cx = sipping ? 15 : 18, cy = sipping ? 12 : 31 + (e.moving && legs === 'a' ? -1 : 0), x = flip ? 26 - cx - cup.width : cx; g.drawImage(cup, Math.round(left + x), Math.round(top + cy)); };
   if (cup && view === 'back') cupAt();
   drawSpr(img, left, top, flip);
   if (cup && view === 'front') cupAt();
@@ -820,7 +840,11 @@ function drawItem(it, part, t, alpha) {
 }
 function dynamic(it, t) {
   C = g; const f = F[it.t], L = mkL(it.x, it.y, it.r, f.d);
-  if (it.t === 'tv') { const cols = ['#5ec8f0','#f07a5a','#8fe08a','#f3d34a'], k = Math.floor(t*3 + it.x) % 4; L.front(.18,.82,.7,19,39,cols[k]); L.front(.18,.82,.7,19,26,cols[(k+2)%4]); const u = .22 + ((t*.5) % 1)*.45; L.front(u,u+.14,.7,29,34,'#ffffff'); }
+  if (it.t === 'tv') { if (L.r >= 2) return; const sc = Math.floor(t/4 + it.x) % 3, k = Math.floor(t*2);
+      if (sc === 0) { L.front(.2,.63,.84,12,27,'#7cc6f2'); L.front(.2,.63,.84,12,17,'#5fae45'); const u = .24 + ((t*.3) % 1)*.3; L.front(u,u+.07,.84,17,21,'#f6c343'); L.front(u+.02,u+.05,.84,21,23,'#d8433a'); }
+      else if (sc === 1) { const cols = ['#ffffff','#f6c343','#5ec8f0','#6ccc5f','#ff5f97','#d8433a','#2f4fa8']; for (let i = 0; i < 7; i++) L.front(.2+i*.0614,.2+(i+1)*.0614,.84,15,27,cols[i]); L.front(.2,.63,.84,12,15,'#222'); }
+      else { L.front(.2,.63,.84,12,27,'#2a3a5a'); L.front(.3,.53,.84,15,22,'#f0c8a0'); L.front(.33,.5,.84,22,25,'#4a8fe0'); L.front(.34,.39,.84,19,20,'#111'); L.front(.44,.49,.84,19,20,'#111'); if (k % 2) L.front(.38,.45,.84,16,17,'#a0403a'); }
+      L.front(.2,.63,.84,12 + ((t*20) % 15),13 + ((t*20) % 15),'rgba(255,255,255,.18)'); }
   else if (it.t === 'lamp') { const [cx, cy] = L.P(.5,.5,46); L.box(.3,.3,.4,.4,40,11,'#fff2b8'); const gr = g.createRadialGradient(cx, cy, 2, cx, cy, 40); gr.addColorStop(0, 'rgba(255,230,150,.35)'); gr.addColorStop(1, 'rgba(255,230,150,0)'); g.fillStyle = gr; g.fillRect(cx - 40, cy - 40, 80, 80); }
   else if (it.t === 'aquarium') { for (let i = 0; i < 4; i++) { const u = .2 + (((t*.12*(i % 2 ? 1 : -1) + i*.27) % 1 + 1) % 1)*1.6, z = 22 + i*3.5, [x, y] = L.P(u, .5, z); g.fillStyle = ['#ff8a3c','#f6c343','#ff5f97','#ffffff'][i]; g.fillRect(Math.round(x)-2, Math.round(y), 4, 2); g.fillRect(Math.round(x)+(i % 2 ? -3 : 2), Math.round(y), 1, 2); }
     if (Math.random() < .08) { const [x, y] = L.P(.3 + Math.random()*1.4, .5, 24); particles.push({k:'o', x, y, t, life:1}); } }
@@ -986,7 +1010,7 @@ function hitItem(nx, ny) {
 }
 function hitEnt(nx, ny) {
   const order = R.ents.slice().sort((a, b) => (b.x + b.y) - (a.x + a.y));
-  for (const e of order) { const A = anchor(e); if (Math.abs(nx - A.sx) < 11 && ny > A.head - 2 && ny < A.sy + 3) return e; }
+  for (const e of order) { const A = anchor(e); if (Math.abs(nx - A.sx) < 12 && ny > A.head - 2 && ny < A.sy + 3) return e; }
   return null;
 }
 function tileAt(nx, ny) { const dx = nx - OX, dy = ny - OY; return [Math.floor((dx/16 + dy/8)/2), Math.floor((dy/8 - dx/16)/2)]; }
@@ -1138,10 +1162,10 @@ function openInventory() {
 let pick = null;
 function lookEditor(body, look, onChange) {
   const maker = document.createElement('div'); maker.className = 'maker';
-  maker.innerHTML = `<div class="previewbox"><canvas width="22" height="50"></canvas></div><div class="fields"></div>`;
+  maker.innerHTML = `<div class="previewbox"><canvas width="26" height="57"></canvas></div><div class="fields"></div>`;
   body.appendChild(maker);
   const cvp = maker.querySelector('canvas'), fields = maker.querySelector('.fields');
-  const draw = () => { const x = cvp.getContext('2d'); x.clearRect(0, 0, 22, 50); x.drawImage(avatarSet(look).get('front','stand','wave'), 0, 0); onChange && onChange(); };
+  const draw = () => { const x = cvp.getContext('2d'); x.clearRect(0, 0, 26, 57); x.drawImage(avatarSet(look).get('front','stand','wave'), 0, 0); onChange && onChange(); };
   const seg = (label, opts, key) => { const d = document.createElement('div'); d.className = 'lbl'; d.textContent = label; const s = document.createElement('div'); s.className = 'seg'; d.appendChild(s);
     const paint = () => { s.innerHTML = ''; opts.forEach((o, i) => { const b = document.createElement('button'); b.className = 'hbtn'; b.textContent = o; b.setAttribute('aria-pressed', String(look[key] === i)); b.onclick = () => { look[key] = i; paint(); draw(); }; s.appendChild(b); }); };
     paint(); fields.appendChild(d); };
