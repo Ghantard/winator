@@ -3,40 +3,36 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap">
 <style>
-/* Layout: hotel client — room bar, isometric room floating on black, chat bar, dark toolbar, grey windows with blue headers. Single look on purpose. */
+/* Layout: hotel client — the room fills the screen on black; room pill, credits, chat and icon toolbar float over it; grey windows with blue headers. Single look on purpose. */
 :root{
-  --void:#07090c; --bar:#1d1f22; --bar-hi:#2c2f33;
+  --void:#000; --glass:rgba(22,24,28,.88); --glass-line:#000; --glass-hi:rgba(255,255,255,.12);
   --win:#ececea; --win-2:#dcdcd6; --head:#2f7aa8; --head-hi:#4c97c4; --head-lo:#1f5c82;
   --text:#191919; --muted:#5d5d58; --on-dark:#f1f1ee; --dim-dark:#a9adb3;
   --green:#3fa33f; --green-hi:#6ccc5f; --green-lo:#23701f; --gold:#f6c343; --danger:#d6453c;
+  --top:calc(env(safe-area-inset-top,0px) + 8px); --bot:calc(env(safe-area-inset-bottom,0px) + 8px);
   --font:"Ubuntu", "Trebuchet MS", system-ui, sans-serif;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
 html,body{height:100%}
-body{background:var(--void);color:var(--on-dark);font-family:var(--font);font-size:14px;line-height:1.3;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
-#app{max-width:560px;height:100%;margin:0 auto;padding-inline:16px;padding-block:8px 10px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;-webkit-user-select:none;user-select:none}
+body{background:var(--void);color:var(--on-dark);font-family:var(--font);font-size:14px;line-height:1.3;-webkit-tap-highlight-color:transparent;overflow:hidden}
+#app{position:fixed;inset:0;overflow:hidden;-webkit-user-select:none;user-select:none}
 button{font:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.bar{background:var(--bar);border:1px solid #000;border-radius:8px;box-shadow:inset 0 1px 0 var(--bar-hi);display:flex;align-items:center;gap:8px;padding:6px 8px}
-.roomname{display:flex;flex-direction:column;min-width:0;flex:1}
-.roomname b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.roomname span{font-size:12px;color:var(--dim-dark)}
-.coins{display:flex;align-items:center;gap:6px;background:#111;border:1px solid #000;border-radius:14px;padding:3px 10px 3px 4px}
-.coins img{width:20px;height:20px;image-rendering:pixelated}
-.coins b{font-variant-numeric:tabular-nums;font-size:15px;color:var(--gold)}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:8px;box-shadow:inset 0 1px 0 var(--glass-hi),0 2px 0 rgba(0,0,0,.5)}
 .hbtn{color:var(--text);background:linear-gradient(#fbfbf9,#d4d4ce);border:1px solid #000;border-radius:5px;box-shadow:inset 0 1px 0 #fff;padding:0 10px;min-height:32px;font-weight:500}
 .hbtn:active{background:linear-gradient(#d4d4ce,#fbfbf9)}
 .hbtn.go{color:#fff;background:linear-gradient(var(--green-hi),var(--green));box-shadow:inset 0 1px 0 #9be58f;text-shadow:0 1px 0 var(--green-lo)}
 .hbtn.warn{color:#fff;background:linear-gradient(#ef7a6f,var(--danger));box-shadow:inset 0 1px 0 #f7aca4}
 .hbtn:disabled{opacity:.5;cursor:default}
 
-/* Stage */
-#stageWrap{position:relative;flex:1;min-height:220px;display:flex;margin-inline:-16px}
-#stage{position:relative;flex:1;min-width:0;display:flex;overflow:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:radial-gradient(ellipse at 50% 40%,#161b22 0%,var(--void) 70%);transition:background .4s}
+/* Room */
+#hotelView{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0}
+#stage{position:absolute;inset:0;z-index:1;display:flex;overflow:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;box-sizing:border-box;
+  padding:calc(var(--top) + 48px) 0 calc(var(--bot) + 112px);background:#000;transition:background .4s}
 #stage::-webkit-scrollbar{display:none}
+#stage.sky{background:linear-gradient(#5aa9e6,#9fd4f5 55%,#d9f0fc)}
 #world{position:relative;margin:auto;flex:none}
-#stage.sky{background:linear-gradient(#7cc6f2,#bfe6fb 70%,#e9f7ff)}
 #game{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:manipulation;transition:opacity .25s}
 #bubbles{position:absolute;inset:0;pointer-events:none;z-index:3}
 .bubble{position:absolute;display:flex;align-items:center;gap:5px;max-width:260px;white-space:nowrap;background:#fff;color:var(--text);border:1px solid #000;border-radius:7px;
@@ -46,31 +42,51 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 .bubble b{font-weight:700;margin-right:2px;white-space:nowrap}
 .bubble span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .bubble.me{background:#e7f4ff}.bubble.cat{background:#fff4df}
-#toasts{position:absolute;left:8px;right:8px;top:8px;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:7}
+.nametag{position:absolute;z-index:4;transform:translate(-50%,-100%);background:rgba(0,0,0,.75);color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;pointer-events:none;white-space:nowrap}
+
+/* Floating HUD */
+.hud{position:absolute;z-index:5}
+.tl{left:8px;top:var(--top);max-width:calc(100% - 140px)}
+.tr{right:8px;top:var(--top);display:flex;gap:6px}
+.roompill{display:flex;flex-direction:column;align-items:flex-start;text-align:left;color:var(--on-dark);padding:5px 10px;min-width:0;max-width:100%}
+.roompill b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.roompill span{font-size:11px;color:var(--dim-dark)}
+.coins{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border-radius:16px}
+.coins img{width:20px;height:20px;image-rendering:pixelated}
+.coins b{font-variant-numeric:tabular-nums;font-size:15px;color:var(--gold)}
+.bottom{left:0;right:0;bottom:var(--bot);display:flex;flex-direction:column;align-items:center;gap:6px;padding-inline:8px;pointer-events:none}
+.bottom > *{pointer-events:auto}
+.chat{display:flex;gap:6px;width:100%;max-width:520px;box-sizing:border-box;padding:4px}
+.chat input{flex:1;min-width:0;font:inherit;font-size:16px;background:#fff;color:var(--text);border:1px solid #000;border-radius:16px;padding:6px 12px;box-shadow:inset 0 1px 2px rgba(0,0,0,.25);-webkit-user-select:text;user-select:text}
+.chat .hbtn{border-radius:16px}
+.toolbar{display:flex;gap:3px;padding:4px;max-width:100%;box-sizing:border-box}
+.tool{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:42px;padding:0;background:transparent;border:1px solid transparent;border-radius:7px;color:var(--on-dark)}
+.tool:active,.tool[aria-pressed="true"]{background:rgba(255,255,255,.14);border-color:#000}
+.tool[aria-pressed="true"]{background:rgba(108,204,95,.35)}
+.tool img{width:32px;height:32px;image-rendering:pixelated}
+.tool span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.tool.me img{width:34px;height:34px;object-fit:cover;object-position:top}
+.sep{width:1px;background:#3a3d42;margin:6px 2px}
+#toasts{position:absolute;left:8px;right:8px;top:calc(var(--top) + 52px);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:7}
 .toast{background:rgba(20,22,26,.94);color:var(--on-dark);border:1px solid #000;border-radius:8px;box-shadow:inset 0 1px 0 #3a3d42;padding:6px 12px;font-size:13px;max-width:100%;text-align:center;animation:tin .25s ease-out}
 .toast.good{box-shadow:inset 0 1px 0 #3a3d42,inset 3px 0 0 var(--green)}.toast.bad{box-shadow:inset 0 1px 0 #3a3d42,inset 3px 0 0 var(--danger)}
 @keyframes tin{from{transform:translateY(-6px);opacity:0}}
-#menu{position:absolute;z-index:6;width:220px;background:rgba(24,26,30,.96);border:1px solid #000;border-radius:8px;box-shadow:inset 0 1px 0 #43474d,0 3px 0 rgba(0,0,0,.4);padding:4px;display:flex;flex-direction:column}
-#menu h3{margin:3px 6px 0;font-size:14px;font-weight:700;color:#fff}
-#menu p{margin:1px 6px 5px;font-size:12px;color:var(--dim-dark);font-style:italic}
-.act{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;background:transparent;color:var(--on-dark);border:0;border-top:1px solid #34373c;padding:8px 6px;min-height:38px;border-radius:4px;font-size:14px}
+#menu{position:absolute;z-index:6;width:190px;background:rgba(24,26,30,.95);border:1px solid #000;border-radius:8px;box-shadow:inset 0 1px 0 #43474d,0 3px 0 rgba(0,0,0,.4);padding:3px;display:flex;flex-direction:column}
+#menu h3{margin:3px 6px 2px;font-size:13px;font-weight:700;color:#fff;text-align:center}
+#menu p{display:none}
+.act{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;background:transparent;color:var(--on-dark);border:0;border-top:1px solid #34373c;padding:7px 8px;min-height:36px;border-radius:4px;font-size:13px}
 .act:hover:not(:disabled),.act:active:not(:disabled){background:var(--head)}
 .act:disabled{color:#7b7f86;cursor:default}
 .act small{color:var(--dim-dark);font-size:11px}
-#placebar{flex-wrap:wrap}
+#infostand{position:absolute;z-index:6;right:8px;bottom:calc(var(--bot) + 112px);width:178px;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+#infostand .card-i{width:100%;box-sizing:border-box;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+#infostand .card-i b{font-size:14px;color:#fff}
+#infostand .card-i img{max-width:96px;max-height:96px;image-rendering:pixelated}
+#infostand .card-i p{margin:0;font-size:11px;color:var(--dim-dark);font-style:italic}
+#infostand .hbtn{min-height:30px;font-size:12px;border-radius:14px;padding:0 12px}
+#infostand .row{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+#placebar{position:absolute;z-index:6;left:8px;right:8px;bottom:calc(var(--bot) + 112px);display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px}
 #placebar span{flex:1;min-width:120px;font-size:12px;color:var(--dim-dark)}
-
-/* Chat + toolbar */
-.chat{display:flex;gap:6px;padding:5px}
-.chat input{flex:1;min-width:0;font:inherit;font-size:16px;background:#fff;color:var(--text);border:1px solid #000;border-radius:16px;padding:6px 12px;box-shadow:inset 0 1px 2px rgba(0,0,0,.25);-webkit-user-select:text;user-select:text}
-.chat .hbtn{border-radius:16px}
-.toolbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:5px}
-.tool{display:flex;flex-direction:column;align-items:center;gap:2px;background:linear-gradient(#3a3d42,#26282c);color:var(--on-dark);border:1px solid #000;border-radius:6px;box-shadow:inset 0 1px 0 #50545a;padding:5px 2px;font-size:11px;min-width:0}
-.tool img{width:24px;height:24px;image-rendering:pixelated}
-.tool[aria-pressed="true"]{background:linear-gradient(var(--green-hi),var(--green));box-shadow:inset 0 1px 0 #9be58f;color:#fff}
-.tool span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.tool{position:relative;min-height:44px;justify-content:center}
-.tool img{width:30px;height:30px}
 
 /* Windows */
 .hwin{background:var(--win);color:var(--text);border:1px solid #000;border-radius:8px;overflow:hidden;box-shadow:0 3px 0 rgba(0,0,0,.45)}
@@ -78,8 +94,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 .hwin > header b{font-size:15px;flex:1}
 .close{background:linear-gradient(#e86a5e,#c4382d);color:#fff;border:1px solid #000;border-radius:4px;width:26px;height:24px;padding:0;font-weight:700;line-height:1;box-shadow:inset 0 1px 0 #f5a097}
 .hwin .body{padding:10px;display:flex;flex-direction:column;gap:10px;box-shadow:inset 0 1px 0 #fff}
-#sheet{position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
-#sheet .hwin{width:100%;max-width:520px;max-height:78vh;display:flex;flex-direction:column}
+#sheet{position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
+#sheet .hwin{width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column}
 #sheet .body{overflow-y:auto;min-height:0}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
 .tabs button{min-height:30px;font-size:12px;padding:0 9px}
@@ -125,32 +141,35 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 </style>
 
 <div id="app">
-  <header class="bar">
-    <div class="roomname"><b id="roomLbl">Hall de l'hôtel</b><span id="roomSub">5 personnes ici</span></div>
-    <div class="coins" title="Crédits"><img id="coinImg" alt=""><b id="moneyLbl">100</b></div>
-  </header>
-  <div id="stageWrap">
-    <div id="stage"><div id="world">
-      <canvas id="game" aria-label="La pièce"></canvas>
-      <div id="bubbles"></div>
-      <div id="menu" hidden></div>
-    </div></div>
-    <div id="toasts"></div>
-  </div>
-  <div id="placebar" class="bar" hidden><span id="placeTxt">Touche une case pour placer le mobi.</span>
+  <canvas id="hotelView" aria-label="Vue de l'hôtel"></canvas>
+  <div id="stage"><div id="world">
+    <canvas id="game" aria-label="La pièce"></canvas>
+    <div id="bubbles"></div>
+    <div id="menu" hidden></div>
+  </div></div>
+  <div class="hud tl"><button class="glass roompill" id="roomPill"><b id="roomLbl">Pixel Hôtel</b><span id="roomSub">Vue de l'hôtel</span></button></div>
+  <div class="hud tr"><div class="glass coins" title="Crédits"><img id="coinImg" alt=""><b id="moneyLbl">0</b></div></div>
+  <div id="toasts"></div>
+  <aside id="infostand" hidden></aside>
+  <div id="placebar" class="glass" hidden><span id="placeTxt">Touche une case pour placer le mobi.</span>
     <button class="hbtn" id="placeRot">Tourner</button><button class="hbtn go" id="placeOk">Poser</button><button class="hbtn" id="placeNo">Annuler</button></div>
-  <form class="bar chat" id="chatForm" autocomplete="off">
-    <input id="chatInput" maxlength="90" placeholder="Écris un message…" enterkeyhint="send">
-    <button class="hbtn go" type="submit">Envoyer</button>
-  </form>
-  <nav class="bar toolbar" aria-label="Menu de l'hôtel">
-    <button class="tool" id="tNav"><img alt="" data-icon="nav"><span>Navigateur</span></button>
-    <button class="tool" id="tCat"><img alt="" data-icon="cat"><span>Catalogue</span></button>
-    <button class="tool" id="tInv"><img alt="" data-icon="inv"><span>Inventaire</span></button>
-    <button class="tool" id="tWar"><img alt="" data-icon="war"><span>Garde-robe</span></button>
-    <button class="tool" id="tDance" aria-pressed="false"><img alt="" data-icon="dance"><span>Danser</span></button>
-    <button class="tool" id="tWave"><img alt="" data-icon="wave"><span>Coucou</span></button>
-  </nav>
+  <div class="hud bottom">
+    <form class="glass chat" id="chatForm" autocomplete="off">
+      <input id="chatInput" maxlength="90" placeholder="Écris un message…" enterkeyhint="send">
+      <button class="hbtn go" type="submit">Envoyer</button>
+    </form>
+    <nav class="glass toolbar" aria-label="Menu de l'hôtel">
+      <button class="tool" id="tHotel"><img alt="" data-icon="hotel"><span>Vue de l'hôtel</span></button>
+      <button class="tool" id="tNav"><img alt="" data-icon="nav"><span>Navigateur</span></button>
+      <button class="tool" id="tCat"><img alt="" data-icon="cat"><span>Catalogue</span></button>
+      <button class="tool" id="tInv"><img alt="" data-icon="inv"><span>Inventaire</span></button>
+      <i class="sep"></i>
+      <button class="tool" id="tZoom"><img alt="" data-icon="zoom"><span>Zoom</span></button>
+      <button class="tool" id="tDance" aria-pressed="false"><img alt="" data-icon="dance"><span>Danser</span></button>
+      <button class="tool" id="tWave"><img alt="" data-icon="wave"><span>Coucou</span></button>
+      <button class="tool me" id="tWar"><img alt="" id="meIcon" data-icon="war"><span>Mon perso</span></button>
+    </nav>
+  </div>
 </div>
 
 <div id="sheet" hidden><section class="hwin"><header><b id="sheetTitle">Navigateur</b><button class="close" id="sheetClose" aria-label="Fermer">×</button></header><div class="body" id="sheetBody"></div></section></div>
@@ -224,6 +243,8 @@ const ICONS = {
   inv:[[".........","bbbbbbbbb","bBBBBBBBb","bbbbbbbbb",".bbbbbbb.",".bbbTbbb.",".bbbbbbb.",".bbbbbbb.",".bbbbbbb."], {b:'#c28a5a', B:'#9c6b44', T:'#f6c343'}],
   war:[[".tt...tt.","tttt.tttt","ttttttttt",".ttttttt.","..ttttt..","..ttwtt..","..ttttt..","..ttttt..","........."], {t:'#4a8fe0', w:'#ffffff'}],
   dance:[["...nnnnnn","...n....n","...n....n","...n....n",".nnn..nnn","nnnn.nnnn",".nn...nn."], {n:'#ff5f97'}],
+  hotel:[["....ggg....","....grg....","..wwwwwww..","..wbwbwbw..","..wwwwwww..","..wbwywbw..","..wwwwwww..","..wbwbwbw..","..wwwwwww..","..wwwddww..","tttwwddwwtt"], {g:'#b3222e', r:'#f6c343', w:'#e9dcc0', b:'#4a6f8f', y:'#ffd76a', d:'#6b4a32', t:'#4fa35a'}],
+  zoom:[["..ooo....",".o...o...","o.....o..","o.....o..","o.....o..",".o...o...","..ooo.o..","......ho.",".......hh"], {o:'#dfe7ee', h:'#c9a24a'}],
   wave:[["..s.s.s..","..s.s.s.s","..s.s.s.s","..sssssss",".ssssssss","sssssssss",".sssssss.","..sssss..","..sssss.."], {s:'#f7d8c0'}],
 };
 const ICON_URL = {};
@@ -555,6 +576,7 @@ function enterRoom(id, silent) {
   const room = ROOMS[id]; S.room = id;
   GX = room.gx; GY = room.gy; WALLH = room.wallH; OX = GY*16 + 8; OY = WALLH + 10; CW = (GX+GY)*16 + 16; CH = OY + (GX+GY)*8 + SLAB + 8;
   cv.width = CW; cv.height = CH; g.imageSmoothingEnabled = false;
+  stage.hidden = false; $('hotelView').hidden = true; hideInfo();
   paintRoom(room);
   const items = room.own ? S.home : room.furni.map(([t,x,y,r]) => ({t,x,y,r,on:true}));
   R = {id, room, items, ents:[], cat:null, spawnT:12, orders:[], brewing:0};
@@ -568,7 +590,7 @@ function enterRoom(id, silent) {
   if (id === 'home') R.cat = {x:4.5, y:6.5, tile:[4,6], path:[], face:'SE', anim:0, moving:false, sleep:0, wait:3};
   $('stage').classList.toggle('sky', !!room.sky);
   $('roomLbl').textContent = room.name; updateRoomSub();
-  layout(); centerOn(R.me, false);
+  layout(); centerOn(R.me, false); $('meIcon').src = R.me.av.faceUrl;
   cv.style.opacity = '0'; requestAnimationFrame(() => cv.style.opacity = '1');
   if (!silent && room.bots) setTimeout(() => { const b = R && R.ents.find(e => e.bot && !e.leaving); if (b) { turnTo(b, R.me); b.wave = 2; say(b, pickRand([`Salut ${S.name} !`, `Hey ${S.name}, bienvenue !`, 'Coucou toi !'])); } }, 1600);
   if (room.own && !silent) setTimeout(() => toast('Ton appart : touche un mobi pour le déplacer, le tourner ou le ranger.', 'good'), 600);
@@ -835,17 +857,19 @@ function render(t) {
 const $ = id => document.getElementById(id);
 const stage = $('stage'), world = $('world'), menu = $('menu'), bubbleBox = $('bubbles');
 let scale = 1;
+let zoomLvl = 1;
 function layout() {
   if (!CW) return;
-  const W = stage.clientWidth, H = stage.clientHeight, fit = Math.min(W / CW, H / CH);
-  scale = Math.min(3.2, Math.max(fit, Math.min(H / CH, fit * 1.6)));
+  const cs = getComputedStyle(stage), W = stage.clientWidth, H = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom), fit = Math.min(W / CW, H / CH);
+  const lv = [fit, Math.max(fit, Math.min(H / CH, fit * 1.6)), fit * 2.4];
+  scale = Math.min(4, lv[zoomLvl]);
   const w = Math.floor(CW*scale), h = Math.floor(CH*scale);
   cv.style.width = w + 'px'; cv.style.height = h + 'px'; world.style.width = w + 'px'; world.style.height = h + 'px';
 }
-window.addEventListener('resize', () => { layout(); if (R) centerOn(R.me, false); });
+window.addEventListener('resize', () => { layout(); if (R) centerOn(R.me, false); else drawHotelView(); });
 const toCss = (nx, ny) => [nx*scale, ny*scale];
-function centerOn(e, smooth) { const [sx] = P(e.x, e.y); const left = world.offsetLeft + sx*scale - stage.clientWidth/2;
-  if (smooth) stage.scrollTo({left, behavior:'smooth'}); else stage.scrollLeft = left; }
+function centerOn(e, smooth) { const [sx, sy] = P(e.x, e.y, 20); const left = world.offsetLeft + sx*scale - stage.clientWidth/2, top = world.offsetTop + sy*scale - stage.clientHeight/2;
+  if (smooth) stage.scrollTo({left, top, behavior:'smooth'}); else { stage.scrollLeft = left; stage.scrollTop = top; } }
 const visX = () => { const x0 = stage.scrollLeft - world.offsetLeft; return [Math.max(0, x0), Math.min(world.clientWidth, x0 + stage.clientWidth)]; };
 function toast(text, cls) {
   const box = $('toasts'), el = document.createElement('div');
@@ -877,6 +901,59 @@ let dancingMe = false;
 function syncDance() { $('tDance').setAttribute('aria-pressed', String(dancingMe)); }
 
 /* ================= Tap handling ================= */
+function figureUrl(e) { return e.av.figUrl || (e.av.figUrl = e.av.get('front','stand','wave').toDataURL()); }
+function showInfo({title, sub, img, actions = []}) {
+  const box = $('infostand'); box.innerHTML = '';
+  const card = document.createElement('div'); card.className = 'glass card-i';
+  const b = document.createElement('b'); b.textContent = title; card.appendChild(b);
+  if (img) { const im = document.createElement('img'); im.alt = ''; im.src = img; card.appendChild(im); }
+  if (sub) { const p = document.createElement('p'); p.textContent = sub; card.appendChild(p); }
+  box.appendChild(card);
+  const row = document.createElement('div'); row.className = 'row';
+  for (const [label, fn, small, disabled] of actions) { const bt = document.createElement('button'); bt.className = 'hbtn'; bt.textContent = label; bt.disabled = !!disabled; bt.onclick = () => { hideInfo(); fn(); }; row.appendChild(bt); }
+  if (actions.length) box.appendChild(row);
+  box.hidden = false;
+}
+function hideInfo() { $('infostand').hidden = true; }
+function nameTag(e) {
+  document.querySelectorAll('.nametag').forEach(n => n.remove());
+  const A = anchor(e), [x, y] = toCss(A.sx, A.head - 2), n = document.createElement('div'); n.className = 'nametag'; n.textContent = e.name;
+  n.style.left = x + 'px'; n.style.top = y + 'px'; world.appendChild(n); setTimeout(() => n.remove(), 2500);
+}
+function drawHotelView() {
+  const hv = $('hotelView'), w = Math.max(160, Math.ceil(innerWidth/2)), h = Math.max(200, Math.ceil(innerHeight/2)); hv.width = w; hv.height = h;
+  const sOX = OX, sOY = OY, sC = C; C = hv.getContext('2d');
+  const bands = ['#2f7fcf','#3b89d6','#4a95dd','#59a1e4','#69ade9','#7ab9ee','#8cc4f2','#9fcff6','#b3daf8','#c8e5fb'], hb = Math.ceil(h*.62/bands.length);
+  bands.forEach((c, i) => fr(0, i*hb, w, hb, c)); fr(0, bands.length*hb, w, h, '#c8e5fb');
+  disc(w*.82, h*.1, 13, '#fff6c8'); disc(w*.82, h*.1, 10, '#ffe98a');
+  for (let i = 0; i < 6; i++) { const cx = hash(i,3)*w, cy = h*(.06 + hash(i,7)*.22); disc(cx, cy, 6, '#ffffff'); disc(cx+8, cy+2, 5, '#ffffff'); disc(cx-8, cy+2, 5, '#ffffff'); fr(cx-13, cy+2, 26, 5, '#ffffff'); }
+  OX = Math.round(w/2); OY = Math.round(h*.58);
+  for (let i = 0; i < 12; i++) { const bx = (i/12)*w + hash(i,1)*8, bh = 18 + hash(i,2)*46; fr(bx, OY - 40 - bh, 16 + hash(i,4)*14, bh + 40, i % 2 ? '#86add0' : '#7aa2c6');
+    for (let j = 0; j < bh/8; j++) fr(bx + 4, OY - 36 - bh + j*8 + 4, 3, 2, hash(i,j) > .6 ? '#fff2b0' : '#9cbfdc'); }
+  poly([P(-9,-9),P(9,-9),P(9,9),P(-9,9)], '#6bb04e');
+  poly([P(-9,2.2),P(9,2.2),P(9,3.1),P(-9,3.1)], '#5f6068'); poly([P(2.2,-9),P(3.1,-9),P(3.1,9),P(2.2,9)], '#5f6068');
+  for (let i = -8; i < 9; i += 1.2) { poly([P(i,2.62),P(i+.5,2.62),P(i+.5,2.68),P(i,2.68)], '#f4f1ea'); poly([P(2.62,i),P(2.68,i),P(2.68,i+.5),P(2.62,i+.5)], '#f4f1ea'); }
+  const tower = (x0, y0, s, H, base, roof) => {
+    box(x0, y0, s, s, 0, H, base);
+    for (let z = 10; z < H - 8; z += 10) for (let u = .15; u < s - .2; u += .38) {
+      faceY(x0+u, x0+u+.2, y0+s, z, z+6, hash(Math.round(u*9), z) > .55 ? '#ffd76a' : '#4a6f8f');
+      faceX(x0+s, y0+u, y0+u+.2, z, z+6, hash(z, Math.round(u*9)+3) > .6 ? '#e8c050' : '#3e5f7c'); }
+    box(x0 - .08, y0 - .08, s + .16, s + .16, H, 4, roof);
+  };
+  const TH = Math.min(h*.46, 175);
+  tower(-4.4, -.6, 1.6, 60, '#c9b39a', '#6b4a32'); tower(4, -1.4, 1.5, 80, '#b9c6d6', '#4a5a6a');
+  tower(-1.3, -1.3, 2.6, TH, '#efe2c6', '#b3222e');
+  faceY(-.35, .35, 1.3, 0, 13, '#2a211a'); box(-.5, 1.3, 1, .35, 13, 2, '#b3222e'); faceY(-.9, .9, 1.3, TH - 18, TH - 6, '#b3222e');
+  const [sx, sy] = P(0, 1.3, TH - 9); C.font = 'bold 8px Ubuntu, sans-serif'; C.textAlign = 'center'; C.textBaseline = 'middle'; C.fillStyle = '#fff2b0'; C.fillText('PIXEL HÔTEL', sx - 12, sy + 3);
+  for (const [a, b] of [[-3,4.4],[-1.5,4.8],[4.6,4.2],[5.8,2],[-5.5,1.2],[1,5.6]]) { const [tx, ty] = P(a, b); fr(tx - 1, ty - 8, 3, 8, '#6b4a32'); disc(tx, ty - 13, 6, '#2f8a3f'); disc(tx - 2, ty - 15, 3, '#57b565'); }
+  C = sC; OX = sOX; OY = sOY;
+}
+function showHotelView() {
+  R = null; closeMenu(); hideInfo(); bubbles.splice(0).forEach(o => o.el.remove());
+  stage.hidden = true; drawHotelView(); $('hotelView').hidden = false;
+  $('roomLbl').textContent = 'Pixel Hôtel'; $('roomSub').textContent = 'Vue de l\'hôtel';
+  if (S) save();
+}
 function receptionReply(n) {
   const r = staff('reception'); if (!r) return; r.face = dirFace(R.me.x - r.x, R.me.y - r.y); r.timer = 30;
   let rep;
@@ -933,6 +1010,7 @@ cv.addEventListener('click', ev => {
   if (!menu.hidden) { closeMenu(); return; }
   if (placing) { const [tx, ty] = tileAt(nx, ny); placing.x = tx; placing.y = ty; checkPlace(); return; }
   const e = hitEnt(nx, ny);
+  if (e) { nameTag(e); showInfo({title:e.name, sub:e.motto, img:figureUrl(e)}); }
   if (e && e.role === 'waiter') { const A = anchor(e);
     return openMenu(e.name + ' (serveur)', 'Que veux-tu boire ?', Object.keys(DRINKS).map(d => [cap(DRINKS[d].name), () => { say(R.me, `${cap(DRINKS[d].art)}, s'il te plaît !`); order(R.me, d); }]), A.sx, A.head); }
   if (e && e.role === 'reception') { const A = anchor(e);
@@ -967,10 +1045,11 @@ cv.addEventListener('click', ev => {
     if (f.kind === 'rug') acts.push(['Marcher ici', () => walkTo(R.me, [tx, ty])]);
     if (R.room.own) { acts.push(['Déplacer', () => startPlace(it.t, it)]); acts.push(['Tourner', () => rotateItem(it)]); acts.push(['Ranger dans l\'inventaire', () => pickUp(it)]); }
     const [ox, oy] = P(it.x + .5, it.y + .5, 20);
-    return openMenu(f.name, R.room.own ? 'Mobi de ton appart' : null, acts, nx, Math.min(ny, oy));
+    return showInfo({title:f.name, sub:R.room.own ? 'Mobi de ton appart' : (f.hc ? 'Collection Club HC' : null), img:thumb(it.t), actions:acts});
   }
   if (tx === 0 && ty === R.room.door || (ty === R.room.door && nx < P(0, R.room.door + .9)[0] + 4 && tileAt(nx, ny)[0] < 0))
     return openMenu('Porte', 'Sortie de la pièce', [['Quitter la pièce', () => openNavigator()]], nx, ny);
+  hideInfo();
   if (inRoom(tx, ty) && !R.block.has(ty*GX+tx)) { marker = {x:tx, y:ty, t:performance.now()/1000}; if (!walkTo(R.me, [tx, ty])) toast("Impossible d'y aller.", 'bad'); dancingMe = false; syncDance(); }
 });
 document.addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== cv) closeMenu(); });
@@ -986,7 +1065,7 @@ function checkPlace() {
 }
 function startPlace(type, item) {
   closeSheet();
-  if (R.id !== 'home') { enterRoom('home', true); item = null; }
+  if (!R || R.id !== 'home') { enterRoom('home', true); item = null; }
   placing = {t:type, item, r:item ? item.r : 0, x:item ? item.x : null, y:item ? item.y : null, ok:false};
   $('placebar').hidden = false; checkPlace(); requestAnimationFrame(layout);
 }
@@ -1078,11 +1157,11 @@ function openWardrobe() {
   const lm = document.createElement('label'); lm.className = 'muted'; lm.style.display = 'flex'; lm.style.flexDirection = 'column'; lm.style.gap = '3px'; lm.textContent = 'Devise';
   const inp = document.createElement('input'); inp.className = 'txt'; inp.maxLength = 40; inp.value = S.motto; lm.appendChild(inp); b.appendChild(lm);
   const ok = document.createElement('button'); ok.className = 'hbtn go big'; ok.textContent = 'Enregistrer mon look'; b.appendChild(ok);
-  ok.onclick = () => { S.look = look; S.motto = inp.value.trim() || S.motto; R.me.look = look; R.me.av = avatarSet(look); R.me.motto = S.motto; save(); closeSheet(); R.me.wave = 2;
+  ok.onclick = () => { S.look = look; S.motto = inp.value.trim() || S.motto; save(); if (!R) { closeSheet(); return; } R.me.look = look; R.me.av = avatarSet(look); R.me.motto = S.motto; $('meIcon').src = R.me.av.faceUrl; save(); closeSheet(); R.me.wave = 2;
     if (R.ents.some(e => e.bot)) setTimeout(() => { const bt = R.ents.find(e => e.bot); if (bt) say(bt, pickRand(['Trop stylé ton nouveau look !','Oh, ça te va bien !'])); }, 900); };
 }
 function openWelcome() {
-  const b = openSheet('Bienvenue'); $('sheetClose').hidden = true;
+  const b = openSheet('Bienvenue'); $('sheetClose').hidden = true; showHotelView();
   const saved = loadSave();
   b.insertAdjacentHTML('beforeend', `<h1 class="logo">Pixel <i>Hôtel</i></h1><p class="tag">Un hôtel en pixels, rien que pour toi. Crée ton perso et entre !</p>`);
   const look = saved ? Object.assign({}, saved.look) : {style:0, hair:0, skin:0, shirt:2, pants:0};
@@ -1097,6 +1176,9 @@ function openWelcome() {
   b.insertAdjacentHTML('beforeend', `<ul class="help"><li><b>Touche le sol</b> pour marcher, <b>un mobi</b> pour t'asseoir ou l'utiliser.</li><li><b>Écris dans le chat</b> : les autres te répondent. Au Café, dis « café » au serveur !</li><li><b>Navigateur</b> pour changer de pièce, <b>Catalogue</b> pour acheter des mobis.</li><li>Décore <b>ton appart</b> : déplace, tourne et range tes mobis.</li></ul>`);
 }
 $('tNav').onclick = () => openNavigator();
+$('roomPill').onclick = () => openNavigator();
+$('tHotel').onclick = () => { if (R) showHotelView(); openNavigator(); };
+$('tZoom').onclick = () => { if (!R) return; zoomLvl = (zoomLvl + 1) % 3; layout(); centerOn(R.me, false); };
 $('tCat').onclick = () => openCatalogue();
 $('tInv').onclick = () => openInventory();
 $('tWar').onclick = () => openWardrobe();
@@ -1134,6 +1216,7 @@ function frame(now) {
 function start(data) {
   const st = data && data.state;
   if (st && st.v === 1) boot(st); else openWelcome();
+  if (!R) drawHotelView();
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => (S ? {state:S} : {}));
